@@ -80,33 +80,4 @@ void printVarDef(ASTVarDef* varDef) {
     printf("    Expression: \n");
     printExpression(varDef->expression);
 }
-
-void buildTokensAndPrint(char* fileName) {
-    //Init lexer with file contents specified by arg 1
-    Lexer* lex = lexerInit(read_file(fileName));
-
-    List* tokens = listInit(sizeof(Token));
-    while (1) {
-        Token* token = lexNextToken(lex);
-        if (token->type == TOKEN_UNEXPECTED) {
-            //Could not tokenize current character, either invalid source or missed case.
-            fprintf(stderr, "Unexpected Token(%d): %s\n", lex->pos, token->value);
-            break;
-        }
-        listAppend(tokens, token);
-        if (token->type == TOKEN_EOF) {
-            break;
-        }
-    }
-
-    for (size_t i = 0; i < tokens->len; i++) {
-        Token* token = tokens->elements[i];
-        printf("Token: %s: %s\n", TOKEN_NAMES[token->type], token->value);
-    }
-    printf("List: %d\n", tokens->len);
-
-    //Free allocations
-    listFree(tokens);
-    lexerFree(lex);
-}
 #endif

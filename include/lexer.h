@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include "token.h"
 #include "util.h"
+#include "debug.h"
 
 typedef struct Lexer {
     char* contents;
@@ -57,8 +58,12 @@ Token* lexNextDigit(Lexer* lexer) {
         }
         advance(lexer);
     }
+    if (buffer[strlen(buffer) - 1] == '.') {
+        fprintf(stderr, "Syntax Error: value: %s is invalid for type %s\n", buffer, TOKEN_NAMES[type]);
+        exit(1);
+    }
 
-    return tokenInit(type, buffer);
+    return tokenInitBase(type, buffer);
 }
 
 Token* lexNextIdentifier(Lexer* lexer) {
@@ -72,47 +77,47 @@ Token* lexNextIdentifier(Lexer* lexer) {
     }
 
     if (strcmp(buffer, "null") == 0) {
-        return tokenInit(TOKEN_NULL, buffer);
+        return tokenInitBase(TOKEN_NULL, buffer);
     } else if (strcmp(buffer, "void") == 0) {
-        return tokenInit(TOKEN_VOID, buffer);
+        return tokenInitBase(TOKEN_VOID, buffer);
     } else if (strcmp(buffer, "int") == 0) {
-        return tokenInit(TOKEN_INT, buffer);
+        return tokenVarInit(TOKEN_INT, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "i32") == 0) {
-        return tokenInit(TOKEN_I32, buffer);
+        return tokenVarInit(TOKEN_I32, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "i64") == 0) {
-        return tokenInit(TOKEN_I64, buffer);
+        return tokenVarInit(TOKEN_I64, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "float") == 0) {
-        return tokenInit(TOKEN_F32, buffer);
+        return tokenVarInit(TOKEN_F32, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "f32") == 0) {
-        return tokenInit(TOKEN_F32, buffer);
+        return tokenVarInit(TOKEN_F32, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "f64") == 0) {
-        return tokenInit(TOKEN_F64, buffer);
+        return tokenVarInit(TOKEN_F64, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "str") == 0) {
-        return tokenInit(TOKEN_STRING, buffer);
+        return tokenVarInit(TOKEN_STRING, buffer, TOKEN_STRING_VALUE);
     } else if (strcmp(buffer, "bool") == 0) {
-        return tokenInit(TOKEN_BOOLEAN, buffer);
+        return tokenInitBase(TOKEN_BOOLEAN, buffer);
     } else if (strcmp(buffer, "true") == 0) {
-        return tokenInit(TOKEN_TRUE, buffer);
+        return tokenInitBase(TOKEN_TRUE, buffer);
     } else if (strcmp(buffer, "false") == 0) {
-        return tokenInit(TOKEN_FALSE, buffer);
+        return tokenInitBase(TOKEN_FALSE, buffer);
     } else if (strcmp(buffer, "type") == 0) {
-        return tokenInit(TOKEN_TYPE_DEF, buffer);
+        return tokenInitBase(TOKEN_TYPE_DEF, buffer);
     } else if (strcmp(buffer, "enum") == 0) {
-        return tokenInit(TOKEN_ENUM_DEF, buffer);
+        return tokenInitBase(TOKEN_ENUM_DEF, buffer);
     } else if (strcmp(buffer, "if") == 0) {
-        return tokenInit(TOKEN_IF, buffer);
+        return tokenInitBase(TOKEN_IF, buffer);
     } else if (strcmp(buffer, "else") == 0) {
-        return tokenInit(TOKEN_ELSE, buffer);
+        return tokenInitBase(TOKEN_ELSE, buffer);
     } else if (strcmp(buffer, "while") == 0) {
-        return tokenInit(TOKEN_WHILE, buffer);
+        return tokenInitBase(TOKEN_WHILE, buffer);
     } else if (strcmp(buffer, "for") == 0) {
-        return tokenInit(TOKEN_FOR, buffer);
+        return tokenInitBase(TOKEN_FOR, buffer);
     } else if (strcmp(buffer, "return") == 0) {
-        return tokenInit(TOKEN_RETURN, buffer);
+        return tokenInitBase(TOKEN_RETURN, buffer);
     }
 
     //Assume if it's not a reserved identifier, it must be a name
-    return tokenInit(TOKEN_IDENTIFIER, buffer);
+    return tokenInitBase(TOKEN_IDENTIFIER, buffer);
 }
 
 Token* lexNextString(Lexer* lexer) {
@@ -124,7 +129,7 @@ Token* lexNextString(Lexer* lexer) {
         advance(lexer);
     }
     advance(lexer); //Advance past closing string char
-    return tokenInit(TOKEN_STRING_VALUE, buffer);
+    return tokenInitBase(TOKEN_STRING_VALUE, buffer);
 }
 
 Token* lexNextComment(Lexer* lexer) {
@@ -143,14 +148,14 @@ Token* lexNextComment(Lexer* lexer) {
         advance(lexer);
         type = TOKEN_COMMENT_MULTI;
     }
-    return tokenInit(type, buffer);
+    return tokenInitBase(type, buffer);
 }
 
 Token* lexNextToken(Lexer* lexer) {
     skipWhitespace(lexer);
 
     if (lexer->pos >= lexer->len) {
-        return tokenInit(TOKEN_EOF, "EOF");
+        return tokenInitBase(TOKEN_EOF, "EOF");
     } else if (isdigit(lexer->cur)) {
         return lexNextDigit(lexer);
     } else if (isalnum(lexer->cur)) {
@@ -161,15 +166,15 @@ Token* lexNextToken(Lexer* lexer) {
 
     if (lexer->cur == ';') {
         advance(lexer);
-        return tokenInit(TOKEN_SEMI, value);
+        return tokenInitBase(TOKEN_SEMI, value);
     } else if (lexer->cur == '=') {
         advance(lexer);
         if (lexer->cur == '=') {
             free(value);
             advance(lexer);
-            return tokenInit(TOKEN_EQUALS, "==");
+            return tokenInitBase(TOKEN_EQUALS, "==");
         } else {
-            return tokenInit(TOKEN_ASSIGNMENT, value);
+            return tokenInitBase(TOKEN_ASSIGNMENT, value);
         }
     } else if (lexer->cur == '"') {
         advance(lexer);
@@ -179,56 +184,56 @@ Token* lexNextToken(Lexer* lexer) {
         if (lexer->cur == '/' || lexer->cur == '*') {
             return lexNextComment(lexer);
         }
-        return tokenInit(TOKEN_DIVISION, value);
+        return tokenInitBase(TOKEN_DIVISION, value);
     } else if (lexer->cur == '+') {
         advance(lexer);
-        return tokenInit(TOKEN_PLUS, value);
+        return tokenInitBase(TOKEN_PLUS, value);
     } else if (lexer->cur == '-') {
         advance(lexer);
-        return tokenInit(TOKEN_MINUS, value);
+        return tokenInitBase(TOKEN_MINUS, value);
     } else if (lexer->cur == '*') {
         advance(lexer);
-        return tokenInit(TOKEN_MULTIPLY, value);
+        return tokenInitBase(TOKEN_MULTIPLY, value);
     } else if (lexer->cur == '<') {
         advance(lexer);
-        return tokenInit(TOKEN_LESS_THAN, value);
+        return tokenInitBase(TOKEN_LESS_THAN, value);
     } else if (lexer->cur == '>') {
         advance(lexer);
-        return tokenInit(TOKEN_MORE_THAN, value);
+        return tokenInitBase(TOKEN_MORE_THAN, value);
     } else if (lexer->cur == '!') {
         advance(lexer);
-        return tokenInit(TOKEN_NOT, value);
+        return tokenInitBase(TOKEN_NOT, value);
     } else if (lexer->cur == '(') {
         advance(lexer);
-        return tokenInit(TOKEN_LPAREN, value);
+        return tokenInitBase(TOKEN_LPAREN, value);
     } else if (lexer->cur == ')') {
         advance(lexer);
-        return tokenInit(TOKEN_RPAREN, value);
+        return tokenInitBase(TOKEN_RPAREN, value);
     } else if (lexer->cur == ':') {
         advance(lexer);
-        return tokenInit(TOKEN_COLON, value);
+        return tokenInitBase(TOKEN_COLON, value);
     } else if (lexer->cur == ',') {
         advance(lexer);
-        return tokenInit(TOKEN_COMMA, value);
+        return tokenInitBase(TOKEN_COMMA, value);
     } else if (lexer->cur == '.') {
         advance(lexer);
-        return tokenInit(TOKEN_DOT, value);
+        return tokenInitBase(TOKEN_DOT, value);
     } else if (lexer->cur == '[') {
         advance(lexer);
-        return tokenInit(TOKEN_LBRACKET, value);
+        return tokenInitBase(TOKEN_LBRACKET, value);
     } else if (lexer->cur == ']') {
         advance(lexer);
-        return tokenInit(TOKEN_RBRACKET, value);
+        return tokenInitBase(TOKEN_RBRACKET, value);
     } else if (lexer->cur == '{') {
         advance(lexer);
-        return tokenInit(TOKEN_LBRACE, value);
+        return tokenInitBase(TOKEN_LBRACE, value);
     } else if (lexer->cur == '}') {
         advance(lexer);
-        return tokenInit(TOKEN_RBRACE, value);
+        return tokenInitBase(TOKEN_RBRACE, value);
     }
 
     //Finally, return unexpected token is nothing matches
     advance(lexer);
-    return tokenInit(TOKEN_UNEXPECTED, value);
+    return tokenInitBase(TOKEN_UNEXPECTED, value);
 }
 #endif

@@ -68,11 +68,26 @@ typedef struct Token {
     char* value;
 } Token;
 
-Token* tokenInit(TokenType type, char* value) {
-    Token* tok = calloc(1, sizeof(Token));
-    tok->type = type;
-    tok->value = value;
-    return tok;
+Token* tokenInit(Token* token, TokenType type, char* value) {
+    token->type = type;
+    token->value = value;
+    return token;
+}
+
+Token* tokenInitBase(TokenType type, char* value) {
+    return tokenInit(calloc(1, sizeof(Token)), type, value);
+}
+
+typedef struct TokenVar {
+    Token base;
+    TokenType valid;
+} TokenVar;
+
+Token* tokenVarInit(TokenType type, char* value, TokenType valid) {
+    TokenVar* tokenVar = calloc(1, sizeof(TokenVar));
+    tokenInit((Token*) tokenVar, type, value);
+    tokenVar->valid = valid;
+    return (Token*) tokenVar;
 }
 
 void tokenFree(Token* token) {

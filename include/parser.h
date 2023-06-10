@@ -107,9 +107,25 @@ AST* parseExpression(Parser* parser, Scope* scope) {
 }
 
 ASTVarDef* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType) {
-    AST* expression = parseExpression(parser, scope);
+    AST* right = parseExpression(parser, scope);
+    if (right->token->type != ((TokenVar*) dataType->token)->valid) {
+        fprintf(stderr, "Invalid value: %s for type: %s\n", right->token->value, TOKEN_NAMES[dataType->token->type]);
+        exit(1);
+    }
     parserConsume(parser, TOKEN_SEMI);
-    return initASTVarDef(NULL, dataType, identifier, expression);
+    return initASTVarDef(NULL, dataType, identifier, right);
+}
+
+AST* parseDefinition(Parser* parser, Scope* scope) {
+    AST* dataType = parseDataType(parser, scope);
+    AST* identifier = parseIdentifier(parser, scope);
+    if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
+        parserConsume(parser, TOKEN_ASSIGNMENT);
+        return (AST *) parseVarDefinition(parser, scope, identifier, dataType);
+    } else if (parser->type == TOKEN_LPAREN) { //Function definition
+        parserConsume(parser, TOKEN_LPAREN);
+
+    }
 }
 
 ASTCompound* parseAST(Parser* parser, Scope* scope) {
@@ -117,13 +133,7 @@ ASTCompound* parseAST(Parser* parser, Scope* scope) {
     while (parser->type != TOKEN_EOF) {
         AST* node = NULL;
         if (isVarType(parser->type)) {
-            //TODO convert to parseDefinition function
-            AST* dataType = parseDataType(parser, scope);
-            AST* identifier = parseIdentifier(parser, scope);
-            if (parser->type == TOKEN_ASSIGNMENT) {
-                parserConsume(parser, TOKEN_ASSIGNMENT);
-                node = (AST *) parseVarDefinition(parser, scope, identifier, dataType);
-            }
+            node = parseDefinition(parser, scope);
         } else {
             fprintf(stderr, "Unexpected token: %s\n", TOKEN_NAMES[parser->type]);
             exit(1);
