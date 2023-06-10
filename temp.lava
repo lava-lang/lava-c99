@@ -1,0 +1,8 @@
+int x = 187_686_223;
+float y = 1.234;
+str name = "bob";
+bool enable = true;
+
+void main() {
+    y = 999.9;
+}

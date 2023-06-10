@@ -1,0 +1,3 @@
+C:/Users/Admin/CLionProjects/Lava/cmake-build-debug/CMakeFiles/Lava.dir
+C:/Users/Admin/CLionProjects/Lava/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Admin/CLionProjects/Lava/cmake-build-debug/CMakeFiles/rebuild_cache.dir
