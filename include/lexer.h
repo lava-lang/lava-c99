@@ -33,6 +33,10 @@ char advance(Lexer* lexer) {
     return (lexer->cur = lexer->contents[++(lexer->pos)]);
 }
 
+char peek(Lexer* lexer, int offset) {
+    return lexer->pos + offset >= lexer->len ? '\0' : lexer->contents[lexer->pos + offset];
+}
+
 int isWhitespace(Lexer* lexer) {
     return lexer->cur == ' ' || lexer->cur == 10 || lexer->cur == '\r';
 }

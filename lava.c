@@ -31,6 +31,8 @@ int main(int argc, char *argv[]) {
 
         if (node->type == AST_VAR_DEF) {
             printVarDef((ASTVarDef*) node);
+        } else if (node->type == AST_FUNC_DEF) {
+            printFuncDef((ASTFuncDef*) node);
         }
     }
     printf("AST Nodes Constructed: %d\n\n", AST_NODES_CONSTRUCTED);

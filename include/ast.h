@@ -9,11 +9,11 @@ static int AST_NODES_CONSTRUCTED = 0;
 typedef enum ASTType {
     AST_DATA_TYPE,
     AST_VAR_DEF,
+    AST_FUNC_DEF,
     AST_IDENTIFIER,
     AST_COMPOUND,
     AST_BINARY_OP,
-    AST_INTEGER_VALUE,
-    AST_FLOAT_VALUE,
+    AST_VAR_VALUE,
 } ASTType;
 
 typedef struct Scope Scope;
@@ -54,22 +54,6 @@ AST* initASTBase(Token* token, ASTType type) {
     return initAST(token, calloc(1, sizeof(AST)), type);
 }
 
-typedef struct ASTVarDef {
-    AST base;
-    AST* dataType;
-    AST* identifier;
-    AST* expression;
-} ASTVarDef;
-
-ASTVarDef* initASTVarDef(Token* token, AST* dataType, AST* identifier, AST* expression) {
-    ASTVarDef* varDef = calloc(1, sizeof(ASTVarDef));
-    initAST(token, (AST*) varDef, AST_VAR_DEF);
-    varDef->dataType = dataType;
-    varDef->identifier = identifier;
-    varDef->expression = expression;
-    return varDef;
-}
-
 typedef struct ASTCompound {
     AST* base;
     List* children;
@@ -80,6 +64,38 @@ ASTCompound* initASTCompound(Token* token, List* children) {
     initAST(token, (AST*) compound, AST_COMPOUND);
     compound->children = children;
     return compound;
+}
+
+typedef struct ASTVarDef {
+    AST base;
+    AST* dataType;
+    AST* identifier;
+    AST* expression;
+} ASTVarDef;
+
+ASTVarDef* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
+    ASTVarDef* varDef = calloc(1, sizeof(ASTVarDef));
+    initAST(&STATIC_TOKEN_NONE, (AST*) varDef, AST_VAR_DEF);
+    varDef->dataType = dataType;
+    varDef->identifier = identifier;
+    varDef->expression = expression;
+    return varDef;
+}
+
+typedef struct ASTFuncDef {
+    AST base;
+    AST* returnType;
+    AST* identifier;
+    AST* compound;
+} ASTFuncDef;
+
+ASTFuncDef* initASTFuncDef(AST* returnType, AST* identifier, AST* compound) {
+    ASTFuncDef* funcDef = calloc(1, sizeof(ASTFuncDef));
+    initAST(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
+    funcDef->returnType = returnType;
+    funcDef->identifier = identifier;
+    funcDef->compound = compound;
+    return funcDef;
 }
 
 typedef struct ASTBinaryOp {

@@ -7,6 +7,7 @@ typedef enum TokenType {
     //Special
     TOKEN_EOF,
     TOKEN_UNEXPECTED,
+    TOKEN_NONE,
 
     //Basic Types
     TOKEN_NULL,
@@ -77,6 +78,8 @@ Token* tokenInit(Token* token, TokenType type, char* value) {
 Token* tokenInitBase(TokenType type, char* value) {
     return tokenInit(calloc(1, sizeof(Token)), type, value);
 }
+
+static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
 
 typedef struct TokenVar {
     Token base;

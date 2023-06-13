@@ -8,6 +8,7 @@
 const char* TOKEN_NAMES[] = {
     "End of File",
     "Unexpected Token",
+    "None",
     
     "NULL",
     "Void Type",
@@ -63,10 +64,11 @@ const char* TOKEN_NAMES[] = {
 const char* AST_NAMES[] = {
     "AST Data Type",
     "AST Variable Definition",
+    "AST Function Definition",
     "AST Identifier",
     "AST Compound",
     "AST Binary Operator",
-    "AST Integer",
+    "AST Var Value",
 };
 
 void printExpression(AST* node) {
@@ -79,5 +81,12 @@ void printVarDef(ASTVarDef* varDef) {
     printf("    Identifier: %s\n", varDef->identifier->token->value);
     printf("    Expression: \n");
     printExpression(varDef->expression);
+}
+
+void printFuncDef(ASTFuncDef* funcDef) {
+    printf("    ReturnType: %s\n", TOKEN_NAMES[funcDef->returnType->token->type]);
+    printf("    Identifier: %s\n", funcDef->identifier->token->value);
+    printf("    Compound: \n");
+    //printCompound(funcDef->compound);
 }
 #endif

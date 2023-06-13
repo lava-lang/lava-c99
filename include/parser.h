@@ -46,7 +46,7 @@ Token* parserConsume(Parser* parser, TokenType type) {
 }
 
 int isVarType(TokenType type) {
-    return type == TOKEN_INT || type == TOKEN_I32 || type == TOKEN_I64 || type == TOKEN_FLOAT || type == TOKEN_F32 || type == TOKEN_F64 || type == TOKEN_STRING || type == TOKEN_BOOLEAN;
+    return type == TOKEN_VOID || type == TOKEN_INT || type == TOKEN_I32 || type == TOKEN_I64 || type == TOKEN_FLOAT || type == TOKEN_F32 || type == TOKEN_F64 || type == TOKEN_STRING || type == TOKEN_BOOLEAN;
 }
 
 AST* parseIdentifier(Parser* parser, Scope* scope) {
@@ -68,10 +68,13 @@ AST* parseFactor(Parser* parser, Scope* scope) {
     Token* token = parser->token;
     if (parser->type == TOKEN_INTEGER_VALUE) {
         parserConsume(parser, TOKEN_INTEGER_VALUE);
-        return initASTBase(token, AST_INTEGER_VALUE);
+        return initASTBase(token, AST_VAR_VALUE);
     } else if (parser->type == TOKEN_FLOAT_VALUE) {
         parserConsume(parser, TOKEN_FLOAT_VALUE);
-        return initASTBase(token, AST_FLOAT_VALUE);
+        return initASTBase(token, AST_VAR_VALUE);
+    } else if (parser->type == TOKEN_STRING_VALUE) {
+        parserConsume(parser, TOKEN_STRING_VALUE);
+        return initASTBase(token, AST_VAR_VALUE);
     }
 
     else if (parser->type == TOKEN_LPAREN) {
@@ -113,7 +116,11 @@ ASTVarDef* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST
         exit(1);
     }
     parserConsume(parser, TOKEN_SEMI);
-    return initASTVarDef(NULL, dataType, identifier, right);
+    return initASTVarDef(dataType, identifier, right);
+}
+
+ASTFuncDef* parseFuncDefinition(Parser* parser, Scope* scope, AST* identifier, AST* returnType) {
+    return initASTFuncDef(returnType, identifier, NULL);
 }
 
 AST* parseDefinition(Parser* parser, Scope* scope) {
@@ -121,10 +128,13 @@ AST* parseDefinition(Parser* parser, Scope* scope) {
     AST* identifier = parseIdentifier(parser, scope);
     if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
         parserConsume(parser, TOKEN_ASSIGNMENT);
-        return (AST *) parseVarDefinition(parser, scope, identifier, dataType);
+        return (AST*) parseVarDefinition(parser, scope, identifier, dataType);
     } else if (parser->type == TOKEN_LPAREN) { //Function definition
         parserConsume(parser, TOKEN_LPAREN);
-
+        parserConsume(parser, TOKEN_RPAREN);
+        parserConsume(parser, TOKEN_LBRACE);
+        parserConsume(parser, TOKEN_RBRACE);
+        return (AST*) parseFuncDefinition(parser, scope, identifier, dataType);
     }
 }
 
