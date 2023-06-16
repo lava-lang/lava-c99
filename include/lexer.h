@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include "token.h"
 #include "util.h"
 #include "debug.h"
@@ -63,11 +64,25 @@ Token* lexNextDigit(Lexer* lexer) {
         advance(lexer);
     }
     if (buffer[strlen(buffer) - 1] == '.') {
-        fprintf(stderr, "Syntax Error: value: %s is invalid for type %s\n", buffer, TOKEN_NAMES[type]);
+        fprintf(stderr, "lexNextDigit: Syntax Error: value: %s is invalid for type %s\n", buffer, TOKEN_NAMES[type]);
         exit(1);
     }
 
     return tokenInitBase(type, buffer);
+}
+
+Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenType valueType) {
+    bool isPointer = false;
+    if (lexer->cur == '*') {
+        advance(lexer);
+        isPointer = true;
+    }
+    if (tokenType == TOKEN_STRING) {
+        isPointer = true;
+    }
+    //TODO boolean values...
+    //TODO detect arrays
+    return tokenVarInit(tokenType, buffer, valueType, isPointer);
 }
 
 Token* lexNextIdentifier(Lexer* lexer) {
@@ -85,21 +100,21 @@ Token* lexNextIdentifier(Lexer* lexer) {
     } else if (strcmp(buffer, "void") == 0) {
         return tokenInitBase(TOKEN_VOID, buffer);
     } else if (strcmp(buffer, "int") == 0) {
-        return tokenVarInit(TOKEN_INT, buffer, TOKEN_INTEGER_VALUE);
+        return lexNextVarType(lexer, TOKEN_INT, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "i32") == 0) {
-        return tokenVarInit(TOKEN_I32, buffer, TOKEN_INTEGER_VALUE);
+        return lexNextVarType(lexer, TOKEN_I32, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "i64") == 0) {
-        return tokenVarInit(TOKEN_I64, buffer, TOKEN_INTEGER_VALUE);
+        return lexNextVarType(lexer, TOKEN_I64, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "float") == 0) {
-        return tokenVarInit(TOKEN_F32, buffer, TOKEN_FLOAT_VALUE);
+        return lexNextVarType(lexer, TOKEN_F32, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "f32") == 0) {
-        return tokenVarInit(TOKEN_F32, buffer, TOKEN_FLOAT_VALUE);
+        return lexNextVarType(lexer, TOKEN_F32, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "f64") == 0) {
-        return tokenVarInit(TOKEN_F64, buffer, TOKEN_FLOAT_VALUE);
+        return lexNextVarType(lexer, TOKEN_F64, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "str") == 0) {
-        return tokenVarInit(TOKEN_STRING, buffer, TOKEN_STRING_VALUE);
+        return lexNextVarType(lexer, TOKEN_STRING, buffer, TOKEN_STRING_VALUE);
     } else if (strcmp(buffer, "bool") == 0) {
-        return tokenInitBase(TOKEN_BOOLEAN, buffer);
+        return lexNextVarType(lexer, TOKEN_BOOLEAN, buffer, TOKEN_BOOLEAN_VALUE);
     } else if (strcmp(buffer, "true") == 0) {
         return tokenInitBase(TOKEN_TRUE, buffer);
     } else if (strcmp(buffer, "false") == 0) {
@@ -127,7 +142,7 @@ Token* lexNextIdentifier(Lexer* lexer) {
 Token* lexNextString(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur); //Contains first string char
     advance(lexer); //Move to next string char
-    while(lexer->cur != '"') { //Grow with chars until closing string char
+    while (lexer->cur != '"') { //Grow with chars until closing string char
         buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);

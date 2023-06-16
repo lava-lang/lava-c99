@@ -2,6 +2,7 @@
 #define LAVA_TOKEN_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef enum TokenType {
     //Special
@@ -23,6 +24,7 @@ typedef enum TokenType {
     TOKEN_STRING,
     TOKEN_STRING_VALUE,
     TOKEN_BOOLEAN,
+    TOKEN_BOOLEAN_VALUE,
     TOKEN_TRUE,
     TOKEN_FALSE,
 
@@ -83,13 +85,15 @@ static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
 
 typedef struct TokenVar {
     Token base;
-    TokenType valid;
+    TokenType validValue;
+    bool isPointer;
 } TokenVar;
 
-Token* tokenVarInit(TokenType type, char* value, TokenType valid) {
+Token* tokenVarInit(TokenType type, char* value, TokenType validValue, bool isPointer) {
     TokenVar* tokenVar = calloc(1, sizeof(TokenVar));
     tokenInit((Token*) tokenVar, type, value);
-    tokenVar->valid = valid;
+    tokenVar->validValue = validValue;
+    tokenVar->isPointer = isPointer;
     return (Token*) tokenVar;
 }
 

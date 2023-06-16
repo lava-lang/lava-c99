@@ -23,6 +23,7 @@ const char* TOKEN_NAMES[] = {
     "String Type",
     "String Value",
     "Boolean Type",
+    "Boolean Value",
     "True",
     "False",
 
