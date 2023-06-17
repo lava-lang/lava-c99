@@ -34,10 +34,8 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
     } else if (node->token->type == TOKEN_BOOLEAN) {
         bufferAppend(buffer, "bool");
         bufferAddImport(buffer, "#include <stdbool.h>");
-        bufferAddImport(buffer, "#include test");
     } else {
-        fprintf(stderr, "Unhandled DataType: %s for %s\n", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
-        exit(1);
+        PANIC("Unhandled DataType: %s for %s", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
     }
 }
 
@@ -88,8 +86,7 @@ void visit(AST* node, OutputBuffer* buffer) {
     }
 
     else {
-        fprintf(stderr, "Unhandled AST: %s for %s\n", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
-        exit(1);
+        PANIC("Unhandled AST: %s for %s", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
     }
 }
 #endif //LAVA_VISIT_H

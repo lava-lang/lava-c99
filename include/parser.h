@@ -34,10 +34,9 @@ void parserFree(Parser* parser) {
 
 Token* parserConsume(Parser* parser, TokenType type) {
     if (parser->token->type != type) {
-        fprintf(stderr, "parserConsume: Unexpected token! expected: %s, got: %s\n", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type]);
-        exit(1);
+        PANIC("Unexpected token! expected: %s, got: %s", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type]);
     }
-    printf("parserConsume: Consumed: %s (%s)\n", TOKEN_NAMES[parser->token->type], parser->token->value);
+    INFO("Consumed: %s (%s)\n", TOKEN_NAMES[parser->token->type], parser->token->value);
     TOKENS_CONSUMED++;
     Token* prev = parser->token;
     parser->token = lexNextToken(parser->lexer);
@@ -110,8 +109,7 @@ AST* parseExpression(Parser* parser, Scope* scope) {
 ASTVarDef* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType) {
     AST* right = parseExpression(parser, scope);
     if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
-        fprintf(stderr, "parseVarDefinition: %s (%s) incompatible with: %s\n", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
-        exit(1);
+        PANIC("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
     }
     parserConsume(parser, TOKEN_SEMI);
     return initASTVarDef(dataType, identifier, right);
@@ -143,8 +141,7 @@ ASTCompound* parseAST(Parser* parser, Scope* scope) {
         if (isVarType(parser->type)) {
             node = parseDefinition(parser, scope);
         } else {
-            fprintf(stderr, "parseAST: Unexpected token: %s\n", TOKEN_NAMES[parser->type]);
-            exit(1);
+            PANIC("Unexpected token: %s", TOKEN_NAMES[parser->type]);
         }
         listAppend(children, node);
     }

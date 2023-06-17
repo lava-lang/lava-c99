@@ -5,23 +5,19 @@
 #include <stdio.h>
 
 char* read_file(char* filename) {
-    char* buffer = 0;
+    char* buffer;
     long length;
     FILE* f = fopen (filename, "rb");
+    ASSERT(!f, "Could not open %s!", filename);
 
-    if (f) {
-        fseek (f, 0, SEEK_END);
-        length = ftell (f);
-        fseek (f, 0, SEEK_SET);
-        buffer = calloc (length, length);
-        if (buffer) {
-            fread (buffer, 1, length, f);
-        }
-        fclose (f);
-    } else {
-        fprintf(stderr, "Could not open file!");
-        exit(1);
+    fseek (f, 0, SEEK_END);
+    length = ftell (f);
+    fseek (f, 0, SEEK_SET);
+    buffer = calloc (length, length);
+    if (buffer) {
+        fread (buffer, 1, length, f);
     }
+    fclose (f);
 
     return buffer;
 }

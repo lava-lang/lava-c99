@@ -64,8 +64,7 @@ Token* lexNextDigit(Lexer* lexer) {
         advance(lexer);
     }
     if (buffer[strlen(buffer) - 1] == '.') {
-        fprintf(stderr, "lexNextDigit: Syntax Error: value: %s is invalid for type %s\n", buffer, TOKEN_NAMES[type]);
-        exit(1);
+        PANIC("Value: %s is invalid for type %s", buffer, TOKEN_NAMES[type]);
     }
 
     return tokenInit(type, buffer);

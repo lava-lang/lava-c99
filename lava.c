@@ -10,10 +10,7 @@
 
 int main(int argc, char *argv[]) {
     //Exit if arguments is less than 2
-    if (argc < 2) {
-        fprintf(stderr, "Lava compiler requires two arguments!");
-        exit(1);
-    }
+    ASSERT(argc < 2, "Two arguments required, %d were passed.", argc)
 
     printf("Lava Input Code:\n");
     char* inputCode = read_file(argv[1]);
