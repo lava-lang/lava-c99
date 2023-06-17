@@ -52,13 +52,13 @@ int isVarType(TokenType type) {
 AST* parseIdentifier(Parser* parser, Scope* scope) {
     Token* identifier = parser->token;
     parserConsume(parser, TOKEN_IDENTIFIER);
-    return initASTBase(identifier, AST_IDENTIFIER);
+    return initAST(identifier, AST_IDENTIFIER);
 }
 
 AST* parseDataType(Parser* parser, Scope* scope) {
     Token* varType = parser->token;
     parserConsume(parser, parser->type); //Type was checked by parseTokens, so this should be valid. parserConsume will panic if not.
-    return initASTBase(varType, AST_DATA_TYPE);
+    return initAST(varType, AST_DATA_TYPE);
 }
 
 AST* parseFactor(Parser* parser, Scope* scope);
@@ -70,16 +70,18 @@ AST* parseFactor(Parser* parser, Scope* scope) {
         case TOKEN_INTEGER_VALUE:
         case TOKEN_FLOAT_VALUE:
         case TOKEN_STRING_VALUE:
+        case TOKEN_BOOLEAN_VALUE:
             parserConsume(parser, parser->type);
-            return initASTBase(token, AST_VAR_VALUE);
+            return initAST(token, AST_VAR_VALUE);
         case TOKEN_LPAREN:
             parserConsume(parser, TOKEN_LPAREN);
             AST* expression = parseExpression(parser, scope);
             parserConsume(parser, TOKEN_RPAREN);
             return expression;
         default:
-            fprintf(stderr, "parseFactor: Unhandled Token: %s\n", TOKEN_NAMES[token->type]);
-            exit(1);
+            return parseExpression(parser, scope);
+//            fprintf(stderr, "parseFactor: Unhandled Token: %s\n", TOKEN_NAMES[token->type]);
+//            exit(1);
     }
 }
 
@@ -108,7 +110,7 @@ AST* parseExpression(Parser* parser, Scope* scope) {
 ASTVarDef* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType) {
     AST* right = parseExpression(parser, scope);
     if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
-        fprintf(stderr, "parseVarDefinition: Invalid value: %s for type: %s\n", right->token->value, TOKEN_NAMES[dataType->token->type]);
+        fprintf(stderr, "parseVarDefinition: %s (%s) incompatible with: %s\n", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
         exit(1);
     }
     parserConsume(parser, TOKEN_SEMI);

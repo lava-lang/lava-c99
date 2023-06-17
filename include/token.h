@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include "util.h"
 
 typedef enum TokenType {
     //Special
@@ -25,8 +26,6 @@ typedef enum TokenType {
     TOKEN_STRING_VALUE,
     TOKEN_BOOLEAN,
     TOKEN_BOOLEAN_VALUE,
-    TOKEN_TRUE,
-    TOKEN_FALSE,
 
     TOKEN_TYPE_DEF,
     TOKEN_ENUM_DEF,
@@ -71,14 +70,16 @@ typedef struct Token {
     char* value;
 } Token;
 
-Token* tokenInit(Token* token, TokenType type, char* value) {
+Token* tokenInitBase(Token* token, TokenType type, char* value) {
     token->type = type;
-    token->value = value;
+    if (value) {
+        token->value = value;
+    }
     return token;
 }
 
-Token* tokenInitBase(TokenType type, char* value) {
-    return tokenInit(calloc(1, sizeof(Token)), type, value);
+Token* tokenInit(TokenType type, char* value) {
+    return tokenInitBase(calloc(1, sizeof(Token)), type, value);
 }
 
 static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
@@ -91,7 +92,7 @@ typedef struct TokenVar {
 
 Token* tokenVarInit(TokenType type, char* value, TokenType validValue, bool isPointer) {
     TokenVar* tokenVar = calloc(1, sizeof(TokenVar));
-    tokenInit((Token*) tokenVar, type, value);
+    tokenInitBase((Token*) tokenVar, type, value);
     tokenVar->validValue = validValue;
     tokenVar->isPointer = isPointer;
     return (Token*) tokenVar;

@@ -37,21 +37,21 @@ void scopeFree(Scope* scope) {
 }
 
 typedef struct AST {
-    int type;
+    int astType;
     Token* token;
     Scope* scope;
 } AST;
 
-AST* initAST(Token* token, AST* ast, ASTType type) {
+AST* initASTBase(Token* token, AST* ast, ASTType astType) {
     ast->token = token;
-    ast->type = type;
+    ast->astType = astType;
     ast->scope = (void*) 0;
     AST_NODES_CONSTRUCTED++;
     return ast;
 }
 
-AST* initASTBase(Token* token, ASTType type) {
-    return initAST(token, calloc(1, sizeof(AST)), type);
+AST* initAST(Token* token, ASTType astType) {
+    return initASTBase(token, calloc(1, sizeof(AST)), astType);
 }
 
 typedef struct ASTCompound {
@@ -61,7 +61,7 @@ typedef struct ASTCompound {
 
 ASTCompound* initASTCompound(Token* token, List* children) {
     ASTCompound* compound = calloc(1, sizeof(ASTCompound));
-    initAST(token, (AST*) compound, AST_COMPOUND);
+    initASTBase(token, (AST*) compound, AST_COMPOUND);
     compound->children = children;
     return compound;
 }
@@ -75,7 +75,7 @@ typedef struct ASTVarDef {
 
 ASTVarDef* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
     ASTVarDef* varDef = calloc(1, sizeof(ASTVarDef));
-    initAST(&STATIC_TOKEN_NONE, (AST*) varDef, AST_VAR_DEF);
+    initASTBase(&STATIC_TOKEN_NONE, (AST*) varDef, AST_VAR_DEF);
     varDef->dataType = dataType;
     varDef->identifier = identifier;
     varDef->expression = expression;
@@ -91,7 +91,7 @@ typedef struct ASTFuncDef {
 
 ASTFuncDef* initASTFuncDef(AST* returnType, AST* identifier, AST* compound) {
     ASTFuncDef* funcDef = calloc(1, sizeof(ASTFuncDef));
-    initAST(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
+    initASTBase(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
     funcDef->returnType = returnType;
     funcDef->identifier = identifier;
     funcDef->compound = compound;
@@ -106,7 +106,7 @@ typedef struct ASTBinaryOp {
 
 ASTBinaryOp* initASTBinaryOp(Token* token, AST* left, AST* right) {
     ASTBinaryOp* binaryOp = calloc(1, sizeof(ASTBinaryOp));
-    initAST(token, (AST*) binaryOp, AST_BINARY_OP);
+    initASTBase(token, (AST*) binaryOp, AST_BINARY_OP);
     binaryOp->left = left;
     binaryOp->right = right;
     return binaryOp;

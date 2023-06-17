@@ -9,4 +9,10 @@ char* charToStr(char c) {
     str[1] = '\0';
     return str;
 }
+
+char* concatStr(char* a, char* b) {
+    size_t newSize = strlen(a) + strlen(b) + 1;
+    a = realloc(a, newSize * sizeof(char));
+    return strcat(a, b);
+}
 #endif

@@ -24,8 +24,6 @@ const char* TOKEN_NAMES[] = {
     "String Value",
     "Boolean Type",
     "Boolean Value",
-    "True",
-    "False",
 
     "Type Definition",
     "Enum Definition",

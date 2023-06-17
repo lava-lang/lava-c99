@@ -30,37 +30,45 @@ void listAppend(List* list, void* element) {
 
 typedef struct OutputBuffer {
     char* code;
-    List* imports;
+    char* bootstrap;
 } OutputBuffer;
 
 OutputBuffer* bufferInit() {
     OutputBuffer* buffer = calloc(1, sizeof(OutputBuffer));
     buffer->code = calloc(2, sizeof(char));
     buffer->code[0] = '\0';
-    //TODO mayne this should be Set?
-    buffer->imports = listInit(sizeof(char));
+    buffer->bootstrap = calloc(2, sizeof(char)); //TODO mayne this should be Set?
+    buffer->bootstrap[0] = '\0';
     return buffer;
 }
 
 void bufferFree(OutputBuffer* buffer) {
-    listFree(buffer->imports);
+    free(buffer->bootstrap);
     free(buffer->code);
     free(buffer);
 }
 
 void bufferAppend(OutputBuffer* buffer, char* value) {
-    size_t newSize = strlen(buffer->code) + strlen(value) + 2;
-    buffer->code = realloc(buffer->code, newSize * sizeof(char));
-    strcat(buffer->code, value);
+    buffer->code = concatStr(buffer->code, value);
 }
 
-void bufferAddImport(OutputBuffer* buffer, char* import) {
-    for (int i = 0; i < buffer->imports->len; ++i) {
-        if (strcmp((char*) buffer->imports->elements[i], import) == 0) {
-            //Avoid duplicate entries
-            return;
+void bufferAddImport(OutputBuffer* buffer, char* value) {
+    if (strstr(buffer->bootstrap, value) == NULL) { //Avoid duplicate entries
+        size_t initialSize = strlen(buffer->bootstrap);
+        size_t importLen = strlen(value);
+        size_t newSize = initialSize + importLen + (initialSize > 1 ? 2 : 3);
+        buffer->bootstrap = realloc(buffer->bootstrap, newSize * sizeof(char));
+        for (int i = 0; i < importLen; ++i) {
+            buffer->bootstrap[initialSize + i - (initialSize > 1 ? 1 : 0)] = value[i];
         }
+        buffer->bootstrap[newSize - 3] = '\n';
+        buffer->bootstrap[newSize - 2] = '\n';
+        buffer->bootstrap[newSize - 1] = '\0';
     }
-    listAppend(buffer->imports, import);
+}
+
+char* bufferBuild(OutputBuffer* buffer) {
+    buffer->bootstrap = concatStr(buffer->bootstrap, buffer->code);
+    return buffer->bootstrap;
 }
 #endif

@@ -27,11 +27,11 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < astNodes->children->len; ++i) {
         AST* node = (AST*) astNodes->children->elements[i];
-        printf("Node: %s\n", AST_NAMES[node->type]);
+        printf("Node: %s\n", AST_NAMES[node->astType]);
 
-        if (node->type == AST_VAR_DEF) {
+        if (node->astType == AST_VAR_DEF) {
             printVarDef((ASTVarDef*) node);
-        } else if (node->type == AST_FUNC_DEF) {
+        } else if (node->astType == AST_FUNC_DEF) {
             printFuncDef((ASTFuncDef*) node);
         }
     }
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 
     OutputBuffer* outputBuffer = bufferInit();
     visit((AST*) astNodes, outputBuffer);
-    char* generatedCode = generateCode(outputBuffer);
+    char* generatedCode = bufferBuild(outputBuffer);
     printf("C Code Generation:\n");
     printf("%s\n", generatedCode);
 

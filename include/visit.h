@@ -31,8 +31,12 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
         bufferAppend(buffer, "double");
     } else if (node->token->type == TOKEN_STRING) {
         bufferAppend(buffer, "char");
+    } else if (node->token->type == TOKEN_BOOLEAN) {
+        bufferAppend(buffer, "bool");
+        bufferAddImport(buffer, "#include <stdbool.h>");
+        bufferAddImport(buffer, "#include test");
     } else {
-        fprintf(stderr, "Unhandled DataType: %s for %s\n", AST_NAMES[node->type], TOKEN_NAMES[node->token->type]);
+        fprintf(stderr, "Unhandled DataType: %s for %s\n", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
         exit(1);
     }
 }
@@ -64,32 +68,28 @@ void visit(AST* node, OutputBuffer* buffer) {
         return;
     }
 
-    if (node->type == AST_COMPOUND) {
+    if (node->astType == AST_COMPOUND) {
         return visitCompound((ASTCompound*) node, buffer);
-    } else if (node->type == AST_DATA_TYPE) {
+    } else if (node->astType == AST_DATA_TYPE) {
         return visitDataType(node, buffer);
-    } else if (node->type == AST_IDENTIFIER) {
+    } else if (node->astType == AST_IDENTIFIER) {
         return visitNode(node, buffer);
-    } else if (node->type == AST_VAR_VALUE) {
+    } else if (node->astType == AST_VAR_VALUE) {
+        if (node->token->type)
         return visitNode(node, buffer);
     }
 
-    else if (node->type == AST_VAR_DEF) {
+    else if (node->astType == AST_VAR_DEF) {
         visitVarDefinition((ASTVarDef*) node, buffer);
         bufferAppend(buffer, ";\n");
         return;
-    } else if (node->type == AST_FUNC_DEF) {
+    } else if (node->astType == AST_FUNC_DEF) {
         return visitFuncDefinition((ASTFuncDef*) node, buffer);
     }
 
     else {
-        fprintf(stderr, "Unhandled AST: %s for %s\n", AST_NAMES[node->type], TOKEN_NAMES[node->token->type]);
+        fprintf(stderr, "Unhandled AST: %s for %s\n", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
         exit(1);
     }
 }
-
-char* generateCode(OutputBuffer* buffer) {
-    return buffer->code;
-}
-
 #endif //LAVA_VISIT_H
