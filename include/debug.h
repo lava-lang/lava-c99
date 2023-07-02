@@ -70,6 +70,7 @@ const char* AST_NAMES[] = {
     "AST Binary Operator",
     "AST Var Value",
     "AST C Statement",
+    "AST Return",
 };
 
 void printExpression(AST* node) {

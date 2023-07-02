@@ -15,6 +15,9 @@ void visitNode(AST* node, OutputBuffer* buffer) {
 void visitCompound(ASTCompound* node, OutputBuffer* buffer) {
     for (int i = 0; i < node->children->len; ++i) {
         visit((AST*) node->children->elements[i], buffer);
+        if (i != node->children->len - 1) {
+            bufferAppend(buffer, "\n");
+        }
     }
 }
 
@@ -54,6 +57,7 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
     } else {
         visit(varDef->expression, buffer);
     }
+    bufferAppend(buffer, ";");
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
@@ -68,6 +72,12 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "\n}");
 }
 
+void visitReturn(AST* node, OutputBuffer* buffer) {
+    bufferAppend(buffer, "return ");
+    visitNode(((ASTReturn*) node)->expression, buffer);
+    bufferAppend(buffer, ";");
+}
+
 void visit(AST* node, OutputBuffer* buffer) {
     if (node == NULL) {
         return;
@@ -80,14 +90,11 @@ void visit(AST* node, OutputBuffer* buffer) {
     } else if (node->astType == AST_IDENTIFIER) {
         return visitNode(node, buffer);
     } else if (node->astType == AST_VAR_VALUE) {
-        if (node->token->type)
         return visitNode(node, buffer);
     }
 
     else if (node->astType == AST_VAR_DEF) {
-        visitVarDefinition((ASTVarDef*) node, buffer);
-        bufferAppend(buffer, ";\n");
-        return;
+        return visitVarDefinition((ASTVarDef*) node, buffer);
     } else if (node->astType == AST_FUNC_DEF) {
         return visitFuncDefinition((ASTFuncDef*) node, buffer);
     }
@@ -95,6 +102,8 @@ void visit(AST* node, OutputBuffer* buffer) {
     else if (node->astType == AST_C_STATEMENT) {
         bufferAddImport(buffer, "#include <stdio.h>"); //TODO remove at some point
         return visitNode(node, buffer);
+    } else if (node->astType == AST_RETURN) {
+        return visitReturn(node, buffer);
     }
 
     else {

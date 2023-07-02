@@ -68,6 +68,7 @@ AST* parseCStatement(Parser* parser, Scope* scope) {
 
 AST* parseFactor(Parser* parser, Scope* scope);
 AST* parseExpression(Parser* parser, Scope* scope);
+ASTCompound* parseAST(Parser* parser, Scope* scope, TokenType breakToken);
 
 AST* parseFactor(Parser* parser, Scope* scope) {
     Token* token = parser->token;
@@ -83,8 +84,6 @@ AST* parseFactor(Parser* parser, Scope* scope) {
             AST* expression = parseExpression(parser, scope);
             parserConsume(parser, TOKEN_RPAREN);
             return expression;
-        case TOKEN_C_STATEMENT:
-            return parseCStatement(parser, scope);
         default:
             return parseExpression(parser, scope);
 //            fprintf(stderr, "parseFactor: Unhandled Token: %s\n", TOKEN_NAMES[token->type]);
@@ -129,12 +128,9 @@ ASTFuncDef* parseFuncDefinition(Parser* parser, Scope* scope, AST* identifier, A
     parserConsume(parser, TOKEN_RPAREN);
 
     parserConsume(parser, TOKEN_LBRACE);
-    List* statements = listInit(sizeof(AST*));
-    AST* expression = parseExpression(parser, scope);
-    listAppend(statements, expression);
-    AST* compound = (AST*) initASTCompound(expression->token, statements);
+    ASTCompound* compound = parseAST(parser, scope, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_RBRACE);
-    return initASTFuncDef(returnType, identifier, compound);
+    return initASTFuncDef(returnType, identifier, (AST*) compound);
 }
 
 AST* parseDefinition(Parser* parser, Scope* scope) {
@@ -148,15 +144,26 @@ AST* parseDefinition(Parser* parser, Scope* scope) {
     }
 }
 
-ASTCompound* parseAST(Parser* parser, Scope* scope) {
+ASTReturn* parseReturn(Parser* parser, Scope* scope) {
+    parserConsume(parser, TOKEN_RETURN);
+    AST* expression = parseExpression(parser, scope);
+    parserConsume(parser, TOKEN_SEMI);
+    return initASTReturn(expression);
+}
+
+ASTCompound* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     List* children = listInit(sizeof(AST*));
-    while (parser->type != TOKEN_EOF) {
+    while (parser->type != breakToken) {
         AST* node = NULL;
         if (isVarType(parser->type)) {
             node = parseDefinition(parser, scope);
         } else if (parser->type == TOKEN_COMMENT_LINE) {
             parserConsume(parser, TOKEN_COMMENT_LINE);
             continue; //NOOP
+        } else if (parser->type == TOKEN_C_STATEMENT) {
+            node = parseCStatement(parser, scope);
+        } else if (parser->type == TOKEN_RETURN) {
+            node = (AST*) parseReturn(parser, scope);
         } else {
             PANIC("Could not parse AST for: %s", TOKEN_NAMES[parser->type]);
         }

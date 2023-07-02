@@ -8,4 +8,5 @@ bool flag = true;
 
 int main() {
 printf("x: %d", x);
+return 0;
 }

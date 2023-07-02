@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     Scope* globalScope = scopeInit((void*) 0);
     Lexer* lexer = lexerInit(inputCode);
     Parser* parser = parserInit(lexer);
-    ASTCompound* astNodes = parseAST(parser, globalScope);
+    ASTCompound* astNodes = parseAST(parser, globalScope, TOKEN_EOF);
     printf("Tokens Consumed: %d\n\n", TOKENS_CONSUMED);
 
     for (int i = 0; i < astNodes->children->len; ++i) {
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     printf("%s\n", generatedCode);
 
     //Write generated C file to disk
-    write_file("../test.c", generatedCode);
+    write_file("../output.c", generatedCode);
 
     //Free memory allocations
     bufferFree(outputBuffer);

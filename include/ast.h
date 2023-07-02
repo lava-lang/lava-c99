@@ -15,6 +15,7 @@ typedef enum ASTType {
     AST_BINARY_OP,
     AST_VAR_VALUE,
     AST_C_STATEMENT,
+    AST_RETURN,
 } ASTType;
 
 typedef struct Scope Scope;
@@ -111,6 +112,18 @@ ASTBinaryOp* initASTBinaryOp(Token* token, AST* left, AST* right) {
     binaryOp->left = left;
     binaryOp->right = right;
     return binaryOp;
+}
+
+typedef struct ASTReturn {
+    AST* base;
+    AST* expression;
+} ASTReturn;
+
+ASTReturn* initASTReturn(AST* expression) {
+    ASTReturn* returnStatement = calloc(1, sizeof(ASTReturn));
+    initASTBase(&STATIC_TOKEN_NONE, (AST*) returnStatement, AST_RETURN);
+    returnStatement->expression = expression;
+    return returnStatement;
 }
 
 #endif //LAVA_AST_H

@@ -31,6 +31,7 @@ void listAppend(List* list, void* element) {
 typedef struct OutputBuffer {
     char* code;
     char* bootstrap;
+    int tab;
 } OutputBuffer;
 
 OutputBuffer* bufferInit() {
@@ -39,6 +40,7 @@ OutputBuffer* bufferInit() {
     buffer->code[0] = '\0';
     buffer->bootstrap = calloc(2, sizeof(char)); //TODO mayne this should be Set?
     buffer->bootstrap[0] = '\0';
+    buffer->tab = 0;
     return buffer;
 }
 
@@ -46,6 +48,17 @@ void bufferFree(OutputBuffer* buffer) {
     free(buffer->bootstrap);
     free(buffer->code);
     free(buffer);
+}
+
+void bufferTab(OutputBuffer* buffer) {
+    buffer->tab++;
+}
+
+void bufferUnTab(OutputBuffer* buffer) {
+    if ((buffer->tab - 1) < 0) {
+        PANIC("Uneven tab indentation!", NULL);
+    }
+    buffer->tab--;
 }
 
 void bufferAppend(OutputBuffer* buffer, char* value) {
