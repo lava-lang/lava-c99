@@ -1,8 +1,9 @@
-i32* x = 187_686_223;
+i32 x = 187_686_223;
 f32 y = 1.5;
 str s = "lava";
 bool flag = true;
 
-void main() {
-
+int main() {
+    c.printf("x: %d", x);
+    return 0;
 }

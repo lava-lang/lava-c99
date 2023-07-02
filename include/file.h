@@ -21,4 +21,12 @@ char* read_file(char* filename) {
 
     return buffer;
 }
+
+void write_file(const char* filepath, const char* data) {
+    FILE *fp = fopen(filepath, "w");
+    if (fp != NULL) {
+        fputs(data, fp);
+        fclose(fp);
+    }
+}
 #endif

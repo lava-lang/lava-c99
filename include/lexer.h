@@ -156,7 +156,8 @@ Token* lexNextComment(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur); //Buffer initialized with first comment char
     advance(lexer); //Advance past first comment char, since it is now in the initial buffer
     int type = TOKEN_COMMENT_LINE;
-    while (lexer->cur != end) {
+    //TODO remove need for len bounds check by refactoring lexer to lex line by line
+    while (lexer->cur != end /*|| lexer->pos <= lexer->len*/) {
         buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
@@ -169,11 +170,30 @@ Token* lexNextComment(Lexer* lexer) {
     return tokenInit(type, buffer);
 }
 
+Token* lexNextCBlock(Lexer* lexer) {
+    char* buffer = charToStr(lexer->cur); //Buffer initialized with first C char
+    advance(lexer); //Advance past first comment char, since it is now in the initial buffer
+    while (1) {
+        buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
+        strncat(buffer, lexer->contents + lexer->pos, 1);
+        if (lexer->cur == ';') {
+            break;
+        }
+        advance(lexer);
+    }
+    advance(lexer); //Advance past closing C token character
+    return tokenInit(TOKEN_C_STATEMENT, buffer);
+}
+
 Token* lexNextToken(Lexer* lexer) {
     skipWhitespace(lexer);
 
     if (lexer->pos >= lexer->len) {
         return tokenInit(TOKEN_EOF, "EOF");
+    } else if (lexer->cur == 'c' && peek(lexer, 1) == '.') {
+        advance(lexer);
+        advance(lexer); //Advance twice to move past "c." prefix
+        return lexNextCBlock(lexer);
     } else if (isdigit(lexer->cur)) {
         return lexNextDigit(lexer);
     } else if (isalnum(lexer->cur)) {

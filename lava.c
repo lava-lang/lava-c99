@@ -40,6 +40,9 @@ int main(int argc, char *argv[]) {
     printf("C Code Generation:\n");
     printf("%s\n", generatedCode);
 
+    //Write generated C file to disk
+    write_file("../test.c", generatedCode);
+
     //Free memory allocations
     bufferFree(outputBuffer);
     parserFree(parser);

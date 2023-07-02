@@ -5,11 +5,14 @@
 #include <stdarg.h>
 
 #define INFO(MSG, ...) \
-printf("Lava: "MSG, __VA_ARGS__); \
+printf("Lava: "); \
+printf(MSG, __VA_ARGS__); \
+printf("\n"); \
 
+//TODO print line and pos with code
 #define PANIC(MSG, ...) \
-fprintf(stderr, "%s:%i - ",__FILE__,__LINE__); \
-fprintf(stderr, "Lava Compiler Error: "MSG, __VA_ARGS__); \
+fprintf(stderr, "%s:%i - Lava Compiler Error:\n",__FILE__,__LINE__); \
+fprintf(stderr, MSG, __VA_ARGS__); \
 exit(1); \
 
 #define ASSERT(EX, MSG, ...) \

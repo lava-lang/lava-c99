@@ -14,6 +14,7 @@ typedef enum ASTType {
     AST_COMPOUND,
     AST_BINARY_OP,
     AST_VAR_VALUE,
+    AST_C_STATEMENT,
 } ASTType;
 
 typedef struct Scope Scope;

@@ -9,6 +9,7 @@ const char* TOKEN_NAMES[] = {
     "End of File",
     "Unexpected Token",
     "None",
+    "C Statement",
     
     "NULL",
     "Void Type",
@@ -68,6 +69,7 @@ const char* AST_NAMES[] = {
     "AST Compound",
     "AST Binary Operator",
     "AST Var Value",
+    "AST C Statement",
 };
 
 void printExpression(AST* node) {

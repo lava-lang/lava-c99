@@ -36,7 +36,7 @@ Token* parserConsume(Parser* parser, TokenType type) {
     if (parser->token->type != type) {
         PANIC("Unexpected token! expected: %s, got: %s", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type]);
     }
-    INFO("Consumed: %s (%s)\n", TOKEN_NAMES[parser->token->type], parser->token->value);
+    INFO("Consumed: %s: %s", TOKEN_NAMES[parser->token->type], parser->token->value);
     TOKENS_CONSUMED++;
     Token* prev = parser->token;
     parser->token = lexNextToken(parser->lexer);
@@ -60,6 +60,12 @@ AST* parseDataType(Parser* parser, Scope* scope) {
     return initAST(varType, AST_DATA_TYPE);
 }
 
+AST* parseCStatement(Parser* parser, Scope* scope) {
+    Token* statement = parser->token;
+    parserConsume(parser, TOKEN_C_STATEMENT);
+    return initAST(statement, AST_C_STATEMENT);
+}
+
 AST* parseFactor(Parser* parser, Scope* scope);
 AST* parseExpression(Parser* parser, Scope* scope);
 
@@ -77,6 +83,8 @@ AST* parseFactor(Parser* parser, Scope* scope) {
             AST* expression = parseExpression(parser, scope);
             parserConsume(parser, TOKEN_RPAREN);
             return expression;
+        case TOKEN_C_STATEMENT:
+            return parseCStatement(parser, scope);
         default:
             return parseExpression(parser, scope);
 //            fprintf(stderr, "parseFactor: Unhandled Token: %s\n", TOKEN_NAMES[token->type]);
@@ -116,7 +124,17 @@ ASTVarDef* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST
 }
 
 ASTFuncDef* parseFuncDefinition(Parser* parser, Scope* scope, AST* identifier, AST* returnType) {
-    return initASTFuncDef(returnType, identifier, NULL);
+    parserConsume(parser, TOKEN_LPAREN);
+    //TODO args..
+    parserConsume(parser, TOKEN_RPAREN);
+
+    parserConsume(parser, TOKEN_LBRACE);
+    List* statements = listInit(sizeof(AST*));
+    AST* expression = parseExpression(parser, scope);
+    listAppend(statements, expression);
+    AST* compound = (AST*) initASTCompound(expression->token, statements);
+    parserConsume(parser, TOKEN_RBRACE);
+    return initASTFuncDef(returnType, identifier, compound);
 }
 
 AST* parseDefinition(Parser* parser, Scope* scope) {
@@ -126,10 +144,6 @@ AST* parseDefinition(Parser* parser, Scope* scope) {
         parserConsume(parser, TOKEN_ASSIGNMENT);
         return (AST*) parseVarDefinition(parser, scope, identifier, dataType);
     } else if (parser->type == TOKEN_LPAREN) { //Function definition
-        parserConsume(parser, TOKEN_LPAREN);
-        parserConsume(parser, TOKEN_RPAREN);
-        parserConsume(parser, TOKEN_LBRACE);
-        parserConsume(parser, TOKEN_RBRACE);
         return (AST*) parseFuncDefinition(parser, scope, identifier, dataType);
     }
 }
@@ -140,8 +154,11 @@ ASTCompound* parseAST(Parser* parser, Scope* scope) {
         AST* node = NULL;
         if (isVarType(parser->type)) {
             node = parseDefinition(parser, scope);
+        } else if (parser->type == TOKEN_COMMENT_LINE) {
+            parserConsume(parser, TOKEN_COMMENT_LINE);
+            continue; //NOOP
         } else {
-            PANIC("Unexpected token: %s", TOKEN_NAMES[parser->type]);
+            PANIC("Could not parse AST for: %s", TOKEN_NAMES[parser->type]);
         }
         listAppend(children, node);
     }

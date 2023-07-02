@@ -10,6 +10,7 @@ typedef enum TokenType {
     TOKEN_EOF,
     TOKEN_UNEXPECTED,
     TOKEN_NONE,
+    TOKEN_C_STATEMENT,
 
     //Basic Types
     TOKEN_NULL,

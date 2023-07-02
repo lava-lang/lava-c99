@@ -47,18 +47,25 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
     bufferAppend(buffer, " ");
     visit(varDef->identifier, buffer);
     bufferAppend(buffer, " = ");
-    visit(varDef->expression, buffer);
+    if (varDef->dataType->token->type == TOKEN_STRING) { //Handle string quotes
+        bufferAppend(buffer, "\"");
+        visit(varDef->expression, buffer);
+        bufferAppend(buffer, "\"");
+    } else {
+        visit(varDef->expression, buffer);
+    }
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
+    bufferAppend(buffer, "\n"); //Append initial new line for space between functions and variables
     visit(funcDef->returnType, buffer);
     bufferAppend(buffer, " ");
     visit(funcDef->identifier, buffer);
     bufferAppend(buffer, "(");
     //TODO args..
     bufferAppend(buffer, ") {\n");
-    //TODO compound...
-    bufferAppend(buffer, "}");
+    visitCompound((ASTCompound*) funcDef->compound, buffer);
+    bufferAppend(buffer, "\n}");
 }
 
 void visit(AST* node, OutputBuffer* buffer) {
@@ -83,6 +90,11 @@ void visit(AST* node, OutputBuffer* buffer) {
         return;
     } else if (node->astType == AST_FUNC_DEF) {
         return visitFuncDefinition((ASTFuncDef*) node, buffer);
+    }
+
+    else if (node->astType == AST_C_STATEMENT) {
+        bufferAddImport(buffer, "#include <stdio.h>"); //TODO remove at some point
+        return visitNode(node, buffer);
     }
 
     else {
