@@ -61,11 +61,11 @@ typedef struct ASTCompound {
     List* children;
 } ASTCompound;
 
-ASTCompound* initASTCompound(Token* token, List* children) {
+AST* initASTCompound(Token* token, List* children) {
     ASTCompound* compound = calloc(1, sizeof(ASTCompound));
     initASTBase(token, (AST*) compound, AST_COMPOUND);
     compound->children = children;
-    return compound;
+    return (AST*) compound;
 }
 
 typedef struct ASTVarDef {
@@ -75,13 +75,13 @@ typedef struct ASTVarDef {
     AST* expression;
 } ASTVarDef;
 
-ASTVarDef* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
+AST* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
     ASTVarDef* varDef = calloc(1, sizeof(ASTVarDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) varDef, AST_VAR_DEF);
     varDef->dataType = dataType;
     varDef->identifier = identifier;
     varDef->expression = expression;
-    return varDef;
+    return (AST*) varDef;
 }
 
 typedef struct ASTFuncDef {
@@ -91,13 +91,13 @@ typedef struct ASTFuncDef {
     AST* compound;
 } ASTFuncDef;
 
-ASTFuncDef* initASTFuncDef(AST* returnType, AST* identifier, AST* compound) {
+AST* initASTFuncDef(AST* returnType, AST* identifier, AST* compound) {
     ASTFuncDef* funcDef = calloc(1, sizeof(ASTFuncDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
     funcDef->returnType = returnType;
     funcDef->identifier = identifier;
     funcDef->compound = compound;
-    return funcDef;
+    return (AST*) funcDef;
 }
 
 typedef struct ASTBinaryOp {
@@ -106,12 +106,12 @@ typedef struct ASTBinaryOp {
     AST* right;
 } ASTBinaryOp;
 
-ASTBinaryOp* initASTBinaryOp(Token* token, AST* left, AST* right) {
+AST* initASTBinaryOp(Token* token, AST* left, AST* right) {
     ASTBinaryOp* binaryOp = calloc(1, sizeof(ASTBinaryOp));
     initASTBase(token, (AST*) binaryOp, AST_BINARY_OP);
     binaryOp->left = left;
     binaryOp->right = right;
-    return binaryOp;
+    return (AST*) binaryOp;
 }
 
 typedef struct ASTReturn {
@@ -119,11 +119,11 @@ typedef struct ASTReturn {
     AST* expression;
 } ASTReturn;
 
-ASTReturn* initASTReturn(AST* expression) {
+AST* initASTReturn(AST* expression) {
     ASTReturn* returnStatement = calloc(1, sizeof(ASTReturn));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) returnStatement, AST_RETURN);
     returnStatement->expression = expression;
-    return returnStatement;
+    return (AST*) returnStatement;
 }
 
 #endif //LAVA_AST_H

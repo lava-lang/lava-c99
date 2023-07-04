@@ -68,7 +68,7 @@ AST* parseCStatement(Parser* parser, Scope* scope) {
 
 AST* parseFactor(Parser* parser, Scope* scope);
 AST* parseExpression(Parser* parser, Scope* scope);
-ASTCompound* parseAST(Parser* parser, Scope* scope, TokenType breakToken);
+AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken);
 
 AST* parseFactor(Parser* parser, Scope* scope) {
     Token* token = parser->token;
@@ -108,12 +108,12 @@ AST* parseExpression(Parser* parser, Scope* scope) {
         parserConsume(parser, parser->type);
 
         AST* right = parseTerm(parser, scope);
-        return (AST*) initASTBinaryOp(binaryOp, ast, right);
+        return initASTBinaryOp(binaryOp, ast, right);
     }
     return ast;
 }
 
-ASTVarDef* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType) {
+AST* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType) {
     AST* right = parseExpression(parser, scope);
     if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
         PANIC("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
@@ -122,15 +122,15 @@ ASTVarDef* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST
     return initASTVarDef(dataType, identifier, right);
 }
 
-ASTFuncDef* parseFuncDefinition(Parser* parser, Scope* scope, AST* identifier, AST* returnType) {
+AST* parseFuncDefinition(Parser* parser, Scope* scope, AST* identifier, AST* returnType) {
     parserConsume(parser, TOKEN_LPAREN);
     //TODO args..
     parserConsume(parser, TOKEN_RPAREN);
 
     parserConsume(parser, TOKEN_LBRACE);
-    ASTCompound* compound = parseAST(parser, scope, TOKEN_RBRACE);
+    AST* compound = parseAST(parser, scope, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_RBRACE);
-    return initASTFuncDef(returnType, identifier, (AST*) compound);
+    return initASTFuncDef(returnType, identifier, compound);
 }
 
 AST* parseDefinition(Parser* parser, Scope* scope) {
@@ -138,20 +138,20 @@ AST* parseDefinition(Parser* parser, Scope* scope) {
     AST* identifier = parseIdentifier(parser, scope);
     if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
         parserConsume(parser, TOKEN_ASSIGNMENT);
-        return (AST*) parseVarDefinition(parser, scope, identifier, dataType);
+        return parseVarDefinition(parser, scope, identifier, dataType);
     } else if (parser->type == TOKEN_LPAREN) { //Function definition
-        return (AST*) parseFuncDefinition(parser, scope, identifier, dataType);
+        return parseFuncDefinition(parser, scope, identifier, dataType);
     }
 }
 
-ASTReturn* parseReturn(Parser* parser, Scope* scope) {
+AST* parseReturn(Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_RETURN);
     AST* expression = parseExpression(parser, scope);
     parserConsume(parser, TOKEN_SEMI);
     return initASTReturn(expression);
 }
 
-ASTCompound* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
+AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     List* children = listInit(sizeof(AST*));
     while (parser->type != breakToken) {
         AST* node = NULL;

@@ -7,6 +7,8 @@ char* s = "lava";
 bool flag = true;
 
 int main() {
-printf("x: %d", x);
+printf("x: %d\n", x);
+int var1 = 10;
+printf("var1: %d\n", var1);
 return 0;
 }

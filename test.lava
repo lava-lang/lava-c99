@@ -4,6 +4,10 @@ str s = "lava";
 bool flag = true;
 
 int main() {
-    c.printf("x: %d", x);
+    //int result = 10 - 5;
+
+    c.printf("x: %d\n", x);
+    int var1 = 10;
+    c.printf("var1: %d\n", var1);
     return 0;
 }

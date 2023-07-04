@@ -19,11 +19,11 @@ int main(int argc, char *argv[]) {
     Scope* globalScope = scopeInit((void*) 0);
     Lexer* lexer = lexerInit(inputCode);
     Parser* parser = parserInit(lexer);
-    ASTCompound* astNodes = parseAST(parser, globalScope, TOKEN_EOF);
+    ASTCompound* ast = (ASTCompound*) parseAST(parser, globalScope, TOKEN_EOF);
     printf("Tokens Consumed: %d\n\n", TOKENS_CONSUMED);
 
-    for (int i = 0; i < astNodes->children->len; ++i) {
-        AST* node = (AST*) astNodes->children->elements[i];
+    for (int i = 0; i < ast->children->len; ++i) {
+        AST* node = (AST*) ast->children->elements[i];
         printf("Node: %s\n", AST_NAMES[node->astType]);
 
         if (node->astType == AST_VAR_DEF) {
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     printf("AST Nodes Constructed: %d\n\n", AST_NODES_CONSTRUCTED);
 
     OutputBuffer* outputBuffer = bufferInit();
-    visit((AST*) astNodes, outputBuffer);
+    visit((AST*) ast, outputBuffer);
     char* generatedCode = bufferBuild(outputBuffer);
     printf("C Code Generation:\n");
     printf("%s\n", generatedCode);
