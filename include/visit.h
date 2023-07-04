@@ -15,9 +15,6 @@ void visitNode(AST* node, OutputBuffer* buffer) {
 void visitCompound(ASTCompound* node, OutputBuffer* buffer) {
     for (int i = 0; i < node->children->len; ++i) {
         visit((AST*) node->children->elements[i], buffer);
-        if (i != node->children->len - 1) {
-            bufferAppend(buffer, "\n");
-        }
     }
 }
 
@@ -36,7 +33,8 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
         bufferAppend(buffer, "char");
     } else if (node->token->type == TOKEN_BOOLEAN) {
         bufferAppend(buffer, "bool");
-        bufferAddImport(buffer, "#include <stdbool.h>");
+        //TODO move to bootstrap code
+        bufferAddImport(buffer, "<stdbool.h>");
     } else {
         PANIC("Unhandled DataType: %s for %s", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
     }
@@ -58,6 +56,7 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
         visit(varDef->expression, buffer);
     }
     bufferAppend(buffer, ";");
+    bufferAppend(buffer, "\n");
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
@@ -72,10 +71,26 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "\n}");
 }
 
+void visitCStatement(AST* node, OutputBuffer* buffer) {
+    visitNode(node, buffer);
+    bufferAppend(buffer, "\n");
+}
+
 void visitReturn(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
     visitNode(((ASTReturn*) node)->expression, buffer);
     bufferAppend(buffer, ";");
+}
+
+void visitImport(AST* node, OutputBuffer* buffer) {
+    if (strstr(node->token->value, ".h") || node->token->value[0] == '<' || node->token->value[0] == '"') { //C Import
+        bufferAddImport(buffer, node->token->value);
+    } else { //Lava import
+        char* value = charToStr('"');
+        value = concatStr(value, node->token->value);
+        value = concatStr(value, ".h\"");
+        bufferAddImport(buffer, value);
+    }
 }
 
 void visit(AST* node, OutputBuffer* buffer) {
@@ -100,10 +115,11 @@ void visit(AST* node, OutputBuffer* buffer) {
     }
 
     else if (node->astType == AST_C_STATEMENT) {
-        bufferAddImport(buffer, "#include <stdio.h>"); //TODO remove at some point
-        return visitNode(node, buffer);
+        return visitCStatement(node, buffer);
     } else if (node->astType == AST_RETURN) {
         return visitReturn(node, buffer);
+    } else if (node->astType == AST_IMPORT) {
+        return visitImport(node, buffer);
     }
 
     else {

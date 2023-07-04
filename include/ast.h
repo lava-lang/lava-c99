@@ -16,6 +16,7 @@ typedef enum ASTType {
     AST_VAR_VALUE,
     AST_C_STATEMENT,
     AST_RETURN,
+    AST_IMPORT,
 } ASTType;
 
 typedef struct Scope Scope;

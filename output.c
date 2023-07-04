@@ -1,5 +1,6 @@
-#include <stdbool.h>
 #include <stdio.h>
+#include "test.h"
+#include <stdbool.h>
 
 int x = 187686223;
 float y = 1.5;

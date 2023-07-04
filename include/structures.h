@@ -67,6 +67,8 @@ void bufferAppend(OutputBuffer* buffer, char* value) {
 
 void bufferAddImport(OutputBuffer* buffer, char* value) {
     if (strstr(buffer->bootstrap, value) == NULL) { //Avoid duplicate entries
+        char* prefix = mallocStr("#include ");
+        value = concatStr(prefix, value); //Append include
         size_t initialSize = strlen(buffer->bootstrap);
         size_t importLen = strlen(value);
         size_t newSize = initialSize + importLen + (initialSize > 1 ? 2 : 3);

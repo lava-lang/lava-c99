@@ -25,6 +25,14 @@ char* charToStr(char c) {
     return str;
 }
 
+char* mallocStr(char* source) {
+    size_t size = strlen(source) + 1;
+    char* result = malloc(size * sizeof(char));
+    ASSERT(result == NULL, "Cannot allocate %zu bytes!", size);
+    strcpy(result, source);
+    return result;
+}
+
 char* concatStr(char* a, char* b) {
     size_t newSize = strlen(a) + strlen(b) + 1;
     a = realloc(a, newSize * sizeof(char));

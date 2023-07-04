@@ -118,7 +118,7 @@ AST* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* data
     if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
         PANIC("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
     }
-    parserConsume(parser, TOKEN_SEMI);
+    parserConsume(parser, TOKEN_EOS);
     return initASTVarDef(dataType, identifier, right);
 }
 
@@ -147,8 +147,15 @@ AST* parseDefinition(Parser* parser, Scope* scope) {
 AST* parseReturn(Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_RETURN);
     AST* expression = parseExpression(parser, scope);
-    parserConsume(parser, TOKEN_SEMI);
+    parserConsume(parser, TOKEN_EOS);
     return initASTReturn(expression);
+}
+
+AST* parseImport(Parser* parser, Scope* scope) {
+    Token* token = parser->token;
+    parserConsume(parser, TOKEN_IMPORT);
+    parserConsume(parser, TOKEN_EOS);
+    return initAST(token, AST_IMPORT);
 }
 
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
@@ -163,8 +170,12 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
         } else if (parser->type == TOKEN_C_STATEMENT) {
             node = parseCStatement(parser, scope);
         } else if (parser->type == TOKEN_RETURN) {
-            node = (AST*) parseReturn(parser, scope);
-        } else {
+            node = parseReturn(parser, scope);
+        } else if (parser->type == TOKEN_IMPORT) {
+            node = parseImport(parser, scope);
+        }
+
+        else {
             PANIC("Could not parse AST for: %s", TOKEN_NAMES[parser->type]);
         }
         listAppend(children, node);

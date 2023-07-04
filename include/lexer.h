@@ -48,6 +48,25 @@ void skipWhitespace(Lexer* lexer) {
     }
 }
 
+char* buildBufferUntilEOS(Lexer* lexer, char* buffer, bool includeEOS) {
+    bool shouldLoop = true;
+    while (shouldLoop) { //Consume characters until EOS (;)
+        if (lexer->cur == ';') {
+            if (includeEOS) {
+                shouldLoop = false;
+            } else {
+                break;
+            }
+        }
+
+        //TODO realloc null check macro
+        buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
+        strncat(buffer, lexer->contents + lexer->pos, 1);
+        advance(lexer);
+    }
+    return buffer;
+}
+
 Token* lexNextDigit(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur);
     int type = TOKEN_INTEGER_VALUE;
@@ -82,6 +101,22 @@ Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenType
     //TODO boolean values...
     //TODO detect arrays
     return tokenVarInit(tokenType, buffer, valueType, isPointer);
+}
+
+Token* lexNextCStatement(Lexer* lexer) {
+    char* buffer = charToStr(lexer->cur); //Buffer initialized with first C char
+    advance(lexer); //Advance past first comment char, since it is now in the initial buffer
+    buffer = buildBufferUntilEOS(lexer, buffer, true); //Consume characters until EOS (;)
+    advance(lexer); //Advance past closing C token character
+    return tokenInit(TOKEN_C_STATEMENT, buffer);
+}
+
+Token* lexNextImport(Lexer* lexer) {
+    skipWhitespace(lexer);
+    char* buffer = charToStr(lexer->cur);
+    advance(lexer);
+    buffer = buildBufferUntilEOS(lexer, buffer, false); //Consume characters until EOS (;)
+    return tokenInit(TOKEN_IMPORT, buffer);
 }
 
 Token* lexNextIdentifier(Lexer* lexer) {
@@ -132,6 +167,8 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_FOR, buffer);
     } else if (strcmp(buffer, "return") == 0) {
         return tokenInit(TOKEN_RETURN, buffer);
+    } else if (strcmp(buffer, "import") == 0) {
+        return lexNextImport(lexer);
     }
 
     //Assume if it's not a reserved identifier, it must be a name
@@ -170,21 +207,6 @@ Token* lexNextComment(Lexer* lexer) {
     return tokenInit(type, buffer);
 }
 
-Token* lexNextCBlock(Lexer* lexer) {
-    char* buffer = charToStr(lexer->cur); //Buffer initialized with first C char
-    advance(lexer); //Advance past first comment char, since it is now in the initial buffer
-    while (1) {
-        buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
-        strncat(buffer, lexer->contents + lexer->pos, 1);
-        if (lexer->cur == ';') {
-            break;
-        }
-        advance(lexer);
-    }
-    advance(lexer); //Advance past closing C token character
-    return tokenInit(TOKEN_C_STATEMENT, buffer);
-}
-
 Token* lexNextToken(Lexer* lexer) {
     skipWhitespace(lexer);
 
@@ -193,7 +215,7 @@ Token* lexNextToken(Lexer* lexer) {
     } else if (lexer->cur == 'c' && peek(lexer, 1) == '.') {
         advance(lexer);
         advance(lexer); //Advance twice to move past "c." prefix
-        return lexNextCBlock(lexer);
+        return lexNextCStatement(lexer);
     } else if (isdigit(lexer->cur)) {
         return lexNextDigit(lexer);
     } else if (isalnum(lexer->cur)) {
@@ -204,7 +226,7 @@ Token* lexNextToken(Lexer* lexer) {
 
     if (lexer->cur == ';') {
         advance(lexer);
-        return tokenInit(TOKEN_SEMI, value);
+        return tokenInit(TOKEN_EOS, value);
     } else if (lexer->cur == '=') {
         advance(lexer);
         if (lexer->cur == '=') {

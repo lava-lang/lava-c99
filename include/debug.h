@@ -33,6 +33,7 @@ const char* TOKEN_NAMES[] = {
     "While Loop",
     "For Loop",
     "Return Statement",
+    "Import Statement",
 
     "Identifier",
     "End of Statement",
@@ -71,6 +72,7 @@ const char* AST_NAMES[] = {
     "AST Var Value",
     "AST C Statement",
     "AST Return",
+    "AST Import",
 };
 
 void printExpression(AST* node) {

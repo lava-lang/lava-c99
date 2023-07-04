@@ -35,9 +35,10 @@ typedef enum TokenType {
     TOKEN_WHILE,
     TOKEN_FOR,
     TOKEN_RETURN,
+    TOKEN_IMPORT,
 
     TOKEN_IDENTIFIER,
-    TOKEN_SEMI,
+    TOKEN_EOS,
 
     TOKEN_ASSIGNMENT,
     TOKEN_EQUALS,
