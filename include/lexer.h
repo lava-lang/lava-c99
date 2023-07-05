@@ -6,13 +6,14 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include "token.h"
-#include "util.h"
 #include "debug.h"
+#include "util.h"
 
 typedef struct Lexer {
     char* contents;
-    int pos;
-    int len;
+    size_t pos;
+    size_t len;
+    size_t line;
     char cur;
 } Lexer;
 
@@ -21,6 +22,7 @@ Lexer* lexerInit(char* contents) {
     lexer->contents = contents;
     lexer->pos = 0;
     lexer->len = strlen(lexer->contents);
+    lexer->line = 1;
     lexer->cur = lexer->contents[lexer->pos];
     return lexer;
 }
@@ -44,6 +46,9 @@ int isWhitespace(Lexer* lexer) {
 
 void skipWhitespace(Lexer* lexer) {
     while (isWhitespace(lexer)) {
+        if (lexer->cur == '\n') {
+            lexer->line++;
+        }
         advance(lexer);
     }
 }
@@ -72,7 +77,7 @@ int getStartEndPosForErrorMsg(Lexer* lexer, int pos, char* start) {
 }
 
 void printSyntaxErrorLocation(Lexer* lexer) {
-    //Find end
+    //Find end of current line
     size_t end = 0;
     for (size_t i = lexer->pos; i < lexer->len; i++) {
         if (lexer->contents[i] == '\n') {
@@ -80,27 +85,32 @@ void printSyntaxErrorLocation(Lexer* lexer) {
             break;
         }
     }
-
-    char* code = mallocStr("> ");
-
+    //Find start pos
     size_t newLineCount = 0;
-    for (int i = lexer->pos; i > 0; i--) {
+    size_t start = 0;
+    size_t firstNewLineStart = 0;
+    for (size_t i = lexer->pos; i > 0; i--) {
         if (lexer->contents[i] == '\n') {
-            size_t size = end - i;
-            char* line = malloc(size * sizeof(char));
-            strncpy(line, lexer->contents-i, end - i);
-            line = concatStr(mallocStr("> "), line);
-            code = concatStr(line, code);
             newLineCount++;
-            end = i;
-            if (newLineCount == 2) {
+            if (newLineCount == 1) {
+                firstNewLineStart = i + 1;
+            } else if (newLineCount == 3) {
                 break;
             }
         }
+        start = i;
     }
 
-    fprintf(stderr, "\n");
-    fprintf(stderr, "%s\n", code);
+    //Build string
+    size_t size = lexer->pos - start;
+    char* errorLocation = malloc((size * sizeof(char)) + 1);
+    strncpy(errorLocation, lexer->contents+start, size);
+    errorLocation[size] = '\0';
+
+    printf("line: %zu\n", lexer->line);
+    printf("col: %zu\n", lexer->pos - firstNewLineStart);
+
+    fprintf(stderr, "%s\n", errorLocation);
 }
 
 #define ERROR(MSG, ...) \
