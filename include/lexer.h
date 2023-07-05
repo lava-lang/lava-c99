@@ -90,6 +90,7 @@ size_t findStartOfErrorSnippet(Lexer* lexer) {
         }
         start = i;
     }
+    return start;
 }
 
 void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
