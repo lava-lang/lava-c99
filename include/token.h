@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include "util.h"
 
 typedef enum TokenType {
     //Special

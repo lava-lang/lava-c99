@@ -1,8 +1,9 @@
 #ifndef LAVA_UTIL_H
 #define LAVA_UTIL_H
-
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
+#include "lexer.h"
 
 #define INFO(MSG, ...) \
 printf("Lava: "); \
@@ -15,6 +16,7 @@ fprintf(stderr, "%s:%i - Lava Compiler Error:\n",__FILE__,__LINE__); \
 fprintf(stderr, MSG, __VA_ARGS__); \
 exit(1); \
 
+//TODO Only run if IFDEF is defined
 #define ASSERT(EX, MSG, ...) \
 if((EX)) { PANIC(MSG, __VA_ARGS__) };
 
@@ -39,4 +41,4 @@ char* concatStr(char* a, char* b) {
     ASSERT(a == NULL, "Cannot allocate %zu bytes!", newSize);
     return strcat(a, b);
 }
-#endif
+#endif //LAVA_UTIL_H

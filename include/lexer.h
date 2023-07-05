@@ -67,6 +67,46 @@ char* buildBufferUntilEOS(Lexer* lexer, char* buffer, bool includeEOS) {
     return buffer;
 }
 
+int getStartEndPosForErrorMsg(Lexer* lexer, int pos, char* start) {
+    return 0;
+}
+
+void printSyntaxErrorLocation(Lexer* lexer) {
+    //Find end
+    size_t end = 0;
+    for (size_t i = lexer->pos; i < lexer->len; i++) {
+        if (lexer->contents[i] == '\n') {
+            end = i;
+            break;
+        }
+    }
+
+    char* code = mallocStr("> ");
+
+    size_t newLineCount = 0;
+    for (int i = lexer->pos; i > 0; i--) {
+        if (lexer->contents[i] == '\n') {
+            size_t size = end - i;
+            char* line = malloc(size * sizeof(char));
+            strncpy(line, lexer->contents-i, end - i);
+            line = concatStr(mallocStr("> "), line);
+            code = concatStr(line, code);
+            newLineCount++;
+            end = i;
+            if (newLineCount == 2) {
+                break;
+            }
+        }
+    }
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", code);
+}
+
+#define ERROR(MSG, ...) \
+printSyntaxErrorLocation(parser); \
+PANIC(MSG, __VA_ARGS__) \
+
 Token* lexNextDigit(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur);
     int type = TOKEN_INTEGER_VALUE;

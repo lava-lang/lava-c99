@@ -4,7 +4,8 @@ import test;
 i32 x = 187_686_223;
 f32 y = 1.5;
 str s = "lava";
-bool flag = true;
+bool flag = 1;
+int i = 0;
 
 int main() {
     //int result = 10 - 5;

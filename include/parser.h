@@ -32,6 +32,11 @@ void parserFree(Parser* parser) {
     free(parser);
 }
 
+#undef ERROR //Redefine ERROR now that Lexing has finished
+#define ERROR(MSG, ...) \
+printSyntaxErrorLocation(parser->lexer); \
+PANIC(MSG, __VA_ARGS__) \
+
 Token* parserConsume(Parser* parser, TokenType type) {
     if (parser->token->type != type) {
         PANIC("Unexpected token! expected: %s, got: %s", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type]);
@@ -116,7 +121,7 @@ AST* parseExpression(Parser* parser, Scope* scope) {
 AST* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType) {
     AST* right = parseExpression(parser, scope);
     if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
-        PANIC("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
+        ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
     }
     parserConsume(parser, TOKEN_EOS);
     return initASTVarDef(dataType, identifier, right);
