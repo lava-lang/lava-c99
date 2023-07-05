@@ -10,19 +10,23 @@
 #include "util.h"
 
 typedef struct Lexer {
+    char* filepath;
     char* contents;
     size_t pos;
     size_t len;
     size_t line;
+    size_t col; //Only set once error thrown. Position of lava col within contents
     char cur;
 } Lexer;
 
-Lexer* lexerInit(char* contents) {
+Lexer* lexerInit(char* filepath, char* contents) {
     Lexer* lexer = malloc(sizeof(Lexer));
+    lexer->filepath = filepath;
     lexer->contents = contents;
     lexer->pos = 0;
     lexer->len = strlen(lexer->contents);
     lexer->line = 1;
+    lexer->col = 0;
     lexer->cur = lexer->contents[lexer->pos];
     return lexer;
 }
@@ -72,50 +76,60 @@ char* buildBufferUntilEOS(Lexer* lexer, char* buffer, bool includeEOS) {
     return buffer;
 }
 
-int getStartEndPosForErrorMsg(Lexer* lexer, int pos, char* start) {
-    return 0;
-}
-
-void printSyntaxErrorLocation(Lexer* lexer) {
-    //Find end of current line
-    size_t end = 0;
-    for (size_t i = lexer->pos; i < lexer->len; i++) {
-        if (lexer->contents[i] == '\n') {
-            end = i;
-            break;
-        }
-    }
-    //Find start pos
-    size_t newLineCount = 0;
+size_t findStartOfErrorSnippet(Lexer* lexer) {
     size_t start = 0;
-    size_t firstNewLineStart = 0;
-    for (size_t i = lexer->pos; i > 0; i--) {
+    size_t newLineCount = 0;
+    for (size_t i = lexer->pos; i > 0; i--) { //Find starting point
         if (lexer->contents[i] == '\n') {
             newLineCount++;
             if (newLineCount == 1) {
-                firstNewLineStart = i + 1;
+                lexer->col = i + 1; //Start if first \n for getting the lava column
             } else if (newLineCount == 3) {
-                break;
+                return start;
             }
         }
         start = i;
     }
+}
 
-    //Build string
-    size_t size = lexer->pos - start;
-    char* errorLocation = malloc((size * sizeof(char)) + 1);
-    strncpy(errorLocation, lexer->contents+start, size);
-    errorLocation[size] = '\0';
+void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
+    size_t endCurrentLine = 0;
+    for (size_t i = lexer->pos; i < lexer->len; ++i) {
+        if (lexer->contents[i] == '\n') {
+            endCurrentLine = i + 1; //+1 to include the \n itself
+            break;
+        }
+    }
 
-    printf("line: %zu\n", lexer->line);
-    printf("col: %zu\n", lexer->pos - firstNewLineStart);
-
-    fprintf(stderr, "%s\n", errorLocation);
+    List* lines = listInit(sizeof(char*));
+    size_t lineStart = start;
+    for (size_t i = start; i < endCurrentLine; i++) {
+        if (lexer->contents[i] == '\n') {
+            size_t lineLen = i - lineStart;
+            char* line = malloc(lineLen * sizeof(char) + 1);
+            strncpy(line, lexer->contents+lineStart, lineLen);
+            line[lineLen + 1] = '\0';
+            listAppend(lines, line);
+            lineStart = i + 1; //+1 so the next start moves past the \n
+        }
+    }
+    printf("\n");
+    for (int i = 0; i < lines->len; ++i) {
+        printf("> %s\n", (char*) lines->elements[i]);
+    }
+    printf ("> ");
+    for (int i = 0; i < lexer->pos - lexer->col - 2; ++i) {
+        putchar('-');
+    }
+    printf("^\n");
 }
 
 #define ERROR(MSG, ...) \
-printSyntaxErrorLocation(parser); \
-PANIC(MSG, __VA_ARGS__) \
+size_t start = findStartOfErrorSnippet(lexer); \
+printf("%s:%zu,%zu: ", lexer->filepath, lexer->line, lexer->pos - lexer->col); \
+LAVA(MSG, "Lava Error: ", __VA_ARGS__) \
+printSyntaxErrorLocation(lexer, start); \
+exit(1); \
 
 Token* lexNextDigit(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur);

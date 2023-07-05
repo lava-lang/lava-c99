@@ -34,8 +34,11 @@ void parserFree(Parser* parser) {
 
 #undef ERROR //Redefine ERROR now that Lexing has finished
 #define ERROR(MSG, ...) \
-printSyntaxErrorLocation(parser->lexer); \
-PANIC(MSG, __VA_ARGS__) \
+size_t start = findStartOfErrorSnippet(parser->lexer); \
+printf("\n%s:%zu:%zu: ", parser->lexer->filepath, parser->lexer->line, parser->lexer->pos - parser->lexer->col); \
+LAVA(MSG, "Lava Error: ", __VA_ARGS__) \
+printSyntaxErrorLocation(parser->lexer, start); \
+exit(1); \
 
 Token* parserConsume(Parser* parser, TokenType type) {
     if (parser->token->type != type) {

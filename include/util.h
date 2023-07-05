@@ -5,20 +5,29 @@
 #include <string.h>
 #include "lexer.h"
 
+#define DEBUG 1
+
 #define INFO(MSG, ...) \
 printf("Lava: "); \
 printf(MSG, __VA_ARGS__); \
 printf("\n"); \
 
-//TODO print line and pos with code
-#define PANIC(MSG, ...) \
-fprintf(stderr, "%s:%i - Lava Compiler Error:\n",__FILE__,__LINE__); \
+#define LAVA(MSG, ERR, ...) \
+fprintf(stderr, ERR); \
 fprintf(stderr, MSG, __VA_ARGS__); \
+fprintf(stderr, "\n%s:%i\n",__FILE__,__LINE__); \
+
+#define PANIC(MSG, ...) \
+LAVA(MSG, "Lava Error: ", __VA_ARGS__); \
 exit(1); \
 
-//TODO Only run if IFDEF is defined
+#ifdef DEBUG
 #define ASSERT(EX, MSG, ...) \
 if((EX)) { PANIC(MSG, __VA_ARGS__) };
+#else
+#define ASSERT(EX, MSG, ...)
+#endif
+
 
 char* charToStr(char c) {
     char* str = malloc(sizeof(char) * 2);

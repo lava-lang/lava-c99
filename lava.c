@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     printf("%s\n\n", inputCode);
 
     Scope* globalScope = scopeInit((void*) 0);
-    Lexer* lexer = lexerInit(inputCode);
+    Lexer* lexer = lexerInit(argv[1], inputCode);
     Parser* parser = parserInit(lexer);
     ASTCompound* ast = (ASTCompound*) parseAST(parser, globalScope, TOKEN_EOF);
     printf("Tokens Consumed: %d\n\n", TOKENS_CONSUMED);
