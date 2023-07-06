@@ -5,7 +5,7 @@
 #include "include/structures.h"
 #include "include/file.h"
 #include "include/ast.h"
-#include "include/visit.h"
+#include "include/cgen.h"
 
 int main(int argc, char *argv[]) {
     //Begin profiling
@@ -21,12 +21,13 @@ int main(int argc, char *argv[]) {
     Scope* globalScope = scopeInit((void*) 0);
     Lexer* lexer = lexerInit(argv[1], inputCode);
     Parser* parser = parserInit(lexer);
-    ASTCompound* ast = (ASTCompound*) parseAST(parser, globalScope, TOKEN_EOF);
+    AST* root = parseAST(parser, globalScope, TOKEN_EOF);
     DEBUG("Tokens Consumed: %d\n", TOKENS_CONSUMED)
 
     #if DEBUG_MODE == 1
-        for (int i = 0; i < ast->children->len; ++i) {
-            AST* node = (AST*) ast->children->elements[i];
+        ASTCompound* compound = (ASTCompound*) root;
+        for (int i = 0; i < compound->children->len; ++i) {
+            AST* node = (AST*) compound->children->elements[i];
             printf("Node: %s", AST_NAMES[node->astType]);
             if (node->astType == AST_VAR_DEF) {
                 printVarDef((ASTVarDef*) node);
@@ -40,8 +41,7 @@ int main(int argc, char *argv[]) {
     DEBUG("AST Nodes Constructed: %d\n", AST_NODES_CONSTRUCTED)
 
     clock_t startCodegen = clock();
-    OutputBuffer* outputBuffer = bufferInit();
-    visit((AST*) ast, outputBuffer);
+    OutputBuffer* outputBuffer = generateC(root);
     char* generatedCode = bufferBuild(outputBuffer);
     DEBUG("C Code Generation:\n%s\n", generatedCode)
     clock_t endCodegen = clock();

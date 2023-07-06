@@ -1,5 +1,5 @@
-#ifndef LAVA_VISIT_H
-#define LAVA_VISIT_H
+#ifndef LAVA_CGEN_H
+#define LAVA_CGEN_H
 
 #include <stdio.h>
 #include "structures.h"
@@ -126,4 +126,10 @@ void visit(AST* node, OutputBuffer* buffer) {
         PANIC("Unhandled AST: %s for %s", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
     }
 }
-#endif //LAVA_VISIT_H
+
+OutputBuffer* generateC(AST* root) {
+    OutputBuffer* outputBuffer = bufferInit();
+    visit(root, outputBuffer);
+    return outputBuffer;
+}
+#endif //LAVA_CGEN_H
