@@ -12,7 +12,7 @@ typedef struct List {
 } List;
 
 List* listInit(int elementSize) {
-    List* list = calloc(1, sizeof(List));
+    List* list = MALLOC(sizeof(List));
     list->elementSize = elementSize;
     list->len = 0;
     return list;
@@ -25,7 +25,7 @@ void listFree(List* list) {
 
 void listAppend(List* list, void* element) {
     list->len++;
-    list->elements = realloc(list->elements, (list->len + 1) * list->elementSize);
+    list->elements = REALLOC(list->elements, (list->len + 1) * list->elementSize);
     list->elements[list->len - 1] = element;
 }
 
@@ -36,10 +36,10 @@ typedef struct OutputBuffer {
 } OutputBuffer;
 
 OutputBuffer* bufferInit() {
-    OutputBuffer* buffer = calloc(1, sizeof(OutputBuffer));
-    buffer->code = calloc(2, sizeof(char));
+    OutputBuffer* buffer = MALLOC(sizeof(OutputBuffer));
+    buffer->code = CALLOC(2, sizeof(char));
     buffer->code[0] = '\0';
-    buffer->bootstrap = calloc(2, sizeof(char)); //TODO mayne this should be Set?
+    buffer->bootstrap = CALLOC(2, sizeof(char)); //TODO mayne this should be Set?
     buffer->bootstrap[0] = '\0';
     buffer->tab = 0;
     return buffer;
@@ -73,7 +73,7 @@ void bufferAddImport(OutputBuffer* buffer, char* value) {
         size_t initialSize = strlen(buffer->bootstrap);
         size_t importLen = strlen(value);
         size_t newSize = initialSize + importLen + (initialSize > 1 ? 2 : 3);
-        buffer->bootstrap = realloc(buffer->bootstrap, newSize * sizeof(char));
+        buffer->bootstrap = REALLOC(buffer->bootstrap, newSize * sizeof(char));
         for (int i = 0; i < importLen; ++i) {
             buffer->bootstrap[initialSize + i - (initialSize > 1 ? 1 : 0)] = value[i];
         }

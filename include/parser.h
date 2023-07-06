@@ -15,7 +15,7 @@ typedef struct Parser {
 } Parser;
 
 Parser* parserInit(Lexer* lexer) {
-    Parser* parser = calloc(1, sizeof(Parser));
+    Parser* parser = MALLOC(sizeof(Parser));
     parser->lexer = lexer;
     parser->token = lexNextToken(lexer);
     parser->type = parser->token->type;
@@ -36,7 +36,7 @@ size_t start = findStartOfErrorSnippet(parser->lexer); \
 printf("\n%s:%zu:%zu: ", parser->lexer->filepath, parser->lexer->line, parser->lexer->pos - parser->lexer->col); \
 LAVA(MSG, "Lava Error: ", __VA_ARGS__) \
 printSyntaxErrorLocation(parser->lexer, start); \
-exit(1); \
+exit(EXIT_FAILURE); \
 
 Token* parserConsume(Parser* parser, TokenType type) {
     if (parser->token->type != type) {

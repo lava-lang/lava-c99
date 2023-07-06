@@ -20,7 +20,7 @@ typedef struct Lexer {
 } Lexer;
 
 Lexer* lexerInit(char* filepath, char* contents) {
-    Lexer* lexer = malloc(sizeof(Lexer));
+    Lexer* lexer = MALLOC(sizeof(Lexer));
     lexer->filepath = filepath;
     lexer->contents = contents;
     lexer->pos = 0;
@@ -72,8 +72,7 @@ char* buildBufferUntilChar(Lexer* lexer, char* buffer, char target, bool include
             }
         }
 
-        //TODO realloc null check macro
-        buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
+        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
@@ -111,7 +110,7 @@ void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
     for (size_t i = start; i < endCurrentLine; i++) {
         if (lexer->contents[i] == '\n') {
             size_t lineLen = i - lineStart;
-            char* line = malloc(lineLen * sizeof(char) + 1);
+            char* line = MALLOC(lineLen * sizeof(char) + 1);
             strncpy(line, lexer->contents+lineStart, lineLen);
             line[lineLen + 1] = '\0';
             listAppend(lines, line);
@@ -134,7 +133,7 @@ size_t start = findStartOfErrorSnippet(lexer); \
 printf("%s:%zu,%zu: ", lexer->filepath, lexer->line, lexer->pos - lexer->col); \
 LAVA(MSG, "Lava Error: ", __VA_ARGS__) \
 printSyntaxErrorLocation(lexer, start); \
-exit(1); \
+exit(EXIT_FAILURE); \
 
 Token* lexNextDigit(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur);
@@ -146,7 +145,7 @@ Token* lexNextDigit(Lexer* lexer) {
             type = TOKEN_FLOAT_VALUE;
         }
         if (lexer->cur != '_') {
-            buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
+            buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
             strncat(buffer, lexer->contents + lexer->pos, 1);
         }
         advance(lexer);
@@ -200,7 +199,7 @@ Token* lexNextIdentifier(Lexer* lexer) {
 
     advance(lexer);
     while (isalnum(lexer->cur)) {
-        buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
+        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
@@ -255,7 +254,7 @@ Token* lexNextString(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur); //Contains first string char
     advance(lexer); //Move to next string char
     while (lexer->cur != '"') { //Grow with chars until closing string char
-        buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
+        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
@@ -271,7 +270,7 @@ Token* lexNextComment(Lexer* lexer) {
     int type = TOKEN_COMMENT_LINE;
     //TODO remove need for len bounds check by refactoring lexer to lex line by line
     while (lexer->cur != end /*|| lexer->pos <= lexer->len*/) {
-        buffer = realloc(buffer, (strlen(buffer) + 2) * sizeof(char));
+        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }

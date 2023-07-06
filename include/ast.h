@@ -26,7 +26,7 @@ typedef struct Scope {
 } Scope;
 
 Scope* scopeInit(AST* ast) {
-    Scope* scope = calloc(1, sizeof(Scope));
+    Scope* scope = MALLOC(sizeof(Scope));
     scope->ast = ast;
     return scope;
 }
@@ -53,7 +53,7 @@ AST* initASTBase(Token* token, AST* ast, ASTType astType) {
 }
 
 AST* initAST(Token* token, ASTType astType) {
-    return initASTBase(token, calloc(1, sizeof(AST)), astType);
+    return initASTBase(token, MALLOC(sizeof(AST)), astType);
 }
 
 typedef struct ASTCompound {
@@ -62,7 +62,7 @@ typedef struct ASTCompound {
 } ASTCompound;
 
 AST* initASTCompound(Token* token, List* children) {
-    ASTCompound* compound = calloc(1, sizeof(ASTCompound));
+    ASTCompound* compound = MALLOC(sizeof(ASTCompound));
     initASTBase(token, (AST*) compound, AST_COMPOUND);
     compound->children = children;
     return (AST*) compound;
@@ -76,7 +76,7 @@ typedef struct ASTVarDef {
 } ASTVarDef;
 
 AST* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
-    ASTVarDef* varDef = calloc(1, sizeof(ASTVarDef));
+    ASTVarDef* varDef = MALLOC(sizeof(ASTVarDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) varDef, AST_VAR_DEF);
     varDef->dataType = dataType;
     varDef->identifier = identifier;
@@ -92,7 +92,7 @@ typedef struct ASTFuncDef {
 } ASTFuncDef;
 
 AST* initASTFuncDef(AST* returnType, AST* identifier, AST* compound) {
-    ASTFuncDef* funcDef = calloc(1, sizeof(ASTFuncDef));
+    ASTFuncDef* funcDef = MALLOC(sizeof(ASTFuncDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
     funcDef->returnType = returnType;
     funcDef->identifier = identifier;
@@ -107,7 +107,7 @@ typedef struct ASTBinaryOp {
 } ASTBinaryOp;
 
 AST* initASTBinaryOp(Token* token, AST* left, AST* right) {
-    ASTBinaryOp* binaryOp = calloc(1, sizeof(ASTBinaryOp));
+    ASTBinaryOp* binaryOp = MALLOC(sizeof(ASTBinaryOp));
     initASTBase(token, (AST*) binaryOp, AST_BINARY_OP);
     binaryOp->left = left;
     binaryOp->right = right;
@@ -120,7 +120,7 @@ typedef struct ASTReturn {
 } ASTReturn;
 
 AST* initASTReturn(AST* expression) {
-    ASTReturn* returnStatement = calloc(1, sizeof(ASTReturn));
+    ASTReturn* returnStatement = MALLOC(sizeof(ASTReturn));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) returnStatement, AST_RETURN);
     returnStatement->expression = expression;
     return (AST*) returnStatement;
