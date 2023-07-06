@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "test.h"
 #include <stdbool.h>
 
 int x = 187686223;
@@ -12,5 +11,7 @@ int main() {
 printf("x: %d\n", x);
 int var1 = 10;
 printf("var1: %d\n", var1);
+printf("Printing inside C block\n");
+        }
 return 0;
 }

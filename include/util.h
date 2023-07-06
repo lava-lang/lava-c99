@@ -5,12 +5,17 @@
 #include <string.h>
 #include "lexer.h"
 
-#define DEBUG 1
+#define DEBUG_MODE 1
+#define BASIC_OUTPUT 1
 
+#if DEBUG_MODE == 1
 #define INFO(MSG, ...) \
-printf("Lava: "); \
-printf(MSG, __VA_ARGS__); \
-printf("\n"); \
+    printf("Lava - "); \
+    printf(MSG, __VA_ARGS__); \
+    printf("\n");
+#else
+    #define INFO(MSG, ...)
+#endif
 
 #define LAVA(MSG, ERR, ...) \
 fprintf(stderr, ERR); \
@@ -21,13 +26,28 @@ fprintf(stderr, "\n%s:%i\n",__FILE__,__LINE__); \
 LAVA(MSG, "Lava Error: ", __VA_ARGS__); \
 exit(1); \
 
-#ifdef DEBUG
-#define ASSERT(EX, MSG, ...) \
-if((EX)) { PANIC(MSG, __VA_ARGS__) };
+#if DEBUG_MODE == 1
+    #define ASSERT(EX, MSG, ...) \
+    if((EX)) { PANIC(MSG, __VA_ARGS__) };
 #else
-#define ASSERT(EX, MSG, ...)
+    #define ASSERT(EX, MSG, ...)
 #endif
 
+#if DEBUG_MODE == 1
+    #define DEBUG(MSG, ...) \
+    INFO(MSG, __VA_ARGS__)
+#else
+    #define DEBUG(MSG, ...)
+#endif
+
+#if BASIC_OUTPUT == 1 || DEBUG_MODE == 1
+    #define BASIC(MSG, ...) \
+    printf("Lava: "); \
+    printf(MSG, __VA_ARGS__); \
+    printf("\n");
+#else
+    #define BASIC(MSG, ...)
+#endif
 
 char* charToStr(char c) {
     char* str = malloc(sizeof(char) * 2);

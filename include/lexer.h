@@ -6,8 +6,8 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include "token.h"
+#include "structures.h"
 #include "debug.h"
-#include "util.h"
 
 typedef struct Lexer {
     char* filepath;
@@ -40,16 +40,20 @@ char advance(Lexer* lexer) {
     return (lexer->cur = lexer->contents[++(lexer->pos)]);
 }
 
-char peek(Lexer* lexer, int offset) {
+char peek(Lexer* lexer, size_t offset) {
     return lexer->pos + offset >= lexer->len ? '\0' : lexer->contents[lexer->pos + offset];
 }
 
-int isWhitespace(Lexer* lexer) {
-    return lexer->cur == ' ' || lexer->cur == 10 || lexer->cur == '\r';
+int isCharWhitespace(char c) {
+    return c == ' ' || c == 10 || c == '\r';
+}
+
+int isCurWhitespace(Lexer* lexer) {
+    return isCharWhitespace(lexer->cur);
 }
 
 void skipWhitespace(Lexer* lexer) {
-    while (isWhitespace(lexer)) {
+    while (isCurWhitespace(lexer)) {
         if (lexer->cur == '\n') {
             lexer->line++;
         }
@@ -57,11 +61,11 @@ void skipWhitespace(Lexer* lexer) {
     }
 }
 
-char* buildBufferUntilEOS(Lexer* lexer, char* buffer, bool includeEOS) {
+char* buildBufferUntilChar(Lexer* lexer, char* buffer, char target, bool includeChar) {
     bool shouldLoop = true;
     while (shouldLoop) { //Consume characters until EOS (;)
-        if (lexer->cur == ';') {
-            if (includeEOS) {
+        if (lexer->cur == target) {
+            if (includeChar) {
                 shouldLoop = false;
             } else {
                 break;
@@ -168,19 +172,26 @@ Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenType
     return tokenVarInit(tokenType, buffer, valueType, isPointer);
 }
 
-Token* lexNextCStatement(Lexer* lexer) {
+Token* lexNextCStatement(Lexer* lexer, char endChar) {
     char* buffer = charToStr(lexer->cur); //Buffer initialized with first C char
     advance(lexer); //Advance past first comment char, since it is now in the initial buffer
-    buffer = buildBufferUntilEOS(lexer, buffer, true); //Consume characters until EOS (;)
+    buffer = buildBufferUntilChar(lexer, buffer, endChar, true); //Consume characters until EOS (;)
     advance(lexer); //Advance past closing C token character
     return tokenInit(TOKEN_C_STATEMENT, buffer);
+}
+
+Token* lexNextCBlock(Lexer* lexer) {
+    advance(lexer); //Skip {
+    skipWhitespace(lexer);
+    printf("cur: %c\n", lexer->cur);
+    return lexNextCStatement(lexer, '}');
 }
 
 Token* lexNextImport(Lexer* lexer) {
     skipWhitespace(lexer);
     char* buffer = charToStr(lexer->cur);
     advance(lexer);
-    buffer = buildBufferUntilEOS(lexer, buffer, false); //Consume characters until EOS (;)
+    buffer = buildBufferUntilChar(lexer, buffer, ';', false); //Consume characters until EOS (;)
     return tokenInit(TOKEN_IMPORT, buffer);
 }
 
@@ -277,10 +288,24 @@ Token* lexNextToken(Lexer* lexer) {
 
     if (lexer->pos >= lexer->len) {
         return tokenInit(TOKEN_EOF, "EOF");
-    } else if (lexer->cur == 'c' && peek(lexer, 1) == '.') {
-        advance(lexer);
-        advance(lexer); //Advance twice to move past "c." prefix
-        return lexNextCStatement(lexer);
+    } else if (lexer->cur == 'c') {
+        if (peek(lexer, 1) == '.') {
+            advance(lexer);
+            advance(lexer); //Advance twice to move past "c." prefix
+            return lexNextCStatement(lexer, ';');
+        } else {
+            char next = peek(lexer, 1);
+            size_t i = 1;
+            while (isCharWhitespace(next)) {
+                next = peek(lexer, ++i);
+            }
+            if (next == '{') {
+                for (int j = 0; j < i; ++j) {
+                    advance(lexer);
+                }
+                return lexNextCBlock(lexer);
+            }
+        }
     } else if (isdigit(lexer->cur)) {
         return lexNextDigit(lexer);
     } else if (isalnum(lexer->cur)) {

@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include "token.h"
 #include "lexer.h"
-#include "structures.h"
-#include "debug.h"
 #include "ast.h"
 
 static int TOKENS_CONSUMED = 0;

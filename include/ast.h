@@ -2,7 +2,6 @@
 #define LAVA_AST_H
 
 #include "token.h"
-#include "structures.h"
 
 static int AST_NODES_CONSTRUCTED = 0;
 
