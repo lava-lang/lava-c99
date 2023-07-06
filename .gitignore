@@ -3,3 +3,5 @@ cmake-build-debug/*
 *.exe
 notes/*
 zig/*
+output.c
+test.lava

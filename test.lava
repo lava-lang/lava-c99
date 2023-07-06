@@ -14,9 +14,9 @@ int main() {
     int var1 = 10;
     c.printf("var1: %d\n", var1);
 
-    c {
+    /*c {
         printf("Printing inside C block\n");
-        }
+    }*/
 
     return 0;
 }

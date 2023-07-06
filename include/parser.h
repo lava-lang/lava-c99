@@ -173,6 +173,9 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
         } else if (parser->type == TOKEN_COMMENT_LINE) {
             parserConsume(parser, TOKEN_COMMENT_LINE);
             continue; //NOOP
+        } else if (parser->type == TOKEN_COMMENT_MULTI) {
+            parserConsume(parser, TOKEN_COMMENT_MULTI);
+            continue; //NOOP
         } else if (parser->type == TOKEN_C_STATEMENT) {
             node = parseCStatement(parser, scope);
         } else if (parser->type == TOKEN_RETURN) {

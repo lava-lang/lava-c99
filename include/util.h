@@ -28,7 +28,7 @@ exit(EXIT_FAILURE); \
 
 #if DEBUG_MODE == 1
     #define ASSERT(EX, MSG, ...) \
-    if((EX)) { PANIC(MSG, __VA_ARGS__) };
+    if ((EX)) { PANIC(MSG, __VA_ARGS__) };
 #else
     #define ASSERT(EX, MSG, ...)
 #endif
