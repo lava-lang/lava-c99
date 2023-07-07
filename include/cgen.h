@@ -16,6 +16,9 @@ void visitCompound(ASTCompound* node, OutputBuffer* buffer) {
     for (size_t i = 0; i < node->children->len; ++i) {
         bufferAppendIndent(buffer);
         visit((AST*) node->children->elements[i], buffer);
+        if (i < node->children->len - 1) {
+            bufferAppend(buffer, "\n");
+        }
     }
 }
 
@@ -48,16 +51,29 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
     }
     bufferAppend(buffer, " ");
     visit(varDef->identifier, buffer);
-    bufferAppend(buffer, " = ");
-    if (varDef->dataType->token->type == TOKEN_STRING) { //Handle string quotes
-        bufferAppend(buffer, "\"");
-        visit(varDef->expression, buffer);
-        bufferAppend(buffer, "\"");
-    } else {
-        visit(varDef->expression, buffer);
+    if (varDef->expression) {
+        bufferAppend(buffer, " = ");
+        if (varDef->dataType->token->type == TOKEN_STRING) { //Handle string quotes
+            bufferAppend(buffer, "\"");
+            visit(varDef->expression, buffer);
+            bufferAppend(buffer, "\"");
+        } else {
+            visit(varDef->expression, buffer);
+        }
     }
     bufferAppend(buffer, ";");
-    bufferAppend(buffer, "\n");
+}
+
+void visitTypeDefinition(ASTTypeDef* typeDef, OutputBuffer* buffer) {
+    bufferAppend(buffer, "\ntypedef struct ");
+    visit(typeDef->identifier, buffer);
+    bufferAppend(buffer, "_t {\n");
+    bufferIndent(buffer);
+        visitCompound(typeDef->members, buffer);
+    bufferUnindent(buffer);
+    bufferAppend(buffer, "\n} ");
+    visit(typeDef->identifier, buffer);
+    bufferAppend(buffer, ";");
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
@@ -69,14 +85,13 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     //TODO args..
     bufferAppend(buffer, ") {\n");
     bufferIndent(buffer);
-    visitCompound((ASTCompound*) funcDef->compound, buffer);
-    bufferAppend(buffer, "\n}");
+        visitCompound(funcDef->statements, buffer);
     bufferUnindent(buffer);
+    bufferAppend(buffer, "\n}");
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
     visitNode(node, buffer);
-    bufferAppend(buffer, "\n");
 }
 
 void visitReturn(AST* node, OutputBuffer* buffer) {
@@ -102,31 +117,33 @@ void visit(AST* node, OutputBuffer* buffer) {
     }
 
     if (node->astType == AST_COMPOUND) {
-        return visitCompound((ASTCompound*) node, buffer);
+        visitCompound((ASTCompound*) node, buffer);
     } else if (node->astType == AST_DATA_TYPE) {
-        return visitDataType(node, buffer);
+        visitDataType(node, buffer);
     } else if (node->astType == AST_IDENTIFIER) {
-        return visitNode(node, buffer);
+        visitNode(node, buffer);
     } else if (node->astType == AST_VAR_VALUE) {
-        return visitNode(node, buffer);
+        visitNode(node, buffer);
     }
 
     else if (node->astType == AST_VAR_DEF) {
-        return visitVarDefinition((ASTVarDef*) node, buffer);
+        visitVarDefinition((ASTVarDef*) node, buffer);
+    } else if (node->astType == AST_TYPE_DEF) {
+        visitTypeDefinition((ASTTypeDef*) node, buffer);
     } else if (node->astType == AST_FUNC_DEF) {
-        return visitFuncDefinition((ASTFuncDef*) node, buffer);
+        visitFuncDefinition((ASTFuncDef*) node, buffer);
     }
 
     else if (node->astType == AST_C_STATEMENT) {
-        return visitCStatement(node, buffer);
+        visitCStatement(node, buffer);
     } else if (node->astType == AST_RETURN) {
-        return visitReturn(node, buffer);
+        visitReturn(node, buffer);
     } else if (node->astType == AST_IMPORT) {
-        return visitImport(node, buffer);
+        visitImport(node, buffer);
     }
 
     else {
-        PANIC("Unhandled AST: %s for %s", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
+        PANIC("Unhandled AST: %s %s", AST_NAMES[node->astType], node->token->type != TOKEN_NONE ? TOKEN_NAMES[node->token->type] : "");
     }
 }
 

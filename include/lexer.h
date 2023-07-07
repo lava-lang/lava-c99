@@ -121,8 +121,8 @@ void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
     for (int i = 0; i < lines->len; ++i) {
         printf("> %s\n", (char*) lines->elements[i]);
     }
-    printf ("> ");
-    for (int i = 0; i < lexer->pos - lexer->col - 2; ++i) {
+    printf("> ");
+    for (int i = 0; i < lexer->pos - lexer->col - 1; ++i) {
         putchar('-');
     }
     printf("^\n");

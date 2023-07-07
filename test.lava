@@ -7,6 +7,12 @@ str s = "lava";
 bool flag = true;
 int i = 0;
 
+type Vec {
+    f32 x;
+    //f32 y;
+    //f32 z;
+}
+
 int main() {
     //int result = 10 - 5;
 

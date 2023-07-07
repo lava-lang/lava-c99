@@ -31,7 +31,7 @@ void listAppend(List* list, void* element) {
 
 typedef struct OutputBuffer {
     char* code;
-    char* bootstrap;
+    List* imports;
     size_t tab;
 } OutputBuffer;
 
@@ -39,14 +39,13 @@ OutputBuffer* bufferInit() {
     OutputBuffer* buffer = CALLOC(1, sizeof(OutputBuffer));
     buffer->code = CALLOC(2, sizeof(char));
     buffer->code[0] = '\0';
-    buffer->bootstrap = CALLOC(2, sizeof(char)); //TODO mayne this should be Set?
-    buffer->bootstrap[0] = '\0';
+    buffer->imports = listInit(sizeof(char*));
     buffer->tab = 0;
     return buffer;
 }
 
 void bufferFree(OutputBuffer* buffer) {
-    free(buffer->bootstrap);
+    listFree(buffer->imports);
     free(buffer->code);
     free(buffer);
 }
@@ -78,24 +77,16 @@ void bufferAppendIndent(OutputBuffer* buffer) {
 }
 
 void bufferAddImport(OutputBuffer* buffer, char* value) {
-    if (strstr(buffer->bootstrap, value) == NULL) { //Avoid duplicate entries
-        char* prefix = mallocStr("#include ");
-        value = concatStr(prefix, value); //Append include
-        size_t initialSize = strlen(buffer->bootstrap);
-        size_t importLen = strlen(value);
-        size_t newSize = initialSize + importLen + (initialSize > 1 ? 2 : 3);
-        buffer->bootstrap = REALLOC(buffer->bootstrap, newSize * sizeof(char));
-        for (int i = 0; i < importLen; ++i) {
-            buffer->bootstrap[initialSize + i - (initialSize > 1 ? 1 : 0)] = value[i];
-        }
-        buffer->bootstrap[newSize - 3] = '\n';
-        buffer->bootstrap[newSize - 2] = '\n';
-        buffer->bootstrap[newSize - 1] = '\0';
-    }
+    char* prefix = mallocStr("#include ");
+    value = concatStr(prefix, value); //Append include
+    value = concatStr(value, "\n");
+    listAppend(buffer->imports, value);
 }
 
 char* bufferBuild(OutputBuffer* buffer) {
-    buffer->bootstrap = concatStr(buffer->bootstrap, buffer->code);
-    return buffer->bootstrap;
+    for (size_t i = 0; i < buffer->imports->len; ++i) {
+        buffer->code = concatStr(buffer->imports->elements[i], buffer->code);
+    }
+    return buffer->code;
 }
 #endif

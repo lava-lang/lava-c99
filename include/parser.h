@@ -119,13 +119,24 @@ AST* parseExpression(Parser* parser, Scope* scope) {
     return ast;
 }
 
-AST* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType) {
-    AST* right = parseExpression(parser, scope);
-    if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
-        ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
+AST* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType, bool initialized) {
+    AST *right = initialized ? parseExpression(parser, scope) : NULL;
+    if (initialized) {
+        if (right->token->type != ((TokenVar *) dataType->token)->validValue) {
+            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
+        }
     }
     parserConsume(parser, TOKEN_EOS);
     return initASTVarDef(dataType, identifier, right);
+}
+
+AST* parseTypeDefinition(Parser* parser, Scope* scope) {
+    parserConsume(parser, TOKEN_TYPE_DEF);
+    AST* identifier = parseIdentifier(parser, scope);
+    parserConsume(parser, TOKEN_LBRACE);
+    AST* members = parseAST(parser, scope, TOKEN_RBRACE);
+    parserConsume(parser, TOKEN_RBRACE);
+    return initASTTypeDef(identifier, members);
 }
 
 AST* parseFuncDefinition(Parser* parser, Scope* scope, AST* identifier, AST* returnType) {
@@ -142,9 +153,11 @@ AST* parseFuncDefinition(Parser* parser, Scope* scope, AST* identifier, AST* ret
 AST* parseDefinition(Parser* parser, Scope* scope) {
     AST* dataType = parseDataType(parser, scope);
     AST* identifier = parseIdentifier(parser, scope);
-    if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
+    if (parser->type == TOKEN_EOS) { //Must be variable def without assignment
+        return parseVarDefinition(parser, scope, identifier, dataType, false);
+    } else if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
         parserConsume(parser, TOKEN_ASSIGNMENT);
-        return parseVarDefinition(parser, scope, identifier, dataType);
+        return parseVarDefinition(parser, scope, identifier, dataType, true);
     } else if (parser->type == TOKEN_LPAREN) { //Function definition
         return parseFuncDefinition(parser, scope, identifier, dataType);
     }
@@ -170,7 +183,11 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
         AST* node = NULL;
         if (isVarType(parser->type)) {
             node = parseDefinition(parser, scope);
-        } else if (parser->type == TOKEN_COMMENT_LINE) {
+        } else if (parser->type == TOKEN_TYPE_DEF) {
+            node = parseTypeDefinition(parser, scope);
+        }
+
+        else if (parser->type == TOKEN_COMMENT_LINE) {
             parserConsume(parser, TOKEN_COMMENT_LINE);
             continue; //NOOP
         } else if (parser->type == TOKEN_COMMENT_MULTI) {
@@ -185,7 +202,7 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
         }
 
         else {
-            PANIC("Could not parse AST for: %s", TOKEN_NAMES[parser->type]);
+            ERROR("Unexpected Token! %s", TOKEN_NAMES[parser->type]);
         }
         listAppend(children, node);
     }

@@ -8,6 +8,7 @@ static int AST_NODES_CONSTRUCTED = 0;
 typedef enum ASTType {
     AST_DATA_TYPE,
     AST_VAR_DEF,
+    AST_TYPE_DEF,
     AST_FUNC_DEF,
     AST_IDENTIFIER,
     AST_COMPOUND,
@@ -84,19 +85,33 @@ AST* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
     return (AST*) varDef;
 }
 
+typedef struct ASTTypeDef {
+    AST base;
+    AST* identifier;
+    ASTCompound* members;
+} ASTTypeDef;
+
+AST* initASTTypeDef(AST* identifier, AST* members) {
+    ASTTypeDef* typeDef = CALLOC(1, sizeof(ASTTypeDef));
+    initASTBase(&STATIC_TOKEN_NONE, (AST*) typeDef, AST_TYPE_DEF);
+    typeDef->identifier = identifier;
+    typeDef->members = (ASTCompound*) members;
+    return (AST*) typeDef;
+}
+
 typedef struct ASTFuncDef {
     AST base;
     AST* returnType;
     AST* identifier;
-    AST* compound;
+    ASTCompound* statements;
 } ASTFuncDef;
 
-AST* initASTFuncDef(AST* returnType, AST* identifier, AST* compound) {
+AST* initASTFuncDef(AST* returnType, AST* identifier, AST* statements) {
     ASTFuncDef* funcDef = CALLOC(1, sizeof(ASTFuncDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
     funcDef->returnType = returnType;
     funcDef->identifier = identifier;
-    funcDef->compound = compound;
+    funcDef->statements = (ASTCompound*) statements;
     return (AST*) funcDef;
 }
 

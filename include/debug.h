@@ -65,6 +65,7 @@ const char* TOKEN_NAMES[] = {
 const char* AST_NAMES[] = {
     "AST Data Type",
     "AST Variable Definition",
+    "AST Type Definition",
     "AST Function Definition",
     "AST Identifier",
     "AST Compound",
