@@ -6,7 +6,7 @@
 #include "util.h"
 
 typedef struct List {
-    int len;
+    size_t len;
     int elementSize;
     void** elements;
 } List;
@@ -32,7 +32,7 @@ void listAppend(List* list, void* element) {
 typedef struct OutputBuffer {
     char* code;
     char* bootstrap;
-    int tab;
+    size_t tab;
 } OutputBuffer;
 
 OutputBuffer* bufferInit() {
@@ -51,19 +51,30 @@ void bufferFree(OutputBuffer* buffer) {
     free(buffer);
 }
 
-void bufferTab(OutputBuffer* buffer) {
+void bufferAppend(OutputBuffer* buffer, char* value) {
+    buffer->code = concatStr(buffer->code, value);
+}
+
+void bufferIndent(OutputBuffer* buffer) {
     buffer->tab++;
 }
 
-void bufferUnTab(OutputBuffer* buffer) {
+void bufferUnindent(OutputBuffer* buffer) {
     if ((buffer->tab - 1) < 0) {
         PANIC("Uneven tab indentation!", NULL);
     }
     buffer->tab--;
 }
 
-void bufferAppend(OutputBuffer* buffer, char* value) {
-    buffer->code = concatStr(buffer->code, value);
+void bufferAppendIndent(OutputBuffer* buffer) {
+    if (buffer->tab > 0) {
+        char* tabs = MALLOC((buffer->tab * sizeof(char)) + 1);
+        for (size_t t = 0; t < buffer->tab; ++t) {
+            tabs[t] = '\t';
+        }
+        tabs[buffer->tab] = '\0';
+        bufferAppend(buffer, tabs);
+    }
 }
 
 void bufferAddImport(OutputBuffer* buffer, char* value) {

@@ -13,7 +13,8 @@ void visitNode(AST* node, OutputBuffer* buffer) {
 }
 
 void visitCompound(ASTCompound* node, OutputBuffer* buffer) {
-    for (int i = 0; i < node->children->len; ++i) {
+    for (size_t i = 0; i < node->children->len; ++i) {
+        bufferAppendIndent(buffer);
         visit((AST*) node->children->elements[i], buffer);
     }
 }
@@ -67,8 +68,10 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "(");
     //TODO args..
     bufferAppend(buffer, ") {\n");
+    bufferIndent(buffer);
     visitCompound((ASTCompound*) funcDef->compound, buffer);
     bufferAppend(buffer, "\n}");
+    bufferUnindent(buffer);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {

@@ -8,8 +8,8 @@ bool flag = true;
 int i = 0;
 
 int main() {
-printf("x: %d\n", x);
-int var1 = 10;
-printf("var1: %d\n", var1);
-return 0;
+	printf("x: %d\n", x);
+	int var1 = 10;
+	printf("var1: %d\n", var1);
+	return 0;
 }
