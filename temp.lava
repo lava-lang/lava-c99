@@ -1,8 +1,28 @@
-int x = 187_686_223;
-float y = 1.234;
-str name = "bob";
-bool enable = true;
+import <stdio.h>;
+//import test;
 
-void main() {
-    y = 999.9;
+i32 x = 187_686_223;
+f32 y = 1.5;
+str s = "lava";
+bool flag = true;
+int i = 0;
+
+type Vec {
+    f32 x;
+    f32 y;
+    f32 z;
+}
+
+int main() {
+    //int result = 10 - 5;
+
+    c.printf("x: %d\n", x);
+    int var1 = 10;
+    c.printf("var1: %d\n", var1);
+
+    /*c {
+        printf("Printing inside C block\n");
+    }*/
+
+    return 0;
 }

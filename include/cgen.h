@@ -25,10 +25,24 @@ void visitCompound(ASTCompound* node, OutputBuffer* buffer) {
 void visitDataType(AST* node, OutputBuffer* buffer) {
     if (node->token->type == TOKEN_VOID) {
         bufferAppend(buffer, "void");
-    } else if (node->token->type == TOKEN_INT || node->token->type == TOKEN_I32) {
+    } else if (node->token->type == TOKEN_INT) {
         bufferAppend(buffer, "int");
+    } else if (node->token->type == TOKEN_I8) {
+        bufferAppend(buffer, "int8_t");
+    } else if (node->token->type == TOKEN_I16) {
+        bufferAppend(buffer, "int16_t");
+    } else if (node->token->type == TOKEN_I32) {
+        bufferAppend(buffer, "int32_t");
     } else if (node->token->type == TOKEN_I64) {
-        bufferAppend(buffer, "long");
+        bufferAppend(buffer, "int64_t");
+    } else if (node->token->type == TOKEN_U8) {
+        bufferAppend(buffer, "uint8_t");
+    } else if (node->token->type == TOKEN_U16) {
+        bufferAppend(buffer, "uint16_t");
+    } else if (node->token->type == TOKEN_U32) {
+        bufferAppend(buffer, "uint32_t");
+    } else if (node->token->type == TOKEN_U64) {
+        bufferAppend(buffer, "uint64_t");
     } else if (node->token->type == TOKEN_FLOAT || node->token->type == TOKEN_F32) {
         bufferAppend(buffer, "float");
     } else if (node->token->type == TOKEN_F64) {
@@ -37,8 +51,6 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
         bufferAppend(buffer, "char");
     } else if (node->token->type == TOKEN_BOOLEAN) {
         bufferAppend(buffer, "bool");
-        //TODO move to bootstrap code
-        bufferAddImport(buffer, "<stdbool.h>");
     } else {
         PANIC("Unhandled DataType: %s for %s", AST_NAMES[node->astType], TOKEN_NAMES[node->token->type]);
     }
@@ -148,8 +160,11 @@ void visit(AST* node, OutputBuffer* buffer) {
 }
 
 OutputBuffer* generateC(AST* root) {
-    OutputBuffer* outputBuffer = bufferInit();
-    visit(root, outputBuffer);
-    return outputBuffer;
+    OutputBuffer* buffer = bufferInit();
+    //TODO create some sort of bootstrap
+    bufferAddImport(buffer, "<stdbool.h>");
+    bufferAddImport(buffer, "<stdint.h>");
+    visit(root, buffer);
+    return buffer;
 }
 #endif //LAVA_CGEN_H

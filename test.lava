@@ -9,20 +9,14 @@ int i = 0;
 
 type Vec {
     f32 x;
-    //f32 y;
-    //f32 z;
+    f32 y;
+    f32 z;
 }
 
 int main() {
-    //int result = 10 - 5;
-
     c.printf("x: %d\n", x);
     int var1 = 10;
     c.printf("var1: %d\n", var1);
-
-    /*c {
-        printf("Printing inside C block\n");
-    }*/
 
     return 0;
 }
