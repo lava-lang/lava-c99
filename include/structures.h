@@ -12,7 +12,7 @@ typedef struct List {
 } List;
 
 List* listInit(int elementSize) {
-    List* list = MALLOC(sizeof(List));
+    List* list = CALLOC(1, sizeof(List));
     list->elementSize = elementSize;
     list->len = 0;
     return list;
@@ -36,7 +36,7 @@ typedef struct OutputBuffer {
 } OutputBuffer;
 
 OutputBuffer* bufferInit() {
-    OutputBuffer* buffer = MALLOC(sizeof(OutputBuffer));
+    OutputBuffer* buffer = CALLOC(1, sizeof(OutputBuffer));
     buffer->code = CALLOC(2, sizeof(char));
     buffer->code[0] = '\0';
     buffer->bootstrap = CALLOC(2, sizeof(char)); //TODO mayne this should be Set?

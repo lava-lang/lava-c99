@@ -81,7 +81,7 @@ Token* tokenInitBase(Token* token, TokenType type, char* value) {
 }
 
 Token* tokenInit(TokenType type, char* value) {
-    return tokenInitBase(MALLOC(sizeof(Token)), type, value);
+    return tokenInitBase(CALLOC(1, sizeof(Token)), type, value);
 }
 
 static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
@@ -93,7 +93,7 @@ typedef struct TokenVar {
 } TokenVar;
 
 Token* tokenVarInit(TokenType type, char* value, TokenType validValue, bool isPointer) {
-    TokenVar* tokenVar = MALLOC(sizeof(TokenVar));
+    TokenVar* tokenVar = CALLOC(1, sizeof(TokenVar));
     tokenInitBase((Token*) tokenVar, type, value);
     tokenVar->validValue = validValue;
     tokenVar->isPointer = isPointer;

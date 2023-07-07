@@ -20,7 +20,7 @@ typedef struct Lexer {
 } Lexer;
 
 Lexer* lexerInit(char* filepath, char* contents) {
-    Lexer* lexer = MALLOC(sizeof(Lexer));
+    Lexer* lexer = CALLOC(1, sizeof(Lexer));
     lexer->filepath = filepath;
     lexer->contents = contents;
     lexer->pos = 0;

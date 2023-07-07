@@ -15,7 +15,7 @@ typedef struct Parser {
 } Parser;
 
 Parser* parserInit(Lexer* lexer) {
-    Parser* parser = MALLOC(sizeof(Parser));
+    Parser* parser = CALLOC(1, sizeof(Parser));
     parser->lexer = lexer;
     parser->token = lexNextToken(lexer);
     parser->type = parser->token->type;
