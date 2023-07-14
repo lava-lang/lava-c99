@@ -47,7 +47,7 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
         bufferAppend(buffer, "float");
     } else if (node->token->type == TOKEN_F64) {
         bufferAppend(buffer, "double");
-    } else if (node->token->type == TOKEN_STRING) {
+    } else if (node->token->type == TOKEN_STRING || node->token->type == TOKEN_CHAR) {
         bufferAppend(buffer, "char");
     } else if (node->token->type == TOKEN_BOOLEAN) {
         bufferAppend(buffer, "bool");
@@ -69,6 +69,10 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
             bufferAppend(buffer, "\"");
             visit(varDef->expression, buffer);
             bufferAppend(buffer, "\"");
+        } else if (varDef->dataType->token->type == TOKEN_CHAR) { //Handle char quotes
+            bufferAppend(buffer, "\'");
+            visit(varDef->expression, buffer);
+            bufferAppend(buffer, "\'");
         } else {
             visit(varDef->expression, buffer);
         }
@@ -140,7 +144,7 @@ void visit(AST* node, OutputBuffer* buffer) {
 
     else if (node->astType == AST_VAR_DEF) {
         visitVarDefinition((ASTVarDef*) node, buffer);
-    } else if (node->astType == AST_TYPE_DEF) {
+    } else if (node->astType == AST_STRUCT_DEF) {
         visitTypeDefinition((ASTTypeDef*) node, buffer);
     } else if (node->astType == AST_FUNC_DEF) {
         visitFuncDefinition((ASTFuncDef*) node, buffer);

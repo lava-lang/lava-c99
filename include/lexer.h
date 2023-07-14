@@ -45,7 +45,7 @@ char peek(Lexer* lexer, size_t offset) {
 }
 
 int isCharWhitespace(char c) {
-    return c == ' ' || c == 10 || c == '\r';
+    return c == ' ' || c == '\n' || c == '\r';
 }
 
 int isCurWhitespace(Lexer* lexer) {
@@ -166,6 +166,7 @@ Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenType
     if (tokenType == TOKEN_STRING) {
         isPointer = true;
     }
+    //TODO pointer/array flags should be bit mask
     //TODO boolean values...
     //TODO detect arrays
     return tokenVarInit(tokenType, buffer, valueType, isPointer);
@@ -210,10 +211,22 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_VOID, buffer);
     } else if (strcmp(buffer, "int") == 0) {
         return lexNextVarType(lexer, TOKEN_INT, buffer, TOKEN_INTEGER_VALUE);
+    } else if (strcmp(buffer, "i8") == 0) {
+        return lexNextVarType(lexer, TOKEN_I8, buffer, TOKEN_INTEGER_VALUE);
+    } else if (strcmp(buffer, "i16") == 0) {
+        return lexNextVarType(lexer, TOKEN_I16, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "i32") == 0) {
         return lexNextVarType(lexer, TOKEN_I32, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "i64") == 0) {
         return lexNextVarType(lexer, TOKEN_I64, buffer, TOKEN_INTEGER_VALUE);
+    } else if (strcmp(buffer, "u8") == 0) {
+        return lexNextVarType(lexer, TOKEN_U8, buffer, TOKEN_INTEGER_VALUE);
+    } else if (strcmp(buffer, "u16") == 0) {
+        return lexNextVarType(lexer, TOKEN_U16, buffer, TOKEN_INTEGER_VALUE);
+    } else if (strcmp(buffer, "u32") == 0) {
+        return lexNextVarType(lexer, TOKEN_U32, buffer, TOKEN_INTEGER_VALUE);
+    } else if (strcmp(buffer, "u64") == 0) {
+        return lexNextVarType(lexer, TOKEN_U64, buffer, TOKEN_INTEGER_VALUE);
     } else if (strcmp(buffer, "float") == 0) {
         return lexNextVarType(lexer, TOKEN_F32, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "f32") == 0) {
@@ -222,14 +235,16 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return lexNextVarType(lexer, TOKEN_F64, buffer, TOKEN_FLOAT_VALUE);
     } else if (strcmp(buffer, "str") == 0) {
         return lexNextVarType(lexer, TOKEN_STRING, buffer, TOKEN_STRING_VALUE);
+    } else if (strcmp(buffer, "char") == 0) {
+        return lexNextVarType(lexer, TOKEN_CHAR, buffer, TOKEN_CHAR_VALUE);
     } else if (strcmp(buffer, "bool") == 0) {
         return lexNextVarType(lexer, TOKEN_BOOLEAN, buffer, TOKEN_BOOLEAN_VALUE);
     } else if (strcmp(buffer, "true") == 0) {
         return tokenInit(TOKEN_BOOLEAN_VALUE, buffer);
     } else if (strcmp(buffer, "false") == 0) {
         return tokenInit(TOKEN_BOOLEAN_VALUE, buffer);
-    } else if (strcmp(buffer, "type") == 0) {
-        return tokenInit(TOKEN_TYPE_DEF, buffer);
+    } else if (strcmp(buffer, "struct") == 0) {
+        return tokenInit(TOKEN_STRUCT_DEF, buffer);
     } else if (strcmp(buffer, "enum") == 0) {
         return tokenInit(TOKEN_ENUM_DEF, buffer);
     } else if (strcmp(buffer, "if") == 0) {
@@ -250,16 +265,17 @@ Token* lexNextIdentifier(Lexer* lexer) {
     return tokenInit(TOKEN_IDENTIFIER, buffer);
 }
 
-Token* lexNextString(Lexer* lexer) {
+Token* lexNextStringOrChar(Lexer* lexer, TokenType type) {
+    char enclosingChar = type == TOKEN_STRING_VALUE ? '"' : '\'';
     char* buffer = charToStr(lexer->cur); //Contains first string char
     advance(lexer); //Move to next string char
-    while (lexer->cur != '"') { //Grow with chars until closing string char
+    while (lexer->cur != enclosingChar) { //Grow with chars until closing string char
         buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
     advance(lexer); //Advance past closing string char
-    return tokenInit(TOKEN_STRING_VALUE, buffer);
+    return tokenInit(type, buffer);
 }
 
 Token* lexNextComment(Lexer* lexer) {
@@ -287,12 +303,12 @@ Token* lexNextToken(Lexer* lexer) {
 
     if (lexer->pos >= lexer->len) {
         return tokenInit(TOKEN_EOF, "EOF");
-    } else if (lexer->cur == 'c') {
-        if (peek(lexer, 1) == '.') {
+    } else if (lexer->cur == 'c' && peek(lexer, 1) == '.') {
+        /*if (peek(lexer, 1) == '.') {*/
             advance(lexer);
             advance(lexer); //Advance twice to move past "c." prefix
             return lexNextCStatement(lexer, ';');
-        } else {
+        /*} else {
             char next = peek(lexer, 1);
             size_t i = 1;
             while (isCharWhitespace(next)) {
@@ -304,7 +320,7 @@ Token* lexNextToken(Lexer* lexer) {
                 }
                 return lexNextCBlock(lexer);
             }
-        }
+        }*/
     } else if (isdigit(lexer->cur)) {
         return lexNextDigit(lexer);
     } else if (isalnum(lexer->cur)) {
@@ -327,7 +343,10 @@ Token* lexNextToken(Lexer* lexer) {
         }
     } else if (lexer->cur == '"') {
         advance(lexer);
-        return lexNextString(lexer);
+        return lexNextStringOrChar(lexer, TOKEN_STRING_VALUE);
+    } else if (lexer->cur == '\'') {
+        advance(lexer);
+        return lexNextStringOrChar(lexer, TOKEN_CHAR_VALUE);
     } else if (lexer->cur == '/') {
         advance(lexer);
         if (lexer->cur == '/' || lexer->cur == '*') {

@@ -4,10 +4,11 @@ import <stdio.h>;
 i32 x = 187_686_223;
 f32 y = 1.5;
 str s = "lava";
+char c = 'x';
 bool flag = true;
 int i = 0;
 
-type Vec {
+struct Vec3 {
     f32 x;
     f32 y;
     f32 z;
@@ -20,3 +21,4 @@ int main() {
 
     return 0;
 }
+
