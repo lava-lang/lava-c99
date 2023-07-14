@@ -11,8 +11,6 @@ int i = 0;
 
 typedef struct Vec_t {
 	float x;
-	float y;
-	float z;
 } Vec;
 
 int main() {

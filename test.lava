@@ -9,9 +9,7 @@ bool flag = true;
 int i = 0;
 
 struct Vec {
-    f32 x;
-    f32 y;
-    f32 z;
+    f32 x/*, y, z*/;
 }
 
 int main() {

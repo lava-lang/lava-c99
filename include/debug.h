@@ -95,9 +95,8 @@ char* getIndent(int depth) {
 }
 
 void printCompound(ASTCompound* node, int depth) {
-    depth++;
     for (int i = 0; i < node->children->len; ++i) {
-        printAST(node->children->elements[i], depth);
+        printAST(node->children->elements[i], depth + 1);
     }
 }
 
