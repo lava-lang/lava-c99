@@ -80,7 +80,7 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
     bufferAppend(buffer, ";");
 }
 
-void visitTypeDefinition(ASTTypeDef* typeDef, OutputBuffer* buffer) {
+void visitTypeDefinition(ASTStructDef* typeDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "\ntypedef struct ");
     visit(typeDef->identifier, buffer);
     bufferAppend(buffer, "_t {\n");
@@ -145,7 +145,7 @@ void visit(AST* node, OutputBuffer* buffer) {
     else if (node->astType == AST_VAR_DEF) {
         visitVarDefinition((ASTVarDef*) node, buffer);
     } else if (node->astType == AST_STRUCT_DEF) {
-        visitTypeDefinition((ASTTypeDef*) node, buffer);
+        visitTypeDefinition((ASTStructDef*) node, buffer);
     } else if (node->astType == AST_FUNC_DEF) {
         visitFuncDefinition((ASTFuncDef*) node, buffer);
     }

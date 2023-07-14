@@ -28,12 +28,7 @@ int main(int argc, char *argv[]) {
         ASTCompound* compound = (ASTCompound*) root;
         for (int i = 0; i < compound->children->len; ++i) {
             AST* node = (AST*) compound->children->elements[i];
-            printf("Node: %s", AST_NAMES[node->astType]);
-            if (node->astType == AST_VAR_DEF) {
-                printVarDef((ASTVarDef*) node);
-            } else if (node->astType == AST_FUNC_DEF) {
-                printFuncDef((ASTFuncDef*) node);
-            }
+            printAST(node, 0);
         }
     #endif
 

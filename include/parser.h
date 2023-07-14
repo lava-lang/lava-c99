@@ -126,6 +126,7 @@ AST* parseExpression(Parser* parser, Scope* scope) {
 }
 
 AST* parseVarDefinition(Parser* parser, Scope* scope, AST* identifier, AST* dataType, bool initialized) {
+    //TODO remove null value possibility
     AST *right = initialized ? parseExpression(parser, scope) : NULL;
     if (initialized) {
         if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
@@ -208,7 +209,7 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
         }
 
         else {
-            ERROR("Tried To Parse Unknown Token! %s (%s)", TOKEN_NAMES[parser->type], parser->token->value);
+            ERROR("Token Could Not Be Parsed! %s (%s)", TOKEN_NAMES[parser->type], parser->token->value);
         }
         listAppend(children, node);
     }

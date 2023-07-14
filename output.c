@@ -9,11 +9,11 @@ char c = 'x';
 bool flag = true;
 int i = 0;
 
-typedef struct Vec3_t {
+typedef struct Vec_t {
 	float x;
 	float y;
 	float z;
-} Vec3;
+} Vec;
 
 int main() {
 	printf("x: %d\n", x);

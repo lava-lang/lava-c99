@@ -73,7 +73,7 @@ const char* TOKEN_NAMES[] = {
 const char* AST_NAMES[] = {
     "AST Data Type",
     "AST Variable Definition",
-    "AST Type Definition",
+    "AST Struct Definition",
     "AST Function Definition",
     "AST Identifier",
     "AST Compound",
@@ -84,22 +84,57 @@ const char* AST_NAMES[] = {
     "AST Import",
 };
 
-void printExpression(AST* node) {
-    printf("        Type: %s\n", TOKEN_NAMES[node->token->type]);
-    printf("        Value: %s\n", node->token->value);
+void printAST(AST* node, int depth);
+
+char* getIndent(int depth) {
+    char* indent = mallocStr("");
+    for (int i = 0; i < depth; ++i) {
+        indent = concatStr(indent, "    ");
+    }
+    return indent;
 }
 
-void printVarDef(ASTVarDef* varDef) {
-    printf("    DataType: %s\n", TOKEN_NAMES[varDef->dataType->token->type]);
-    printf("    Identifier: %s\n", varDef->identifier->token->value);
-    printf("    Expression: \n");
-    printExpression(varDef->expression);
+void printCompound(ASTCompound* node, int depth) {
+    depth++;
+    for (int i = 0; i < node->children->len; ++i) {
+        printAST(node->children->elements[i], depth);
+    }
 }
 
-void printFuncDef(ASTFuncDef* funcDef) {
-    printf("    ReturnType: %s\n", TOKEN_NAMES[funcDef->returnType->token->type]);
-    printf("    Identifier: %s\n", funcDef->identifier->token->value);
-    printf("    Compound: \n");
-    //printCompound(funcDef->compound);
+void printExpression(AST* node, int depth) {
+    //TODO this should not be null
+    if (node) {
+        printf("%sExpression: %s\n", getIndent(depth), node->token->value);
+    }
+}
+
+void printAST(AST* node, int depth) {
+    if (node->astType == AST_VAR_DEF) {
+        ASTVarDef* varDef = (ASTVarDef*) node;
+        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%sIdentifier: %s\n", getIndent(depth + 1), varDef->identifier->token->value);
+        printf("%sDataType: %s\n", getIndent(depth + 1), TOKEN_NAMES[varDef->dataType->token->type]);
+        printExpression(varDef->expression, depth + 1);
+    } else if (node->astType == AST_FUNC_DEF) {
+        ASTFuncDef* funcDef = (ASTFuncDef*) node;
+        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%sIdentifier: %s\n", getIndent(depth + 1), funcDef->identifier->token->value);
+        printf("%sReturnType: %s\n", getIndent(depth + 1), TOKEN_NAMES[funcDef->returnType->token->type]);
+        printf("%sCompound: \n", getIndent(depth + 1));
+        printCompound(funcDef->statements, depth + 1);
+    } else if (node->astType == AST_STRUCT_DEF) {
+        ASTStructDef* structDef = (ASTStructDef*) node;
+        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%sIdentifier: %s\n", getIndent(depth + 1), structDef->identifier->token->value);
+        printf("%sCompound: \n", getIndent(depth + 1));
+        printCompound(structDef->members, depth + 1);
+    } else if (node->astType == AST_RETURN) {
+        ASTReturn* returnAst = (ASTReturn*) node;
+        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printExpression(returnAst->expression, depth + 1);
+    } else if (node->astType == AST_C_STATEMENT) {
+        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%sValue: %s\n", getIndent(depth + 1), node->token->value);
+    }
 }
 #endif

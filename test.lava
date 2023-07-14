@@ -8,13 +8,15 @@ char c = 'x';
 bool flag = true;
 int i = 0;
 
-struct Vec3 {
+struct Vec {
     f32 x;
     f32 y;
     f32 z;
 }
 
 int main() {
+    //Vec vec = Vec(1.5, 2.5, 3.5);
+
     c.printf("x: %d\n", x);
     int var1 = 10;
     c.printf("var1: %d\n", var1);

@@ -85,14 +85,14 @@ AST* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
     return (AST*) varDef;
 }
 
-typedef struct ASTTypeDef {
+typedef struct ASTStructDef {
     AST base;
     AST* identifier;
     ASTCompound* members;
-} ASTTypeDef;
+} ASTStructDef;
 
 AST* initASTStructDef(AST* identifier, AST* members) {
-    ASTTypeDef* structDef = CALLOC(1, sizeof(ASTTypeDef));
+    ASTStructDef* structDef = CALLOC(1, sizeof(ASTStructDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) structDef, AST_STRUCT_DEF);
     structDef->identifier = identifier;
     structDef->members = (ASTCompound*) members;
