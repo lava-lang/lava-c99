@@ -46,6 +46,9 @@ Token* parserConsume(Parser* parser, TokenType type) {
     TOKENS_CONSUMED++;
     Token* prev = parser->token;
     parser->token = lexNextToken(parser->lexer);
+    while (parser->token->type == TOKEN_COMMENT_LINE || parser->token->type == TOKEN_COMMENT_MULTI) {
+        parser->token = lexNextToken(parser->lexer);
+    }
     parser->type = parser->token->type;
     if (parser->token->type == TOKEN_UNEXPECTED) {
         ERROR("Unexpected Token! (%s)", parser->token->value);
