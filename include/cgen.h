@@ -12,12 +12,12 @@ void visitNode(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, node->token->value);
 }
 
-void visitCompound(ASTCompound* node, OutputBuffer* buffer) {
+void visitCompound(ASTCompound* node, OutputBuffer* buffer, char* delimiter) {
     for (size_t i = 0; i < node->children->len; ++i) {
         bufferAppendIndent(buffer);
         visit((AST*) node->children->elements[i], buffer);
         if (i < node->children->len - 1) {
-            bufferAppend(buffer, "\n");
+            bufferAppend(buffer, delimiter);
         }
     }
 }
@@ -56,7 +56,7 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
     }
 }
 
-void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
+void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
     visit(varDef->dataType, buffer);
     if (((TokenVar*) varDef->dataType->token)->isPointer) {
         bufferAppend(buffer, "*");
@@ -77,7 +77,9 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer) {
             visit(varDef->expression, buffer);
         }
     }
-    bufferAppend(buffer, ";");
+    if (!arg) { //If this is not a function argument
+        bufferAppend(buffer, ";");
+    }
 }
 
 void visitTypeDefinition(ASTStructDef* typeDef, OutputBuffer* buffer) {
@@ -85,7 +87,7 @@ void visitTypeDefinition(ASTStructDef* typeDef, OutputBuffer* buffer) {
     visit(typeDef->identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-        visitCompound(typeDef->members, buffer);
+        visitCompound(typeDef->members, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n} ");
     visit(typeDef->identifier, buffer);
@@ -98,10 +100,19 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppend(buffer, " ");
     visit(funcDef->identifier, buffer);
     bufferAppend(buffer, "(");
-    //TODO args..
+    //Arguments
+    for (int i = 0; i < funcDef->arguments->children->len; ++i) {
+        bufferAppendIndent(buffer);
+        visitVarDefinition((ASTVarDef*) funcDef->arguments->children->elements[i], buffer, true);
+        if (i < funcDef->arguments->children->len - 1) {
+            bufferAppend(buffer, ", ");
+        }
+    }
+    //TODO make work..
+    //visitCompound(funcDef->arguments, buffer, ", ");
     bufferAppend(buffer, ") {\n");
     bufferIndent(buffer);
-        visitCompound(funcDef->statements, buffer);
+        visitCompound(funcDef->statements, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
 }
@@ -133,7 +144,7 @@ void visit(AST* node, OutputBuffer* buffer) {
     }
 
     if (node->astType == AST_COMPOUND) {
-        visitCompound((ASTCompound*) node, buffer);
+        visitCompound((ASTCompound*) node, buffer, "\n");
     } else if (node->astType == AST_DATA_TYPE) {
         visitDataType(node, buffer);
     } else if (node->astType == AST_IDENTIFIER) {
@@ -143,7 +154,7 @@ void visit(AST* node, OutputBuffer* buffer) {
     }
 
     else if (node->astType == AST_VAR_DEF) {
-        visitVarDefinition((ASTVarDef*) node, buffer);
+        visitVarDefinition((ASTVarDef*) node, buffer, false);
     } else if (node->astType == AST_STRUCT_DEF) {
         visitTypeDefinition((ASTStructDef*) node, buffer);
     } else if (node->astType == AST_FUNC_DEF) {

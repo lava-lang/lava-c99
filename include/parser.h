@@ -79,6 +79,7 @@ void parseCStatement(List* nodes, Parser* parser, Scope* scope) {
 
 AST* parseFactor(Parser* parser, Scope* scope);
 AST* parseExpression(Parser* parser, Scope* scope);
+void parseDefinition(List* nodes, Parser* parser, Scope* scope);
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken);
 
 AST* parseFactor(Parser* parser, Scope* scope) {
@@ -117,11 +118,10 @@ AST* parseExpression(Parser* parser, Scope* scope) {
     AST* ast = parseTerm(parser, scope);
 
     if (isBinaryOperator(parser->type)) {
-        Token* binaryOp = parser->token;
         parserConsume(parser, parser->type);
 
         AST* right = parseTerm(parser, scope);
-        return initASTBinaryOp(binaryOp, ast, right);
+        return initASTBinaryOp(ast, right);
     }
     return ast;
 }
@@ -154,13 +154,14 @@ void parseVarDefinition(List* nodes, Parser* parser, Scope* scope, AST* dataType
 
 void parseFuncDefinition(List* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier) {
     parserConsume(parser, TOKEN_LPAREN);
-    //TODO args..
+    List* nodesArgs = listInit(sizeof(AST*));
+    parseDefinition(nodesArgs, parser, scope);
+    AST* arguments = initASTCompound(nodesArgs);
     parserConsume(parser, TOKEN_RPAREN);
-
     parserConsume(parser, TOKEN_LBRACE);
-    AST* compound = parseAST(parser, scope, TOKEN_RBRACE);
+    AST* statements = parseAST(parser, scope, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_RBRACE);
-    listAppend(nodes, initASTFuncDef(returnType, identifier, compound));
+    listAppend(nodes, initASTFuncDef(returnType, identifier, arguments, statements));
 }
 
 void parseDefinition(List* nodes, Parser* parser, Scope* scope) {
@@ -211,6 +212,6 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
             ERROR("Token Was Not Consumed Or Parsed! %s (%s)", TOKEN_NAMES[parser->type], parser->token->value);
         }
     }
-    return initASTCompound(parser->token, nodes);
+    return initASTCompound(nodes);
 }
 #endif

@@ -1,24 +1,27 @@
 import <stdio.h>;
 //import test;
 
-i32 x = 187_686_223;
-f32 y = 1.5;
+i32 i = 187_686_223;
+int ii = 0;
+f32 f = 1.5;
 str s = "lava";
 char c = 'x';
 bool flag = true;
-int i = 0;
 
 struct Vec {
-    f32 x, y, z;
+    f32 x, y, z, int s;
 }
 
-int main() {
+void makeVec(int x, int y, int z) {
+
+}
+
+int main(int argc) {
     //Vec vec = Vec(1.5, 2.5, 3.5);
 
-    c.printf("x: %d\n", x);
+    c.printf("i: %d\n", i);
     int var1 = 10;
     c.printf("var1: %d\n", var1);
 
     return 0;
 }
-

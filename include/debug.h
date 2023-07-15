@@ -71,17 +71,17 @@ const char* TOKEN_NAMES[] = {
     "Comment Multi Line",
 };
 const char* AST_NAMES[] = {
-    "AST Data Type",
-    "AST Variable Definition",
-    "AST Struct Definition",
-    "AST Function Definition",
-    "AST Identifier",
-    "AST Compound",
-    "AST Binary Operator",
-    "AST Var Value",
-    "AST C Statement",
-    "AST Return",
-    "AST Import",
+    "Data Type",
+    "Variable Definition",
+    "Struct Definition",
+    "Function Definition",
+    "Identifier",
+    "Compound",
+    "Binary Operator",
+    "Var Value",
+    "C Statement",
+    "Return",
+    "Import",
 };
 
 void printAST(AST* node, int depth);
@@ -110,29 +110,31 @@ void printExpression(AST* node, int depth) {
 void printAST(AST* node, int depth) {
     if (node->astType == AST_VAR_DEF) {
         ASTVarDef* varDef = (ASTVarDef*) node;
-        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
         printf("%sIdentifier: %s\n", getIndent(depth + 1), varDef->identifier->token->value);
         printf("%sDataType: %s\n", getIndent(depth + 1), TOKEN_NAMES[varDef->dataType->token->type]);
         printExpression(varDef->expression, depth + 1);
     } else if (node->astType == AST_FUNC_DEF) {
         ASTFuncDef* funcDef = (ASTFuncDef*) node;
-        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
         printf("%sIdentifier: %s\n", getIndent(depth + 1), funcDef->identifier->token->value);
         printf("%sReturnType: %s\n", getIndent(depth + 1), TOKEN_NAMES[funcDef->returnType->token->type]);
-        printf("%sCompound: \n", getIndent(depth + 1));
+        printf("%sArguments: \n", getIndent(depth + 1));
+        printCompound(funcDef->arguments, depth + 1);
+        printf("%sStatements: \n", getIndent(depth + 1));
         printCompound(funcDef->statements, depth + 1);
     } else if (node->astType == AST_STRUCT_DEF) {
         ASTStructDef* structDef = (ASTStructDef*) node;
-        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
         printf("%sIdentifier: %s\n", getIndent(depth + 1), structDef->identifier->token->value);
-        printf("%sCompound: \n", getIndent(depth + 1));
+        printf("%sMembers: \n", getIndent(depth + 1));
         printCompound(structDef->members, depth + 1);
     } else if (node->astType == AST_RETURN) {
         ASTReturn* returnAst = (ASTReturn*) node;
-        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
         printExpression(returnAst->expression, depth + 1);
     } else if (node->astType == AST_C_STATEMENT) {
-        printf("%sNode: %s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
         printf("%sValue: %s\n", getIndent(depth + 1), node->token->value);
     }
 }

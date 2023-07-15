@@ -62,9 +62,9 @@ typedef struct ASTCompound {
     List* children;
 } ASTCompound;
 
-AST* initASTCompound(Token* token, List* children) {
+AST* initASTCompound(List* children) {
     ASTCompound* compound = CALLOC(1, sizeof(ASTCompound));
-    initASTBase(token, (AST*) compound, AST_COMPOUND);
+    initASTBase(&STATIC_TOKEN_NONE, (AST*) compound, AST_COMPOUND);
     compound->children = children;
     return (AST*) compound;
 }
@@ -103,14 +103,16 @@ typedef struct ASTFuncDef {
     AST base;
     AST* returnType;
     AST* identifier;
+    ASTCompound* arguments;
     ASTCompound* statements;
 } ASTFuncDef;
 
-AST* initASTFuncDef(AST* returnType, AST* identifier, AST* statements) {
+AST* initASTFuncDef(AST* returnType, AST* identifier, AST* arguments, AST* statements) {
     ASTFuncDef* funcDef = CALLOC(1, sizeof(ASTFuncDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
     funcDef->returnType = returnType;
     funcDef->identifier = identifier;
+    funcDef->arguments = (ASTCompound*) arguments;
     funcDef->statements = (ASTCompound*) statements;
     return (AST*) funcDef;
 }
@@ -121,9 +123,9 @@ typedef struct ASTBinaryOp {
     AST* right;
 } ASTBinaryOp;
 
-AST* initASTBinaryOp(Token* token, AST* left, AST* right) {
+AST* initASTBinaryOp(AST* left, AST* right) {
     ASTBinaryOp* binaryOp = CALLOC(1, sizeof(ASTBinaryOp));
-    initASTBase(token, (AST*) binaryOp, AST_BINARY_OP);
+    initASTBase(&STATIC_TOKEN_NONE, (AST*) binaryOp, AST_BINARY_OP);
     binaryOp->left = left;
     binaryOp->right = right;
     return (AST*) binaryOp;
