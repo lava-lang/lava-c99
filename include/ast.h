@@ -34,9 +34,9 @@ Scope* scopeInit(AST* ast) {
 
 void scopeFree(Scope* scope) {
     if (scope->ast) {
-        free(scope->ast);
+        FREE(scope->ast);
     }
-    free(scope);
+    FREE(scope);
 }
 
 typedef struct AST {

@@ -19,8 +19,8 @@ List* listInit(int elementSize) {
 }
 
 void listFree(List* list) {
-    free(list->elements);
-    free(list);
+    FREE(list->elements);
+    FREE(list);
 }
 
 void listAppend(List* list, void* element) {
@@ -48,8 +48,8 @@ OutputBuffer* bufferInit() {
 
 void bufferFree(OutputBuffer* buffer) {
     listFree(buffer->imports);
-    free(buffer->code);
-    free(buffer);
+    FREE(buffer->code);
+    FREE(buffer);
 }
 
 void bufferAppend(OutputBuffer* buffer, char* value) {

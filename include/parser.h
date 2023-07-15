@@ -27,7 +27,7 @@ void parserFree(Parser* parser) {
 //        tokenFree(parser->token);
 //    }
     lexerFree(parser->lexer);
-    free(parser);
+    FREE(parser);
 }
 
 #undef ERROR //Redefine ERROR now that Lexing has finished

@@ -108,8 +108,8 @@ Token* tokenInit(TokenType type, char* value, size_t flags) {
 
 void tokenFree(Token* token) {
     if (token->value) {
-        free(token->value);
+        FREE(token->value);
     }
-    free(token);
+    FREE(token);
 }
 #endif

@@ -49,11 +49,15 @@ exit(EXIT_FAILURE); \
     #define BASIC(MSG, ...)
 #endif
 
+static size_t ALLOC_COUNT = 0;
+static size_t FREE_COUNT = 0;
+
 static void* mallocSafe(size_t size) {
     void* ptr = malloc(size);
     if (!ptr) {
         PANIC("Could not allocate %zu bytes!\n", size)
     }
+    ALLOC_COUNT++;
     return ptr;
 }
 
@@ -62,6 +66,7 @@ static void* callocSafe(size_t elements, size_t size) {
     if (!ptr) {
         PANIC("Could not allocate %zu bytes!\n", size)
     }
+    ALLOC_COUNT++;
     return ptr;
 }
 
@@ -74,10 +79,20 @@ static void* reallocSafe(void* ptr, size_t size) {
     return newPtr;
 }
 
-//TODO track malloc and frees
+static void* freeSafe(void* ptr) {
+    FREE_COUNT++;
+    free(ptr);
+}
+
+static void checkAllocations() {
+    printf("ALLOCATIONS: %zu\n", ALLOC_COUNT);
+    printf("FREES: %zu\n", FREE_COUNT);
+}
+
 #define MALLOC(SIZE) mallocSafe(SIZE)
 #define CALLOC(ELEMENTS, SIZE) callocSafe(ELEMENTS, SIZE)
 #define REALLOC(PTR, SIZE) reallocSafe(PTR, SIZE)
+#define FREE(PTR) freeSafe(PTR)
 
 char* charToStr(char c) {
     char* str = MALLOC(sizeof(char) * 2);

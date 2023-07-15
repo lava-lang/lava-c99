@@ -32,8 +32,8 @@ Lexer* lexerInit(char* filepath, char* contents) {
 }
 
 void lexerFree(Lexer* lexer) {
-    free(lexer->contents);
-    free(lexer);
+    FREE(lexer->contents);
+    FREE(lexer);
 }
 
 char advance(Lexer* lexer) {
@@ -325,7 +325,7 @@ Token* lexNextToken(Lexer* lexer) {
     } else if (lexer->cur == '=') {
         advance(lexer);
         if (lexer->cur == '=') {
-            free(value);
+            FREE(value);
             advance(lexer);
             return tokenInit(TOKEN_EQUALS, "==", 0);
         } else {

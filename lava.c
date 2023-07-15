@@ -54,5 +54,8 @@ int main(int argc, char *argv[]) {
     parserFree(parser);
     scopeFree(globalScope);
 
+    //Make sure there are no leaks
+    checkAllocations();
+
     return 0;
 }
