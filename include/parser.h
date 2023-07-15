@@ -34,7 +34,7 @@ void parserFree(Parser* parser) {
 #define ERROR(MSG, ...) \
 size_t start = findStartOfErrorSnippet(parser->lexer); \
 printf("\n%s:%zu:%zu: ", parser->lexer->filepath, parser->lexer->line, parser->lexer->pos - parser->lexer->col); \
-LAVA(MSG, "Lava Error: ", __VA_ARGS__) \
+LAVA(MSG, "Internal Error: ", __VA_ARGS__) \
 printSyntaxErrorLocation(parser->lexer, start); \
 exit(EXIT_FAILURE); \
 
@@ -128,17 +128,26 @@ AST* parseExpression(Parser* parser, Scope* scope) {
 
 void parseVarDefinition(List* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, bool initialized) {
     //TODO remove null value possibility
-    AST *right = initialized ? parseExpression(parser, scope) : NULL;
+    AST* expression = initialized ? parseExpression(parser, scope) : NULL;
     if (initialized) {
-        if (right->token->type != ((TokenVar*) dataType->token)->validValue) {
-            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[right->token->type], right->token->value, TOKEN_NAMES[dataType->token->type]);
+        if (expression->token->type != ((TokenVar*) dataType->token)->validValue) {
+            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], expression->token->value, TOKEN_NAMES[dataType->token->type]);
         }
     }
-//    if (parser->type == TOKEN_COMMA) {
-//
-//    }
+    listAppend(nodes, initASTVarDef(dataType, identifier, expression));
+    while (parser->type == TOKEN_COMMA) {
+        parserConsume(parser, TOKEN_COMMA);
+        if (isVarType(parser->type)) {
+            dataType = parseDataType(parser, scope);
+        }
+        identifier = parseIdentifier(parser, scope);
+        if (parser->type == TOKEN_ASSIGNMENT) {
+            parserConsume(parser, TOKEN_ASSIGNMENT);
+            expression = parseExpression(parser, scope);
+        }
+        listAppend(nodes, initASTVarDef(dataType, identifier, expression));
+    }
     parserConsume(parser, TOKEN_EOS);
-    listAppend(nodes, initASTVarDef(dataType, identifier, right));
 }
 
 void parseStructDefinition(List* nodes, Parser* parser, Scope* scope) {
@@ -175,20 +184,25 @@ void parseImport(List* nodes, Parser* parser, Scope* scope) {
     listAppend(nodes, initAST(token, AST_IMPORT));
 }
 
+void parseDefinition(List* nodes, Parser* parser, Scope* scope) {
+    AST* dataType = parseDataType(parser, scope);
+    AST* identifier = parseIdentifier(parser, scope);
+
+    if (parser->type == TOKEN_EOS || parser->type == TOKEN_COMMA) { //Must be variable def without assignment
+        parseVarDefinition(nodes, parser, scope, dataType, identifier, false);
+    } else if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
+        parserConsume(parser, TOKEN_ASSIGNMENT);
+        parseVarDefinition(nodes, parser, scope, dataType, identifier, true);
+    } else if (parser->type == TOKEN_LPAREN) { //Function definition
+        parseFuncDefinition(nodes, parser, scope, dataType, identifier);
+    }
+}
+
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     List* nodes = listInit(sizeof(AST*));
     while (parser->type != breakToken) {
         if (isVarType(parser->type)) {
-            AST* dataType = parseDataType(parser, scope);
-            AST* identifier = parseIdentifier(parser, scope);
-            if (parser->type == TOKEN_EOS) { //Must be variable def without assignment
-                parseVarDefinition(nodes, parser, scope, dataType, identifier, false);
-            } else if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
-                parserConsume(parser, TOKEN_ASSIGNMENT);
-                parseVarDefinition(nodes, parser, scope, dataType, identifier, true);
-            } else if (parser->type == TOKEN_LPAREN) { //Function definition
-                parseFuncDefinition(nodes, parser, scope, dataType, identifier);
-            }
+            parseDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_STRUCT_DEF) {
             parseStructDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_C_STATEMENT) {
@@ -198,7 +212,7 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
         } else if (parser->type == TOKEN_IMPORT) {
             parseImport(nodes, parser, scope);
         } else {
-            ERROR("Token Could Not Be Parsed! %s (%s)", TOKEN_NAMES[parser->type], parser->token->value);
+            ERROR("Token Was Not Consumed Or Parsed! %s (%s)", TOKEN_NAMES[parser->type], parser->token->value);
         }
     }
     return initASTCompound(parser->token, nodes);

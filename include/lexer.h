@@ -131,7 +131,7 @@ void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
 #define ERROR(MSG, ...) \
 size_t start = findStartOfErrorSnippet(lexer); \
 printf("%s:%zu,%zu: ", lexer->filepath, lexer->line, lexer->pos - lexer->col); \
-LAVA(MSG, "Lava Error: ", __VA_ARGS__) \
+LAVA(MSG, "Internal Error: ", __VA_ARGS__) \
 printSyntaxErrorLocation(lexer, start); \
 exit(EXIT_FAILURE); \
 
