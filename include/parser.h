@@ -126,50 +126,6 @@ AST* parseExpression(Parser* parser, Scope* scope) {
     return ast;
 }
 
-void parseVarDefinition(List* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, bool initialized) {
-    //TODO remove null value possibility
-    AST* expression = initialized ? parseExpression(parser, scope) : NULL;
-    if (initialized) {
-        if (expression->token->type != ((TokenVar*) dataType->token)->validValue) {
-            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], expression->token->value, TOKEN_NAMES[dataType->token->type]);
-        }
-    }
-    listAppend(nodes, initASTVarDef(dataType, identifier, expression));
-    while (parser->type == TOKEN_COMMA) {
-        parserConsume(parser, TOKEN_COMMA);
-        if (isVarType(parser->type)) {
-            dataType = parseDataType(parser, scope);
-        }
-        identifier = parseIdentifier(parser, scope);
-        if (parser->type == TOKEN_ASSIGNMENT) {
-            parserConsume(parser, TOKEN_ASSIGNMENT);
-            expression = parseExpression(parser, scope);
-        }
-        listAppend(nodes, initASTVarDef(dataType, identifier, expression));
-    }
-    parserConsume(parser, TOKEN_EOS);
-}
-
-void parseStructDefinition(List* nodes, Parser* parser, Scope* scope) {
-    parserConsume(parser, TOKEN_STRUCT_DEF);
-    AST* identifier = parseIdentifier(parser, scope);
-    parserConsume(parser, TOKEN_LBRACE);
-    AST* members = parseAST(parser, scope, TOKEN_RBRACE);
-    parserConsume(parser, TOKEN_RBRACE);
-    listAppend(nodes, initASTStructDef(identifier, members));
-}
-
-void parseFuncDefinition(List* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier) {
-    parserConsume(parser, TOKEN_LPAREN);
-    //TODO args..
-    parserConsume(parser, TOKEN_RPAREN);
-
-    parserConsume(parser, TOKEN_LBRACE);
-    AST* compound = parseAST(parser, scope, TOKEN_RBRACE);
-    parserConsume(parser, TOKEN_RBRACE);
-    listAppend(nodes, initASTFuncDef(returnType, identifier, compound));
-}
-
 void parseReturn(List* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_RETURN);
     AST* expression = parseExpression(parser, scope);
@@ -184,18 +140,58 @@ void parseImport(List* nodes, Parser* parser, Scope* scope) {
     listAppend(nodes, initAST(token, AST_IMPORT));
 }
 
-void parseDefinition(List* nodes, Parser* parser, Scope* scope) {
-    AST* dataType = parseDataType(parser, scope);
-    AST* identifier = parseIdentifier(parser, scope);
-
-    if (parser->type == TOKEN_EOS || parser->type == TOKEN_COMMA) { //Must be variable def without assignment
-        parseVarDefinition(nodes, parser, scope, dataType, identifier, false);
-    } else if (parser->type == TOKEN_ASSIGNMENT) { //Variable definition
+void parseVarDefinition(List* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier) {
+    AST* expression = NULL; //TODO somehow remove use of null
+    if (parser->type == TOKEN_ASSIGNMENT) {
         parserConsume(parser, TOKEN_ASSIGNMENT);
-        parseVarDefinition(nodes, parser, scope, dataType, identifier, true);
-    } else if (parser->type == TOKEN_LPAREN) { //Function definition
-        parseFuncDefinition(nodes, parser, scope, dataType, identifier);
+        expression = parseExpression(parser, scope);
+        if (expression->token->type != ((TokenVar*) dataType->token)->validValue) {
+            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], expression->token->value, TOKEN_NAMES[dataType->token->type]);
+        }
     }
+    listAppend(nodes, initASTVarDef(dataType, identifier, expression));
+}
+
+void parseFuncDefinition(List* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier) {
+    parserConsume(parser, TOKEN_LPAREN);
+    //TODO args..
+    parserConsume(parser, TOKEN_RPAREN);
+
+    parserConsume(parser, TOKEN_LBRACE);
+    AST* compound = parseAST(parser, scope, TOKEN_RBRACE);
+    parserConsume(parser, TOKEN_RBRACE);
+    listAppend(nodes, initASTFuncDef(returnType, identifier, compound));
+}
+
+void parseDefinition(List* nodes, Parser* parser, Scope* scope) {
+    AST* dataType = NULL; AST* identifier = NULL;
+    while ((isVarType(parser->type) || parser->type == TOKEN_COMMA)) {
+        if (parser->type == TOKEN_COMMA) {
+            parserConsume(parser, TOKEN_COMMA);
+        }
+        if (isVarType(parser->type)) {
+            dataType = parseDataType(parser, scope);
+        }
+        identifier = parseIdentifier(parser, scope);
+        if (parser->type == TOKEN_LPAREN) { //Parsing Function Def
+            parseFuncDefinition(nodes, parser, scope, dataType, identifier);
+            break; //Break out of loop, as no more work once function is constructed
+        }
+        parseVarDefinition(nodes, parser, scope, dataType, identifier);
+        if (parser->type == TOKEN_EOS) { //Reached end of variable definitions
+            parserConsume(parser, TOKEN_EOS);
+            break;
+        }
+    }
+}
+
+void parseStructDefinition(List* nodes, Parser* parser, Scope* scope) {
+    parserConsume(parser, TOKEN_STRUCT_DEF);
+    AST* identifier = parseIdentifier(parser, scope);
+    parserConsume(parser, TOKEN_LBRACE);
+    AST* members = parseAST(parser, scope, TOKEN_RBRACE);
+    parserConsume(parser, TOKEN_RBRACE);
+    listAppend(nodes, initASTStructDef(identifier, members));
 }
 
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
