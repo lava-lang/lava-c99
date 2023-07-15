@@ -82,16 +82,21 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
     }
 }
 
-void visitTypeDefinition(ASTStructDef* typeDef, OutputBuffer* buffer) {
-    bufferAppend(buffer, "\ntypedef struct ");
-    visit(typeDef->identifier, buffer);
+void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
+    bufferAppend(buffer, "\nstruct ");
+    visit(structDef->identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-        visitCompound(typeDef->members, buffer, "\n");
+        visitCompound(structDef->members, buffer, "\n");
     bufferUnindent(buffer);
-    bufferAppend(buffer, "\n} ");
-    visit(typeDef->identifier, buffer);
-    bufferAppend(buffer, ";");
+    bufferAppend(buffer, "\n};");
+
+    char* hoist = mallocStr("typedef struct ");
+    hoist = concatStr(hoist, structDef->identifier->token->value);
+    hoist = concatStr(hoist, "_t ");
+    hoist = concatStr(hoist, structDef->identifier->token->value);
+    hoist = concatStr(hoist, ";");
+    bufferAddDef(buffer, hoist);
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
@@ -121,11 +126,11 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
 
     //Build function definition to hoist
     size_t bufSize = bufEndPos - bufStartPos;
-    char* func = calloc(bufSize + 2, sizeof(char));
-    strncpy(func, buffer->code+bufStartPos, bufSize);
-    func[bufSize] = ';';
-    func[bufSize + 1] = '\0';
-    bufferAddDef(buffer, func);
+    char* hoist = calloc(bufSize + 2, sizeof(char));
+    strncpy(hoist, buffer->code+bufStartPos, bufSize);
+    hoist[bufSize] = ';';
+    hoist[bufSize + 1] = '\0';
+    bufferAddDef(buffer, hoist);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
@@ -167,7 +172,7 @@ void visit(AST* node, OutputBuffer* buffer) {
     else if (node->astType == AST_VAR_DEF) {
         visitVarDefinition((ASTVarDef*) node, buffer, false);
     } else if (node->astType == AST_STRUCT_DEF) {
-        visitTypeDefinition((ASTStructDef*) node, buffer);
+        visitStructDefinition((ASTStructDef *) node, buffer);
     } else if (node->astType == AST_FUNC_DEF) {
         visitFuncDefinition((ASTFuncDef*) node, buffer);
     }

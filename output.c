@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef struct Vec_t Vec;
 void makeVec(int x, int y, int z);
 int main(int argc);
 
@@ -12,12 +13,12 @@ char* s = "lava";
 char c = 'x';
 bool flag = true;
 
-typedef struct Vec_t {
+struct Vec_t {
 	float x;
 	float y;
 	float z;
 	int s;
-} Vec;
+};
 
 void makeVec(int x, int y, int z) {
 

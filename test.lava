@@ -13,12 +13,10 @@ struct Vec {
 }
 
 void makeVec(int x, int y, int z) {
-
+    //Vec vec = Vec(1.5, 2.5, 3.5);
 }
 
 int main(int argc) {
-    //Vec vec = Vec(1.5, 2.5, 3.5);
-
     c.printf("i: %d\n", i);
     int var1 = 10;
     c.printf("var1: %d\n", var1);
