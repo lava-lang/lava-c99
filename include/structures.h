@@ -32,6 +32,7 @@ void listAppend(List* list, void* element) {
 typedef struct OutputBuffer {
     char* code;
     List* imports;
+    List* definitions;
     size_t tab;
 } OutputBuffer;
 
@@ -40,6 +41,7 @@ OutputBuffer* bufferInit() {
     buffer->code = CALLOC(2, sizeof(char));
     buffer->code[0] = '\0';
     buffer->imports = listInit(sizeof(char*));
+    buffer->definitions = listInit(sizeof(char*));
     buffer->tab = 0;
     return buffer;
 }
@@ -83,10 +85,22 @@ void bufferAddImport(OutputBuffer* buffer, char* value) {
     listAppend(buffer->imports, value);
 }
 
+void bufferAddDef(OutputBuffer* buffer, char* value) {
+    value = concatStr(value, "\n");
+    listAppend(buffer->definitions, value);
+}
+
 char* bufferBuild(OutputBuffer* buffer) {
+    char* code = mallocStr("\0");
     for (size_t i = 0; i < buffer->imports->len; ++i) {
-        buffer->code = concatStr(buffer->imports->elements[i], buffer->code);
+        code = concatStr(buffer->imports->elements[i], code);
     }
-    return buffer->code;
+    if (buffer->definitions->len > 0) {
+        code = concatStr(code, "\n");
+        for (size_t i = 0; i < buffer->definitions->len; ++i) {
+            code = concatStr(code, buffer->definitions->elements[i]);
+        }
+    }
+    return (buffer->code = concatStr(code, buffer->code));
 }
 #endif

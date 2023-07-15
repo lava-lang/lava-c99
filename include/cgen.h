@@ -96,6 +96,7 @@ void visitTypeDefinition(ASTStructDef* typeDef, OutputBuffer* buffer) {
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "\n"); //Append initial new line for space between functions and variables
+    size_t bufStartPos = strlen(buffer->code);
     visit(funcDef->returnType, buffer);
     bufferAppend(buffer, " ");
     visit(funcDef->identifier, buffer);
@@ -110,11 +111,21 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     }
     //TODO make work..
     //visitCompound(funcDef->arguments, buffer, ", ");
-    bufferAppend(buffer, ") {\n");
+    bufferAppend(buffer, ")");
+    size_t bufEndPos = strlen(buffer->code);
+    bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
         visitCompound(funcDef->statements, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
+
+    //Build function definition to hoist
+    size_t bufSize = bufEndPos - bufStartPos;
+    char* func = calloc(bufSize + 2, sizeof(char));
+    strncpy(func, buffer->code+bufStartPos, bufSize);
+    func[bufSize] = ';';
+    func[bufSize + 1] = '\0';
+    bufferAddDef(buffer, func);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
