@@ -1,6 +1,7 @@
 import <stdio.h>;
 //import test;
 
+/* Variables */
 i32 i = 187_686_223;
 int ii = 0;
 f32 f = 1.5;

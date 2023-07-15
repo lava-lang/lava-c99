@@ -67,11 +67,6 @@ typedef enum TokenType {
     TOKEN_RBRACKET,
     TOKEN_LBRACE,
     TOKEN_RBRACE,
-
-    //Comments
-    TOKEN_COMMENT_LINE,
-    TOKEN_COMMENT_MULTI,
-
 } TokenType;
 
 typedef enum TokenFlag {

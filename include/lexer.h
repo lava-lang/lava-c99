@@ -40,6 +40,13 @@ char advance(Lexer* lexer) {
     return (lexer->cur = lexer->contents[++(lexer->pos)]);
 }
 
+char advanceFor(Lexer* lexer, size_t steps) {
+    for (int i = 0; i < steps; ++i) {
+        advance(lexer);
+    }
+    return lexer->cur;
+}
+
 char peek(Lexer* lexer, size_t offset) {
     return lexer->pos + offset >= lexer->len ? '\0' : lexer->contents[lexer->pos + offset];
 }
@@ -58,6 +65,21 @@ void skipWhitespace(Lexer* lexer) {
             lexer->line++;
         }
         advance(lexer);
+    }
+}
+
+void skipComment(Lexer* lexer) {
+    while (lexer->cur == '/' && (peek(lexer, 1) == '/' || peek(lexer, 1) == '*')) {
+        advance(lexer);
+        char end = lexer->cur == '/' ? '\n' : '/'; //Keep track if this comment should end with \n or *
+        advance(lexer); //Advance past that starting character and being reading the comment text
+        while (lexer->cur != end) {
+            advance(lexer);
+        }
+        if (end == '/') { //Advance past the trailing / of multi line comments
+            advance(lexer);
+        }
+        skipWhitespace(lexer);
     }
 }
 
@@ -163,8 +185,7 @@ Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenFlag
         advance(lexer);
         flags |= VAR_POINTER;
     } else if (lexer->cur == '[') {
-        advance(lexer);
-        advance(lexer);
+        advanceFor(lexer, 2);
         flags |= VAR_ARRAY;
     }
     return tokenInit(tokenType, buffer, flags);
@@ -268,28 +289,9 @@ Token* lexNextStringOrChar(Lexer* lexer, TokenType type, char enclosingChar) {
     return tokenInit(type, buffer, 0);
 }
 
-Token* lexNextComment(Lexer* lexer) {
-    char end = lexer->cur == '/' ? '\n' : '*'; //Keep track if this comment should end with \n or *
-    advance(lexer); //Advance past that starting character and being reading the comment text
-    char* buffer = charToStr(lexer->cur); //Buffer initialized with first comment char
-    advance(lexer); //Advance past first comment char, since it is now in the initial buffer
-    int type = TOKEN_COMMENT_LINE;
-    //TODO remove need for len bounds check by refactoring lexer to lex line by line
-    while (lexer->cur != end /*|| lexer->pos <= lexer->len*/) {
-        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
-        strncat(buffer, lexer->contents + lexer->pos, 1);
-        advance(lexer);
-    }
-    if (end == '*') { //Advance twice to move past the trailing */ of multi line comments
-        advance(lexer);
-        advance(lexer);
-        type = TOKEN_COMMENT_MULTI;
-    }
-    return tokenInit(type, buffer, 0);
-}
-
 Token* lexNextToken(Lexer* lexer) {
     skipWhitespace(lexer);
+    skipComment(lexer);
 
     if (lexer->pos >= lexer->len) {
         return tokenInit(TOKEN_EOF, "EOF", 0);
@@ -318,7 +320,6 @@ Token* lexNextToken(Lexer* lexer) {
     }
 
     char* value = charToStr(lexer->cur);
-
     if (lexer->cur == ';') {
         advance(lexer);
         return tokenInit(TOKEN_EOS, value, 0);
@@ -339,9 +340,6 @@ Token* lexNextToken(Lexer* lexer) {
         return lexNextStringOrChar(lexer, TOKEN_CHAR_VALUE, '\'');
     } else if (lexer->cur == '/') {
         advance(lexer);
-        if (lexer->cur == '/' || lexer->cur == '*') {
-            return lexNextComment(lexer);
-        }
         return tokenInit(TOKEN_DIVISION, value, 0);
     } else if (lexer->cur == '+') {
         advance(lexer);
