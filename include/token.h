@@ -24,8 +24,7 @@ typedef enum TokenType {
     TOKEN_U16,
     TOKEN_U32,
     TOKEN_U64,
-    TOKEN_INTEGER_VALUE,
-    TOKEN_FLOAT,
+    TOKEN_INTEGER_VALUE, //TODO maybe replaced with VAR_INT?
     TOKEN_F32,
     TOKEN_F64,
     TOKEN_FLOAT_VALUE,
@@ -75,37 +74,36 @@ typedef enum TokenType {
 
 } TokenType;
 
+typedef enum TokenFlag {
+    VAR_POINTER = 1 << 0,
+    VAR_ARRAY   = 1 << 1,
+    VAR_TYPE    = 1 << 2,
+    VAR_INT     = 1 << 3,
+    VAR_FLOAT   = 1 << 4,
+    VAR_STR     = 1 << 5,
+    VAR_CHAR    = 1 << 6,
+    VAR_BOOL    = 1 << 7,
+} TokenFlag;
+
 typedef struct Token {
     TokenType type;
     char* value;
+    size_t flags;
 } Token;
 
-Token* tokenInitBase(Token* token, TokenType type, char* value) {
+static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
+
+Token* tokenInitBase(Token* token, TokenType type, char* value, size_t flags) {
     token->type = type;
     if (value) {
         token->value = value;
     }
+    token->flags = flags;
     return token;
 }
 
-Token* tokenInit(TokenType type, char* value) {
-    return tokenInitBase(CALLOC(1, sizeof(Token)), type, value);
-}
-
-static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
-
-typedef struct TokenVar {
-    Token base;
-    TokenType validValue;
-    bool isPointer;
-} TokenVar;
-
-Token* tokenVarInit(TokenType type, char* value, TokenType validValue, bool isPointer) {
-    TokenVar* tokenVar = CALLOC(1, sizeof(TokenVar));
-    tokenInitBase((Token*) tokenVar, type, value);
-    tokenVar->validValue = validValue;
-    tokenVar->isPointer = isPointer;
-    return (Token*) tokenVar;
+Token* tokenInit(TokenType type, char* value, size_t flags) {
+    return tokenInitBase(CALLOC(1, sizeof(Token)), type, value, flags);
 }
 
 void tokenFree(Token* token) {

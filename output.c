@@ -4,7 +4,7 @@
 
 typedef struct Vec_t Vec;
 void makeVec(int x, int y, int z);
-int main(int argc);
+int main();
 
 int32_t i = 187686223;
 int ii = 0;
@@ -24,7 +24,7 @@ void makeVec(int x, int y, int z) {
 
 }
 
-int main(int argc) {
+int main() {
 	printf("i: %d\n", i);
 	int var1 = 10;
 	printf("var1: %d\n", var1);

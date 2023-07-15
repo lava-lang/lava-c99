@@ -54,11 +54,6 @@ Token* parserConsume(Parser* parser, TokenType type) {
     return prev;
 }
 
-//TODO replace with bit mask
-int isVarType(TokenType type) {
-    return type == TOKEN_VOID || type == TOKEN_INT || type == TOKEN_I32 || type == TOKEN_I64 || type == TOKEN_FLOAT || type == TOKEN_F32 || type == TOKEN_F64 || type == TOKEN_STRING || type == TOKEN_BOOLEAN || type == TOKEN_CHAR;
-}
-
 AST* parseIdentifier(Parser* parser, Scope* scope) {
     Token* identifier = parser->token;
     parserConsume(parser, TOKEN_IDENTIFIER);
@@ -140,12 +135,28 @@ void parseImport(List* nodes, Parser* parser, Scope* scope) {
     listAppend(nodes, initAST(token, AST_IMPORT));
 }
 
+bool isValueCompatible(AST* dataType, AST* expression) {
+    if (dataType->token->flags & VAR_INT) {
+        return expression->token->type == TOKEN_INTEGER_VALUE;
+    } else if (dataType->token->flags & VAR_FLOAT) {
+        return expression->token->type == TOKEN_FLOAT_VALUE;
+    } else if (dataType->token->flags & VAR_STR) {
+        return expression->token->type == TOKEN_STRING_VALUE;
+    } else if (dataType->token->flags & VAR_CHAR) {
+        return expression->token->type == TOKEN_CHAR_VALUE;
+    } else if (dataType->token->flags & VAR_BOOL) {
+        return expression->token->type == TOKEN_BOOLEAN_VALUE;
+    } else {
+        return false;
+    }
+}
+
 void parseVarDefinition(List* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier) {
     AST* expression = NULL; //TODO somehow remove use of null
     if (parser->type == TOKEN_ASSIGNMENT) {
         parserConsume(parser, TOKEN_ASSIGNMENT);
         expression = parseExpression(parser, scope);
-        if (expression->token->type != ((TokenVar*) dataType->token)->validValue) {
+        if (!isValueCompatible(dataType, expression)) {
             ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], expression->token->value, TOKEN_NAMES[dataType->token->type]);
         }
     }
@@ -166,11 +177,11 @@ void parseFuncDefinition(List* nodes, Parser* parser, Scope* scope, AST* returnT
 
 void parseDefinition(List* nodes, Parser* parser, Scope* scope) {
     AST* dataType = NULL; AST* identifier = NULL;
-    while ((isVarType(parser->type) || parser->type == TOKEN_COMMA)) {
+    while (parser->token->flags & VAR_TYPE || parser->type == TOKEN_COMMA) {
         if (parser->type == TOKEN_COMMA) {
             parserConsume(parser, TOKEN_COMMA);
         }
-        if (isVarType(parser->type)) {
+        if (parser->token->flags & VAR_TYPE) {
             dataType = parseDataType(parser, scope);
         }
         identifier = parseIdentifier(parser, scope);
@@ -198,7 +209,7 @@ void parseStructDefinition(List* nodes, Parser* parser, Scope* scope) {
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     List* nodes = listInit(sizeof(AST*));
     while (parser->type != breakToken) {
-        if (isVarType(parser->type)) {
+        if (parser->token->flags & VAR_TYPE) {
             parseDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_STRUCT_DEF) {
             parseStructDefinition(nodes, parser, scope);

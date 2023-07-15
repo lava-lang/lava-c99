@@ -43,7 +43,7 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
         bufferAppend(buffer, "uint32_t");
     } else if (node->token->type == TOKEN_U64) {
         bufferAppend(buffer, "uint64_t");
-    } else if (node->token->type == TOKEN_FLOAT || node->token->type == TOKEN_F32) {
+    } else if (node->token->type == TOKEN_F32) {
         bufferAppend(buffer, "float");
     } else if (node->token->type == TOKEN_F64) {
         bufferAppend(buffer, "double");
@@ -58,11 +58,14 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
 
 void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
     visit(varDef->dataType, buffer);
-    if (((TokenVar*) varDef->dataType->token)->isPointer) {
+    if (varDef->dataType->token->flags & VAR_POINTER) {
         bufferAppend(buffer, "*");
     }
     bufferAppend(buffer, " ");
     visit(varDef->identifier, buffer);
+    if (varDef->dataType->token->flags & VAR_ARRAY) {
+        bufferAppend(buffer, "[]");
+    }
     if (varDef->expression) {
         bufferAppend(buffer, " = ");
         if (varDef->dataType->token->type == TOKEN_STRING) { //Handle string quotes

@@ -74,6 +74,7 @@ static void* reallocSafe(void* ptr, size_t size) {
     return newPtr;
 }
 
+//TODO track malloc and frees
 #define MALLOC(SIZE) mallocSafe(SIZE)
 #define CALLOC(ELEMENTS, SIZE) callocSafe(ELEMENTS, SIZE)
 #define REALLOC(PTR, SIZE) reallocSafe(PTR, SIZE)

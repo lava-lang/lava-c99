@@ -23,7 +23,6 @@ const char* TOKEN_NAMES[] = {
     "UInt 32",
     "UInt 64",
     "Integer Value",
-    "Float",
     "Float 32",
     "Float 64",
     "Float Value",
