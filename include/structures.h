@@ -5,34 +5,36 @@
 #include <string.h>
 #include "util.h"
 
-typedef struct List {
+typedef struct DynArray {
     size_t len;
     int elementSize;
     void** elements;
-} List;
+} DynArray;
 
-List* listInit(int elementSize) {
-    List* list = CALLOC(1, sizeof(List));
-    list->elementSize = elementSize;
-    list->len = 0;
-    return list;
+DynArray* arrayInit(int elementSize) {
+    DynArray* array = CALLOC(1, sizeof(DynArray));
+    array->elementSize = elementSize;
+    array->len = 0;
+    return array;
 }
 
-void listFree(List* list) {
-    FREE(list->elements);
-    FREE(list);
+void arrayFree(DynArray* array) {
+    for (int i = 0; i < array->len; ++i) {
+        FREE(array->elements[i]);
+    }
+    FREE(array);
 }
 
-void listAppend(List* list, void* element) {
-    list->len++;
-    list->elements = REALLOC(list->elements, (list->len + 1) * list->elementSize);
-    list->elements[list->len - 1] = element;
+void arrayAppend(DynArray* array, void* element) {
+    array->len++;
+    array->elements = REALLOC(array->elements, (array->len + 1) * array->elementSize);
+    array->elements[array->len - 1] = element;
 }
 
 typedef struct OutputBuffer {
     char* code;
-    List* imports;
-    List* definitions;
+    DynArray* imports;
+    DynArray* definitions;
     size_t tab;
 } OutputBuffer;
 
@@ -40,15 +42,16 @@ OutputBuffer* bufferInit() {
     OutputBuffer* buffer = CALLOC(1, sizeof(OutputBuffer));
     buffer->code = CALLOC(2, sizeof(char));
     buffer->code[0] = '\0';
-    buffer->imports = listInit(sizeof(char*));
-    buffer->definitions = listInit(sizeof(char*));
+    buffer->imports = arrayInit(sizeof(char *));
+    buffer->definitions = arrayInit(sizeof(char *));
     buffer->tab = 0;
     return buffer;
 }
 
 void bufferFree(OutputBuffer* buffer) {
-    listFree(buffer->imports);
     FREE(buffer->code);
+    arrayFree(buffer->imports);
+    arrayFree(buffer->definitions);
     FREE(buffer);
 }
 
@@ -79,15 +82,15 @@ void bufferAppendIndent(OutputBuffer* buffer) {
 }
 
 void bufferAddImport(OutputBuffer* buffer, char* value) {
-    char* prefix = mallocStr("#include ");
-    value = concatStr(prefix, value); //Append include
-    value = concatStr(value, "\n");
-    listAppend(buffer->imports, value);
+//    char* prefix = mallocStr("#include ");
+//    value = concatStr(prefix, value); //Append include
+//    value = concatStr(value, "\n");
+    arrayAppend(buffer->imports, mallocStr(value));
 }
 
 void bufferAddDef(OutputBuffer* buffer, char* value) {
     value = concatStr(value, "\n");
-    listAppend(buffer->definitions, value);
+    arrayAppend(buffer->definitions, value);
 }
 
 char* bufferBuild(OutputBuffer* buffer) {

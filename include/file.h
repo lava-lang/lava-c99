@@ -7,17 +7,17 @@
 char* read_file(char* filename) {
     char* buffer;
     long length;
-    FILE* f = fopen (filename, "rb");
+    FILE* f = fopen(filename, "rb");
     ASSERT(!f, "Could not open %s!", filename);
 
-    fseek (f, 0, SEEK_END);
+    fseek(f, 0, SEEK_END);
     length = ftell (f);
-    fseek (f, 0, SEEK_SET);
-    buffer = calloc(length, length);
+    fseek(f, 0, SEEK_SET);
+    buffer = CALLOC(length, length);
     if (buffer) {
         fread(buffer, 1, length, f);
     }
-    fclose (f);
+    fclose(f);
 
     return buffer;
 }

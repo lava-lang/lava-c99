@@ -5,84 +5,6 @@
 #include "ast.h"
 #include "file.h"
 
-const char* TOKEN_NAMES[] = {
-    "End of File",
-    "Unexpected Token",
-    "None",
-    "C Statement",
-    
-    "NULL",
-    "Void Type",
-    "Int",
-    "Int 8",
-    "Int 16",
-    "Int 32",
-    "Int 64",
-    "UInt 8",
-    "UInt 16",
-    "UInt 32",
-    "UInt 64",
-    "Integer Value",
-    "Float 32",
-    "Float 64",
-    "Float Value",
-    "String Type",
-    "String Value",
-    "Char Type",
-    "Char Value",
-    "Boolean Type",
-    "Boolean Value",
-
-    "Struct Definition",
-    "Enum Definition",
-    "If Statement",
-    "Else Statement",
-    "While Loop",
-    "For Loop",
-    "Return Statement",
-    "Import Statement",
-
-    "Identifier",
-    "End of Statement",
-    
-    "Assignment Operator",
-    "Equality Operator",
-    
-    "Division Operator",
-    "Plus Operator",
-    "Minus Operator",
-    "Multiply Operator",
-    "Less Than Operator",
-    "More Than Operator",
-    "Not Operator",
-
-    "Left Paren",
-    "Right Paren",
-    "Colon",
-    "Comma",
-    "Dot",
-    "Left Bracket",
-    "Right Bracket",
-    "Left Brace",
-    "Right Brace",
-
-    "Comment Line",
-    "Comment Multi Line",
-};
-const char* AST_NAMES[] = {
-    "Data Type",
-    "Variable Definition",
-    "Struct Definition",
-    "Function Definition",
-    "Identifier",
-    "Compound",
-    "Binary Operator",
-    "Var Value",
-    "C Statement",
-    "Return",
-    "Import",
-};
-
 void printAST(AST* node, int depth);
 
 char* getIndent(int depth) {
@@ -94,8 +16,8 @@ char* getIndent(int depth) {
 }
 
 void printCompound(ASTCompound* node, int depth) {
-    for (int i = 0; i < node->children->len; ++i) {
-        printAST(node->children->elements[i], depth + 1);
+    for (int i = 0; i < node->array->len; ++i) {
+        printAST(node->array->elements[i], depth + 1);
     }
 }
 

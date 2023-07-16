@@ -5,6 +5,71 @@
 #include <stdbool.h>
 #include "util.h"
 
+const char* TOKEN_NAMES[] = {
+        "End of File",
+        "Unexpected Token",
+        "None",
+        "C Statement",
+
+        "NULL",
+        "Void Type",
+        "Int",
+        "Int 8",
+        "Int 16",
+        "Int 32",
+        "Int 64",
+        "UInt 8",
+        "UInt 16",
+        "UInt 32",
+        "UInt 64",
+        "Integer Value",
+        "Float 32",
+        "Float 64",
+        "Float Value",
+        "String Type",
+        "String Value",
+        "Char Type",
+        "Char Value",
+        "Boolean Type",
+        "Boolean Value",
+
+        "Struct Definition",
+        "Enum Definition",
+        "If Statement",
+        "Else Statement",
+        "While Loop",
+        "For Loop",
+        "Return Statement",
+        "Import Statement",
+
+        "Identifier",
+        "End of Statement",
+
+        "Assignment Operator",
+        "Equality Operator",
+
+        "Division Operator",
+        "Plus Operator",
+        "Minus Operator",
+        "Multiply Operator",
+        "Less Than Operator",
+        "More Than Operator",
+        "Not Operator",
+
+        "Left Paren",
+        "Right Paren",
+        "Colon",
+        "Comma",
+        "Dot",
+        "Left Bracket",
+        "Right Bracket",
+        "Left Brace",
+        "Right Brace",
+
+        "Comment Line",
+        "Comment Multi Line",
+};
+
 typedef enum TokenType {
     //Special
     TOKEN_EOF,
@@ -70,14 +135,14 @@ typedef enum TokenType {
 } TokenType;
 
 typedef enum TokenFlag {
-    VAR_POINTER = 1 << 0,
-    VAR_ARRAY   = 1 << 1,
-    VAR_TYPE    = 1 << 2,
-    VAR_INT     = 1 << 3,
-    VAR_FLOAT   = 1 << 4,
-    VAR_STR     = 1 << 5,
-    VAR_CHAR    = 1 << 6,
-    VAR_BOOL    = 1 << 7,
+    VAR_POINTER = 1 << 10,
+    VAR_ARRAY   = 1 << 11,
+    VAR_TYPE    = 1 << 12,
+    VAR_INT     = 1 << 13,
+    VAR_FLOAT   = 1 << 14,
+    VAR_STR     = 1 << 15,
+    VAR_CHAR    = 1 << 16,
+    VAR_BOOL    = 1 << 17,
 } TokenFlag;
 
 typedef struct Token {
@@ -90,10 +155,9 @@ static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
 
 Token* tokenInitBase(Token* token, TokenType type, char* value, size_t flags) {
     token->type = type;
-    if (value) {
-        token->value = value;
-    }
+    token->value = value;
     token->flags = flags;
+    printf("CONSTRUCTED TOKEN: %s\n", TOKEN_NAMES[type]);
     return token;
 }
 
@@ -102,9 +166,8 @@ Token* tokenInit(TokenType type, char* value, size_t flags) {
 }
 
 void tokenFree(Token* token) {
-    if (token->value) {
-        FREE(token->value);
-    }
+    printf("KILLED TOKEN: %s\n", TOKEN_NAMES[token->type]);
+    FREE(token->value);
     FREE(token);
 }
 #endif

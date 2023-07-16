@@ -2,8 +2,24 @@
 #define LAVA_AST_H
 
 #include "token.h"
+#include "debug.h"
+#include "lexer.h"
 
 static int AST_NODES_CONSTRUCTED = 0;
+
+const char* AST_NAMES[] = {
+        "Data Type",
+        "Variable Definition",
+        "Struct Definition",
+        "Function Definition",
+        "Identifier",
+        "Compound",
+        "Binary Operator",
+        "Var Value",
+        "C Statement",
+        "Return",
+        "Import",
+};
 
 typedef enum ASTType {
     AST_DATA_TYPE,
@@ -27,14 +43,15 @@ typedef struct Scope {
 } Scope;
 
 Scope* scopeInit(AST* ast) {
-    Scope* scope = CALLOC(1, sizeof(Scope));
-    scope->ast = ast;
-    return scope;
+//    Scope* scope = CALLOC(1, sizeof(Scope));
+//    scope->ast = ast;
+//    return scope;
+    return NULL;
 }
 
 void scopeFree(Scope* scope) {
-    if (scope->ast) {
-        FREE(scope->ast);
+    if (scope && scope->ast) {
+        //FREE(scope->ast);
     }
     FREE(scope);
 }
@@ -50,6 +67,7 @@ AST* initASTBase(Token* token, AST* ast, ASTType astType) {
     ast->astType = astType;
     ast->scope = (void*) 0;
     AST_NODES_CONSTRUCTED++;
+    DEBUG("CONSTRUCTED AST: %s\n", AST_NAMES[astType]);
     return ast;
 }
 
@@ -59,13 +77,13 @@ AST* initAST(Token* token, ASTType astType) {
 
 typedef struct ASTCompound {
     AST* base;
-    List* children;
+    DynArray* array;
 } ASTCompound;
 
-AST* initASTCompound(List* children) {
+AST* initASTCompound(DynArray* array) {
     ASTCompound* compound = CALLOC(1, sizeof(ASTCompound));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) compound, AST_COMPOUND);
-    compound->children = children;
+    compound->array = array;
     return (AST*) compound;
 }
 
@@ -143,4 +161,49 @@ AST* initASTReturn(AST* expression) {
     return (AST*) returnStatement;
 }
 
+static int FREE_NODE_COUNT = 0;
+void astFree(AST* node) {
+    if (!node) return;
+//    if (node->scope) FREE(node->scope);
+    FREE_NODE_COUNT++;
+    FREE(node);
+}
+
+void astCompoundFree(ASTCompound* node) {
+    for (int i = 0; i < node->array->len; ++i) {
+        astFree((AST*) node->array->elements[i]);
+    }
+}
+
+//void astFreeTree(AST* node) {
+//    switch (node->astType) {
+//        //comp, var, struct, func, binop, return
+//        case AST_COMPOUND:
+//            for (int i = 0; i < ((ASTCompound *) node)->array->len; ++i) {
+//                astFreeTree((AST*) ((ASTCompound *) node)->array->elements[i]);
+//            }
+//            FREE(((ASTCompound *) node)->array);
+//            break;
+//
+//        case AST_FUNC_DEF:
+//            astFree(((ASTFuncDef*) node)->returnType);
+//            astFree(((ASTFuncDef*) node)->identifier);
+//            astFreeTree((AST*) ((ASTFuncDef*) node)->arguments);
+//            astFreeTree((AST*) ((ASTFuncDef*) node)->statements);
+//            astFree(node);
+//            break;
+//        case AST_BINARY_OP:
+//            astFree(((ASTBinaryOp*) node)->left);
+//            astFree(((ASTBinaryOp*) node)->right);
+//            astFree(node);
+//            break;
+//        case AST_RETURN:
+//            astFree(((ASTReturn*) node)->expression);
+//            astFree(node);
+//            break;
+//        default:
+//            astFree(node);
+//            break;
+//    }
+//}
 #endif //LAVA_AST_H

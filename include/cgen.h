@@ -10,16 +10,19 @@ void visit(AST* node, OutputBuffer* buffer);
 
 void visitNode(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, node->token->value);
+    astFree(node);
 }
 
 void visitCompound(ASTCompound* node, OutputBuffer* buffer, char* delimiter) {
-    for (size_t i = 0; i < node->children->len; ++i) {
+    for (size_t i = 0; i < node->array->len; ++i) {
         bufferAppendIndent(buffer);
-        visit((AST*) node->children->elements[i], buffer);
-        if (i < node->children->len - 1) {
+        visit((AST*) node->array->elements[i], buffer);
+        if (i < node->array->len - 1) {
             bufferAppend(buffer, delimiter);
         }
     }
+//    arrayFree(node->array);
+    //astFree((AST*) node);
 }
 
 void visitDataType(AST* node, OutputBuffer* buffer) {
@@ -59,7 +62,7 @@ void visitDataType(AST* node, OutputBuffer* buffer) {
 void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
     visit(varDef->dataType, buffer);
     if (varDef->dataType->token->flags & VAR_POINTER) {
-        bufferAppend(buffer, "*");
+        bufferAppend(buffer, "*"); //TODO move to visitDataType?
     }
     bufferAppend(buffer, " ");
     visit(varDef->identifier, buffer);
@@ -83,9 +86,18 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
     if (!arg) { //If this is not a function argument
         bufferAppend(buffer, ";");
     }
+    astFree(varDef->dataType);
+    astFree((AST*) varDef);
 }
 
 void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
+    char* hoist = mallocStr("typedef struct ");
+    hoist = concatStr(hoist, structDef->identifier->token->value);
+    hoist = concatStr(hoist, "_t ");
+    hoist = concatStr(hoist, structDef->identifier->token->value);
+    hoist = concatStr(hoist, ";");
+    bufferAddDef(buffer, hoist);
+
     bufferAppend(buffer, "\nstruct ");
     visit(structDef->identifier, buffer);
     bufferAppend(buffer, "_t {\n");
@@ -94,29 +106,26 @@ void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
-    char* hoist = mallocStr("typedef struct ");
-    hoist = concatStr(hoist, structDef->identifier->token->value);
-    hoist = concatStr(hoist, "_t ");
-    hoist = concatStr(hoist, structDef->identifier->token->value);
-    hoist = concatStr(hoist, ";");
-    bufferAddDef(buffer, hoist);
+    astFree((AST*) structDef);
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "\n"); //Append initial new line for space between functions and variables
     size_t bufStartPos = strlen(buffer->code);
     visit(funcDef->returnType, buffer);
+    astFree(funcDef->returnType);
     bufferAppend(buffer, " ");
     visit(funcDef->identifier, buffer);
     bufferAppend(buffer, "(");
     //Arguments
-    for (int i = 0; i < funcDef->arguments->children->len; ++i) {
+    for (int i = 0; i < funcDef->arguments->array->len; ++i) {
         bufferAppendIndent(buffer);
-        visitVarDefinition((ASTVarDef*) funcDef->arguments->children->elements[i], buffer, true);
-        if (i < funcDef->arguments->children->len - 1) {
+        visitVarDefinition((ASTVarDef*) funcDef->arguments->array->elements[i], buffer, true);
+        if (i < funcDef->arguments->array->len - 1) {
             bufferAppend(buffer, ", ");
         }
     }
+    astFree((AST*) funcDef->arguments);
     //TODO make work..
     //visitCompound(funcDef->arguments, buffer, ", ");
     bufferAppend(buffer, ")");
@@ -134,16 +143,18 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     hoist[bufSize] = ';';
     hoist[bufSize + 1] = '\0';
     bufferAddDef(buffer, hoist);
+    astFree((AST*) funcDef);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
     visitNode(node, buffer);
 }
 
-void visitReturn(AST* node, OutputBuffer* buffer) {
+void visitReturn(ASTReturn* returnDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
-    visitNode(((ASTReturn*) node)->expression, buffer);
+    visitNode(returnDef->expression, buffer);
     bufferAppend(buffer, ";");
+    astFree((AST*) returnDef);
 }
 
 void visitImport(AST* node, OutputBuffer* buffer) {
@@ -155,6 +166,7 @@ void visitImport(AST* node, OutputBuffer* buffer) {
         value = concatStr(value, ".h\"");
         bufferAddImport(buffer, value);
     }
+    astFree(node);
 }
 
 void visit(AST* node, OutputBuffer* buffer) {
@@ -164,12 +176,8 @@ void visit(AST* node, OutputBuffer* buffer) {
 
     if (node->astType == AST_COMPOUND) {
         visitCompound((ASTCompound*) node, buffer, "\n");
-    } else if (node->astType == AST_DATA_TYPE) {
+    } else if (node->astType == AST_DATA_TYPE || node->astType == AST_IDENTIFIER || node->astType == AST_VAR_VALUE) {
         visitDataType(node, buffer);
-    } else if (node->astType == AST_IDENTIFIER) {
-        visitNode(node, buffer);
-    } else if (node->astType == AST_VAR_VALUE) {
-        visitNode(node, buffer);
     }
 
     else if (node->astType == AST_VAR_DEF) {
@@ -183,7 +191,7 @@ void visit(AST* node, OutputBuffer* buffer) {
     else if (node->astType == AST_C_STATEMENT) {
         visitCStatement(node, buffer);
     } else if (node->astType == AST_RETURN) {
-        visitReturn(node, buffer);
+        visitReturn((ASTReturn*) node, buffer);
     } else if (node->astType == AST_IMPORT) {
         visitImport(node, buffer);
     }

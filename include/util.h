@@ -5,8 +5,9 @@
 #include <string.h>
 #include "lexer.h"
 
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 #define BASIC_OUTPUT 1
+#define DEBUG_ALLOCS 1
 
 #if DEBUG_MODE == 1
 #define INFO(MSG, ...) \
@@ -52,21 +53,29 @@ exit(EXIT_FAILURE); \
 static size_t ALLOC_COUNT = 0;
 static size_t FREE_COUNT = 0;
 
-static void* mallocSafe(size_t size) {
+static void* mallocSafe(size_t size, char* file, int line) {
     void* ptr = malloc(size);
     if (!ptr) {
         PANIC("Could not allocate %zu bytes!\n", size)
     }
     ALLOC_COUNT++;
+    #if DEBUG_ALLOCS == 1
+        fprintf(stderr, "Allocation at: ");
+        fprintf(stderr, "%s:%i\n", file, line);
+    #endif
     return ptr;
 }
 
-static void* callocSafe(size_t elements, size_t size) {
+static void* callocSafe(size_t elements, size_t size, char* file, int line) {
     void* ptr = calloc(elements, size);
     if (!ptr) {
         PANIC("Could not allocate %zu bytes!\n", size)
     }
     ALLOC_COUNT++;
+    #if DEBUG_ALLOCS == 1
+        fprintf(stderr, "Allocation at: ");
+        fprintf(stderr, "%s:%i\n", file, line);
+    #endif
     return ptr;
 }
 
@@ -79,7 +88,8 @@ static void* reallocSafe(void* ptr, size_t size) {
     return newPtr;
 }
 
-static void* freeSafe(void* ptr) {
+static void freeSafe(void* ptr) {
+    if (!ptr) return;
     FREE_COUNT++;
     free(ptr);
 }
@@ -89,8 +99,8 @@ static void checkAllocations() {
     printf("FREES: %zu\n", FREE_COUNT);
 }
 
-#define MALLOC(SIZE) mallocSafe(SIZE)
-#define CALLOC(ELEMENTS, SIZE) callocSafe(ELEMENTS, SIZE)
+#define MALLOC(SIZE) mallocSafe(SIZE, __FILE__, __LINE__)
+#define CALLOC(ELEMENTS, SIZE) callocSafe(ELEMENTS, SIZE, __FILE__, __LINE__)
 #define REALLOC(PTR, SIZE) reallocSafe(PTR, SIZE)
 #define FREE(PTR) freeSafe(PTR)
 

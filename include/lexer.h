@@ -71,12 +71,13 @@ void skipWhitespace(Lexer* lexer) {
 void skipComment(Lexer* lexer) {
     while (lexer->cur == '/' && (peek(lexer, 1) == '/' || peek(lexer, 1) == '*')) {
         advance(lexer);
-        char end = lexer->cur == '/' ? '\n' : '/'; //Keep track if this comment should end with \n or *
+        char end = lexer->cur == '/' ? '\n' : '*'; //Keep track if this comment should end with \n or *
         advance(lexer); //Advance past that starting character and being reading the comment text
         while (lexer->cur != end) {
             advance(lexer);
         }
-        if (end == '/') { //Advance past the trailing / of multi line comments
+        if (end == '*') { //Advance past the trailing / of multi line comments
+            advance(lexer);
             advance(lexer);
         }
         skipWhitespace(lexer);
@@ -85,7 +86,7 @@ void skipComment(Lexer* lexer) {
 
 char* buildBufferUntilChar(Lexer* lexer, char* buffer, char target, bool includeChar) {
     bool shouldLoop = true;
-    while (shouldLoop) { //Consume characters until EOS (;)
+    while (shouldLoop) { //Consume characters until cur == includeChar
         if (lexer->cur == target) {
             if (includeChar) {
                 shouldLoop = false;
@@ -93,7 +94,6 @@ char* buildBufferUntilChar(Lexer* lexer, char* buffer, char target, bool include
                 break;
             }
         }
-
         buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
@@ -127,7 +127,7 @@ void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
         }
     }
 
-    List* lines = listInit(sizeof(char*));
+    DynArray* lines = arrayInit(sizeof(char *));
     size_t lineStart = start;
     for (size_t i = start; i < endCurrentLine; i++) {
         if (lexer->contents[i] == '\n') {
@@ -135,7 +135,7 @@ void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
             char* line = MALLOC(lineLen * sizeof(char) + 1);
             strncpy(line, lexer->contents+lineStart, lineLen);
             line[lineLen + 1] = '\0';
-            listAppend(lines, line);
+            arrayAppend(lines, line);
             lineStart = i + 1; //+1 so the next start moves past the \n
         }
     }
@@ -148,6 +148,7 @@ void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
         putchar('-');
     }
     printf("^\n");
+    arrayFree(lines);
 }
 
 #define ERROR(MSG, ...) \
@@ -222,6 +223,8 @@ Token* lexNextIdentifier(Lexer* lexer) {
         strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
+
+    //TODO pass C types directly here instead of redoing work in cgen
     if (strcmp(buffer, "null") == 0) {
         return tokenInit(TOKEN_NULL, buffer, 0);
     } else if (strcmp(buffer, "void") == 0) {
@@ -256,7 +259,7 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return lexNextVarType(lexer, TOKEN_BOOLEAN, buffer, VAR_BOOL);
     } else if (strcmp(buffer, "true") == 0 || strcmp(buffer, "false") == 0) {
         return tokenInit(TOKEN_BOOLEAN_VALUE, buffer, 0);
-    } else if (strcmp(buffer, "struct") == 0) {
+    } else if (strcmp(buffer, "struct") == 0) { //TODO move to lexKeyword
         return tokenInit(TOKEN_STRUCT_DEF, buffer, 0);
     } else if (strcmp(buffer, "enum") == 0) {
         return tokenInit(TOKEN_ENUM_DEF, buffer, 0);
@@ -271,6 +274,7 @@ Token* lexNextIdentifier(Lexer* lexer) {
     } else if (strcmp(buffer, "return") == 0) {
         return tokenInit(TOKEN_RETURN, buffer, 0);
     } else if (strcmp(buffer, "import") == 0) {
+        FREE(buffer); //TODO pass to lexNextImport?
         return lexNextImport(lexer);
     }
     //Assume if it's not a reserved identifier, it must be a name
@@ -294,7 +298,7 @@ Token* lexNextToken(Lexer* lexer) {
     skipComment(lexer);
 
     if (lexer->pos >= lexer->len) {
-        return tokenInit(TOKEN_EOF, "EOF", 0);
+        return tokenInit(TOKEN_EOF, mallocStr("EOF"), 0);
     } else if (lexer->cur == 'c' && peek(lexer, 1) == '.') {
         /*if (peek(lexer, 1) == '.') {*/
             advance(lexer);

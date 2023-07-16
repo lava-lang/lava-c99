@@ -1,28 +1,28 @@
 import <stdio.h>;
 //import test;
 
-i32 x = 187_686_223;
-f32 y = 1.5;
+/* Variables */
+i32 i = 187_686_223;
+int ii = 0;
+f32 f = 1.5;
 str s = "lava";
+char c = 'x';
 bool flag = true;
-int i = 0;
 
-type Vec {
-    f32 x;
-    f32 y;
-    f32 z;
+//int[] nums;
+
+struct Vec {
+    f32 x, y, z, int s;
+}
+
+void makeVec(int x, int y, int z) {
+    //Vec vec = Vec(1.5, 2.5, 3.5);
 }
 
 int main() {
-    //int result = 10 - 5;
-
-    c.printf("x: %d\n", x);
+    c.printf("i: %d\n", i);
     int var1 = 10;
     c.printf("var1: %d\n", var1);
-
-    /*c {
-        printf("Printing inside C block\n");
-    }*/
 
     return 0;
 }
