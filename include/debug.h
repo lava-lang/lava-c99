@@ -24,7 +24,7 @@ void printCompound(ASTCompound* node, int depth) {
 void printExpression(AST* node, int depth) {
     //TODO this should not be null
     if (node) {
-        printf("%sExpression: %s\n", getIndent(depth), node->token->value);
+        printf("%sExpression: ", getIndent(depth)); printView(&node->token->view, "\n");
     }
 }
 
@@ -32,13 +32,13 @@ void printAST(AST* node, int depth) {
     if (node->astType == AST_VAR_DEF) {
         ASTVarDef* varDef = (ASTVarDef*) node;
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
-        printf("%sIdentifier: %s\n", getIndent(depth + 1), varDef->identifier->token->value);
+        printf("%sIdentifier: ", getIndent(depth + 1)); printView(&varDef->identifier->token->view, "\n");
         printf("%sDataType: %s\n", getIndent(depth + 1), TOKEN_NAMES[varDef->dataType->token->type]);
         printExpression(varDef->expression, depth + 1);
     } else if (node->astType == AST_FUNC_DEF) {
         ASTFuncDef* funcDef = (ASTFuncDef*) node;
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
-        printf("%sIdentifier: %s\n", getIndent(depth + 1), funcDef->identifier->token->value);
+        printf("%sIdentifier: ", getIndent(depth + 1)); printView(&funcDef->identifier->token->view, "\n");
         printf("%sReturnType: %s\n", getIndent(depth + 1), TOKEN_NAMES[funcDef->returnType->token->type]);
         printf("%sArguments: \n", getIndent(depth + 1));
         printCompound(funcDef->arguments, depth + 1);
@@ -47,7 +47,7 @@ void printAST(AST* node, int depth) {
     } else if (node->astType == AST_STRUCT_DEF) {
         ASTStructDef* structDef = (ASTStructDef*) node;
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
-        printf("%sIdentifier: %s\n", getIndent(depth + 1), structDef->identifier->token->value);
+        printf("%sIdentifier: ", getIndent(depth + 1)); printView(&structDef->identifier->token->view, "\n");
         printf("%sMembers: \n", getIndent(depth + 1));
         printCompound(structDef->members, depth + 1);
     } else if (node->astType == AST_RETURN) {
@@ -56,7 +56,7 @@ void printAST(AST* node, int depth) {
         printExpression(returnAst->expression, depth + 1);
     } else if (node->astType == AST_C_STATEMENT) {
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
-        printf("%sValue: %s\n", getIndent(depth + 1), node->token->value);
+        printf("%sValue: ", getIndent(depth + 1)); printView(&node->token->view, "\n");
     }
 }
 #endif

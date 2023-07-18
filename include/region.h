@@ -48,4 +48,11 @@ void freeGlobalRegion() {
     FREE(GLOBAL_REGION.data);
 }
 
+char* rallocStr(char* source) {
+    size_t len = strlen(source);
+    char* result = RALLOC(len + 1, sizeof(char));
+    strcpy(result, source);
+    result[len] = '\0';
+}
+
 #endif //LAVA_REGION_H

@@ -9,18 +9,19 @@
 void visit(AST* node, OutputBuffer* buffer);
 
 void visitNode(AST* node, OutputBuffer* buffer) {
-    bufferAppend(buffer, node->token->value);
+    bufferAppendView(buffer, &node->token->view);
 }
 
 void visitCompound(ASTCompound* node, OutputBuffer* buffer, char* delimiter) {
     for (size_t i = 0; i < node->array->len; ++i) {
         bufferAppendIndent(buffer);
         visit((AST*) node->array->elements[i], buffer);
-        if (i < node->array->len - 1) {
+        //TODO remove AST_IMPORT exclusion somehow
+        if (i < node->array->len - 1 && ((AST*) node->array->elements[i])->astType != AST_IMPORT) {
             bufferAppend(buffer, delimiter);
         }
     }
-//    arrayFree(node->array);
+//    arrayFree(node->array); //TODO? needed?
 //    FREE(node->array);
 }
 
@@ -88,14 +89,6 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
 }
 
 void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
-    char* hoist = mallocStr("typedef struct ");
-    hoist = concatStr(hoist, structDef->identifier->token->value);
-    hoist = concatStr(hoist, "_t ");
-    hoist = concatStr(hoist, structDef->identifier->token->value);
-    hoist = concatStr(hoist, ";");
-    bufferAppendPrefix(buffer, hoist);
-    FREE(hoist); //Cleanup string, since value is copied and not saved
-
     bufferAppend(buffer, "\nstruct ");
     visit(structDef->identifier, buffer);
     bufferAppend(buffer, "_t {\n");
@@ -104,7 +97,15 @@ void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
-    FREE(structDef->members->array); //Cleanup array allocations
+    //Hoist struct definition
+    bufferAppendPrefix(buffer, "\ntypedef struct ");
+    bufferAppendPrefixView(buffer, &structDef->identifier->token->view);
+    bufferAppendPrefix(buffer, "_t ");
+    bufferAppendPrefixView(buffer, &structDef->identifier->token->view);
+    bufferAppendPrefix(buffer, ";");
+
+    //Cleanup array allocations
+    FREE(structDef->members->array);
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
@@ -134,10 +135,11 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
 
     //Build function definition to hoist
     size_t bufSize = bufEndPos - bufStartPos;
-    char* hoist = calloc(bufSize + 2, sizeof(char));
+    char* hoist = calloc(bufSize + 2, sizeof(char)); //TODO replace with view
     strncpy(hoist, buffer->code+bufStartPos, bufSize);
     hoist[bufSize] = ';';
     hoist[bufSize + 1] = '\0';
+    bufferAppendPrefix(buffer, "\n");
     bufferAppendPrefix(buffer, hoist);
 
     FREE(funcDef->arguments->array); //Cleanup array allocations
@@ -155,14 +157,21 @@ void visitReturn(ASTReturn* returnDef, OutputBuffer* buffer) {
 }
 
 void visitImport(AST* node, OutputBuffer* buffer) {
-    if (strstr(node->token->value, ".h") || node->token->value[0] == '<' || node->token->value[0] == '"') { //C Import
-        bufferAppendImport(buffer, node->token->value);
+    char* importValue = viewToStr(&node->token->view); //TODO remove alloc
+    if (strstr(importValue, ".h") || importValue[0] == '<' || importValue[0] == '"') { //C Import
+        bufferAppendPrefix(buffer, "#include ");
+        bufferAppendPrefixView(buffer, &node->token->view);
+        bufferAppendPrefix(buffer, "\n");
     } else { //Lava import
         char* value = charToStr('"');
-        value = concatStr(value, node->token->value);
+        value = concatStr(value, importValue);
         value = concatStr(value, ".h\"");
-        bufferAppendImport(buffer, value);
+
+        bufferAppendPrefix(buffer, "#include ");
+        bufferAppendPrefix(buffer, value);
+        bufferAppendPrefix(buffer, "\n");
     }
+    FREE(importValue); //TODO remove free
 }
 
 void visit(AST* node, OutputBuffer* buffer) {
@@ -201,6 +210,7 @@ void visit(AST* node, OutputBuffer* buffer) {
 
 OutputBuffer* generateC(AST* root) {
     OutputBuffer* buffer = bufferInit();
+    bufferAppend(buffer, "\n\n"); //Initial \n\n to space definitions
     visit(root, buffer);
     return buffer;
 }

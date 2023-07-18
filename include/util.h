@@ -116,11 +116,19 @@ char* mallocStr(char* source) {
     size_t size = strlen(source) + 1;
     char* result = MALLOC(size * sizeof(char));
     ASSERT(result == NULL, "Cannot allocate %zu bytes!", size);
-    strcpy(result, source);
+    strcpy(result, source); //TODO null terminator?
     return result;
 }
 
+char* concatNStr(char* a, char* b, size_t lenB) {
+    size_t newSize = strlen(a) + lenB + 1;
+    a = REALLOC(a, newSize * sizeof(char));
+    ASSERT(a == NULL, "Cannot allocate %zu bytes!", newSize);
+    return strncat(a, b, lenB);
+}
+
 char* concatStr(char* a, char* b) {
+//    return concatNStr(a, b, strlen(b));
     size_t newSize = strlen(a) + strlen(b) + 1;
     a = REALLOC(a, newSize * sizeof(char));
     ASSERT(a == NULL, "Cannot allocate %zu bytes!", newSize);

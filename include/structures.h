@@ -57,6 +57,10 @@ void bufferAppend(OutputBuffer* buffer, char* value) {
     buffer->code = concatStr(buffer->code, value);
 }
 
+void bufferAppendView(OutputBuffer* buffer, StrView* view) {
+    buffer->code = concatNStr(buffer->code, view->start, view->len);
+}
+
 void bufferIndent(OutputBuffer* buffer) {
     buffer->tab++;
 }
@@ -84,10 +88,8 @@ void bufferAppendPrefix(OutputBuffer* buffer, char* value) {
     buffer->prefix = concatStr(buffer->prefix, value);
 }
 
-void bufferAppendImport(OutputBuffer* buffer, char* value) {
-    bufferAppendPrefix(buffer, "#include ");
-    bufferAppendPrefix(buffer, value);
-    bufferAppendPrefix(buffer, "\n");
+void bufferAppendPrefixView(OutputBuffer* buffer, StrView* view) {
+    buffer->prefix = concatNStr(buffer->prefix, view->start, view->len);
 }
 
 char* bufferBuild(OutputBuffer* buffer) {

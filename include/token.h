@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "util.h"
 #include "region.h"
+#include "strview.h"
 
 const char* TOKEN_NAMES[] = {
         "End of File",
@@ -148,16 +149,21 @@ typedef enum TokenFlag {
 
 typedef struct Token {
     TokenType type;
-    char* value;
+//    char* value;
+    StrView view;
     size_t flags;
 } Token;
 
 static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
 
-Token* tokenInit(TokenType type, char* value, size_t flags) {
+Token* tokenInit(TokenType type, const char* start, size_t viewLen, size_t flags) {
     Token* token = RALLOC(1, sizeof(Token));
     token->type = type;
-    token->value = value;
+
+    char* startCopy = start; //TODO validate needed
+    StrView view = {.start = startCopy, .len = viewLen};
+    token->view = view;
+
     token->flags = flags;
     return token;
 }

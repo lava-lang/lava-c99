@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-typedef struct Vec_t Vec;void makeVec(int x, int y, int z);
 
+typedef struct Vec_t Vec;
+void makeVec(int x, int y, int z);
 
 int32_t i = 187686223;
 int ii = 0;

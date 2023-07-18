@@ -28,7 +28,7 @@ Parser* parserInit(Lexer* lexer) {
 void parserFree(Parser* parser) {
     for (int i = 0; i < parser->tokens->len; ++i) {
         //TODO remove need to keep array of tokens
-        FREE(((Token*) parser->tokens->elements[i])->value);
+//        FREE(((Token*) parser->tokens->elements[i])->value);
     }
     FREE(parser->tokens);
 }
@@ -50,7 +50,7 @@ Token* parserConsume(Parser* parser, TokenType type) {
     parser->type = parser->token->type;
     arrayAppend(parser->tokens, parser->token);
     if (parser->token->type == TOKEN_UNEXPECTED) {
-        ERROR("Unexpected Token! (%s)", parser->token->value);
+        ERROR("Unexpected Token! (%s)", viewToStr(&parser->token->view));
     }
     return prev;
 }
@@ -158,7 +158,7 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
         parserConsume(parser, TOKEN_ASSIGNMENT);
         expression = parseExpression(parser, scope);
         if (!isValueCompatible(dataType, expression)) {
-            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], expression->token->value, TOKEN_NAMES[dataType->token->type]);
+            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
         }
     }
     arrayAppend(nodes, initASTVarDef(dataType, identifier, expression));
@@ -226,7 +226,7 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
         } else if (parser->type == TOKEN_IMPORT) {
             parseImport(nodes, parser, scope);
         } else {
-            ERROR("Token Was Not Consumed Or Parsed! %s (%s)", TOKEN_NAMES[parser->type], parser->token->value);
+            ERROR("Token Was Not Consumed Or Parsed! %s (%s)", TOKEN_NAMES[parser->type], viewToStr(&parser->token->view));
         }
     }
     return initASTCompound(nodes);

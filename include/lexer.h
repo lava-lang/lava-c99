@@ -16,6 +16,8 @@ typedef struct Lexer {
     size_t len;
     size_t line;
     size_t col; //Only set once error thrown. Position of lava col within contents
+    char* viewStart;
+    size_t viewLen;
     char cur;
 } Lexer;
 
@@ -24,14 +26,17 @@ Lexer* lexerInit(char* filepath, char* contents) {
     lexer->filepath = filepath;
     lexer->contents = contents;
     lexer->pos = 0;
-    lexer->len = strlen(lexer->contents);
+    lexer->len = strlen(contents);
     lexer->line = 1;
     lexer->col = 0;
-    lexer->cur = lexer->contents[lexer->pos];
+    lexer->cur = contents[lexer->pos];
+    lexer->viewStart = contents;
+    lexer->viewLen = 1;
     return lexer;
 }
 
 char advance(Lexer* lexer) {
+    lexer->viewLen++;
     return (lexer->cur = lexer->contents[++(lexer->pos)]);
 }
 
@@ -44,6 +49,11 @@ char advanceFor(Lexer* lexer, size_t steps) {
 
 char peek(Lexer* lexer, size_t offset) {
     return lexer->pos + offset >= lexer->len ? '\0' : lexer->contents[lexer->pos + offset];
+}
+
+void resetViewStart(Lexer* lexer) {
+    lexer->viewStart = &lexer->contents[lexer->pos];
+    lexer->viewLen = 1;
 }
 
 int isCharWhitespace(char c) {
@@ -172,7 +182,7 @@ Token* lexNextDigit(Lexer* lexer) {
         PANIC("Value: %s is invalid for type %s", buffer, TOKEN_NAMES[type]);
     }
 
-    return tokenInit(type, buffer, 0);
+    return tokenInit(type, buffer, strlen(buffer), 0);
 }
 
 Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenFlag type) {
@@ -184,7 +194,7 @@ Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenFlag
         advanceFor(lexer, 2);
         flags |= VAR_ARRAY;
     }
-    return tokenInit(tokenType, buffer, flags);
+    return tokenInit(tokenType, buffer, strlen(buffer), flags);
 }
 
 Token* lexNextCStatement(Lexer* lexer, char endChar) {
@@ -192,7 +202,7 @@ Token* lexNextCStatement(Lexer* lexer, char endChar) {
     advance(lexer); //Advance past first comment char, since it is now in the initial buffer
     buffer = buildBufferUntilChar(lexer, buffer, endChar, true); //Consume characters until EOS (;)
     advance(lexer); //Advance past closing C token character
-    return tokenInit(TOKEN_C_STATEMENT, buffer, 0);
+    return tokenInit(TOKEN_C_STATEMENT, buffer, strlen(buffer), 0);
 }
 
 Token* lexNextCBlock(Lexer* lexer) {
@@ -207,7 +217,7 @@ Token* lexNextImport(Lexer* lexer) {
     char* buffer = charToStr(lexer->cur);
     advance(lexer);
     buffer = buildBufferUntilChar(lexer, buffer, ';', false); //Consume characters until EOS (;)
-    return tokenInit(TOKEN_IMPORT, buffer, 0);
+    return tokenInit(TOKEN_IMPORT, buffer, strlen(buffer), 0);
 }
 
 Token* lexNextIdentifier(Lexer* lexer) {
@@ -221,9 +231,9 @@ Token* lexNextIdentifier(Lexer* lexer) {
 
     //TODO pass C types directly here instead of redoing work in cgen
     if (strcmp(buffer, "null") == 0) {
-        return tokenInit(TOKEN_NULL, buffer, 0);
+        return tokenInit(TOKEN_NULL, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "void") == 0) {
-        return tokenInit(TOKEN_VOID, buffer, VAR_TYPE);
+        return tokenInit(TOKEN_VOID, buffer, strlen(buffer), VAR_TYPE);
     } else if (strcmp(buffer, "i8") == 0) {
         return lexNextVarType(lexer, TOKEN_I8, buffer, VAR_INT);
     } else if (strcmp(buffer, "i16") == 0) {
@@ -253,27 +263,27 @@ Token* lexNextIdentifier(Lexer* lexer) {
     } else if (strcmp(buffer, "bool") == 0) {
         return lexNextVarType(lexer, TOKEN_BOOLEAN, buffer, VAR_BOOL);
     } else if (strcmp(buffer, "true") == 0 || strcmp(buffer, "false") == 0) {
-        return tokenInit(TOKEN_BOOLEAN_VALUE, buffer, 0);
+        return tokenInit(TOKEN_BOOLEAN_VALUE, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "struct") == 0) { //TODO move to lexKeyword
-        return tokenInit(TOKEN_STRUCT_DEF, buffer, 0);
+        return tokenInit(TOKEN_STRUCT_DEF, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "enum") == 0) {
-        return tokenInit(TOKEN_ENUM_DEF, buffer, 0);
+        return tokenInit(TOKEN_ENUM_DEF, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "if") == 0) {
-        return tokenInit(TOKEN_IF, buffer, 0);
+        return tokenInit(TOKEN_IF, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "else") == 0) {
-        return tokenInit(TOKEN_ELSE, buffer, 0);
+        return tokenInit(TOKEN_ELSE, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "while") == 0) {
-        return tokenInit(TOKEN_WHILE, buffer, 0);
+        return tokenInit(TOKEN_WHILE, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "for") == 0) {
-        return tokenInit(TOKEN_FOR, buffer, 0);
+        return tokenInit(TOKEN_FOR, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "return") == 0) {
-        return tokenInit(TOKEN_RETURN, buffer, 0);
+        return tokenInit(TOKEN_RETURN, buffer, strlen(buffer), 0);
     } else if (strcmp(buffer, "import") == 0) {
         FREE(buffer); //TODO pass to lexNextImport?
         return lexNextImport(lexer);
     }
     //Assume if it's not a reserved identifier, it must be a name
-    return tokenInit(TOKEN_IDENTIFIER, buffer, 0);
+    return tokenInit(TOKEN_IDENTIFIER, buffer, strlen(buffer), 0);
 }
 
 Token* lexNextStringOrChar(Lexer* lexer, TokenType type, char enclosingChar) {
@@ -285,7 +295,7 @@ Token* lexNextStringOrChar(Lexer* lexer, TokenType type, char enclosingChar) {
         advance(lexer);
     }
     advance(lexer); //Advance past closing string char
-    return tokenInit(type, buffer, 0);
+    return tokenInit(type, buffer, strlen(buffer), 0);
 }
 
 Token* lexNextToken(Lexer* lexer) {
@@ -293,7 +303,7 @@ Token* lexNextToken(Lexer* lexer) {
     skipComment(lexer);
 
     if (lexer->pos >= lexer->len) {
-        return tokenInit(TOKEN_EOF, mallocStr("EOF"), 0);
+        return tokenInit(TOKEN_EOF, mallocStr("EOF"), 3, 0);
     } else if (lexer->cur == 'c' && peek(lexer, 1) == '.') {
         /*if (peek(lexer, 1) == '.') {*/
             advance(lexer);
@@ -321,15 +331,15 @@ Token* lexNextToken(Lexer* lexer) {
     char* value = charToStr(lexer->cur);
     if (lexer->cur == ';') {
         advance(lexer);
-        return tokenInit(TOKEN_EOS, value, 0);
+        return tokenInit(TOKEN_EOS, value, strlen(value), 0);
     } else if (lexer->cur == '=') {
         advance(lexer);
         if (lexer->cur == '=') {
             FREE(value);
             advance(lexer);
-            return tokenInit(TOKEN_EQUALS, "==", 0);
+            return tokenInit(TOKEN_EQUALS, "==", 2, 0);
         } else {
-            return tokenInit(TOKEN_ASSIGNMENT, value, 0);
+            return tokenInit(TOKEN_ASSIGNMENT, value, strlen(value), 0);
         }
     } else if (lexer->cur == '"') {
         advance(lexer);
@@ -341,56 +351,56 @@ Token* lexNextToken(Lexer* lexer) {
         return lexNextStringOrChar(lexer, TOKEN_CHAR_VALUE, '\'');
     } else if (lexer->cur == '/') {
         advance(lexer);
-        return tokenInit(TOKEN_DIVISION, value, 0);
+        return tokenInit(TOKEN_DIVISION, value, strlen(value), 0);
     } else if (lexer->cur == '+') {
         advance(lexer);
-        return tokenInit(TOKEN_PLUS, value, 0);
+        return tokenInit(TOKEN_PLUS, value, strlen(value), 0);
     } else if (lexer->cur == '-') {
         advance(lexer);
-        return tokenInit(TOKEN_MINUS, value, 0);
+        return tokenInit(TOKEN_MINUS, value, strlen(value), 0);
     } else if (lexer->cur == '*') {
         advance(lexer);
-        return tokenInit(TOKEN_MULTIPLY, value, 0);
+        return tokenInit(TOKEN_MULTIPLY, value, strlen(value), 0);
     } else if (lexer->cur == '<') {
         advance(lexer);
-        return tokenInit(TOKEN_LESS_THAN, value, 0);
+        return tokenInit(TOKEN_LESS_THAN, value, strlen(value), 0);
     } else if (lexer->cur == '>') {
         advance(lexer);
-        return tokenInit(TOKEN_MORE_THAN, value, 0);
+        return tokenInit(TOKEN_MORE_THAN, value, strlen(value), 0);
     } else if (lexer->cur == '!') {
         advance(lexer);
-        return tokenInit(TOKEN_NOT, value, 0);
+        return tokenInit(TOKEN_NOT, value, strlen(value), 0);
     } else if (lexer->cur == '(') {
         advance(lexer);
-        return tokenInit(TOKEN_LPAREN, value, 0);
+        return tokenInit(TOKEN_LPAREN, value, strlen(value), 0);
     } else if (lexer->cur == ')') {
         advance(lexer);
-        return tokenInit(TOKEN_RPAREN, value, 0);
+        return tokenInit(TOKEN_RPAREN, value, strlen(value), 0);
     } else if (lexer->cur == ':') {
         advance(lexer);
-        return tokenInit(TOKEN_COLON, value, 0);
+        return tokenInit(TOKEN_COLON, value, strlen(value), 0);
     } else if (lexer->cur == ',') {
         advance(lexer);
-        return tokenInit(TOKEN_COMMA, value, 0);
+        return tokenInit(TOKEN_COMMA, value, strlen(value), 0);
     } else if (lexer->cur == '.') {
         advance(lexer);
-        return tokenInit(TOKEN_DOT, value, 0);
+        return tokenInit(TOKEN_DOT, value, strlen(value), 0);
     } else if (lexer->cur == '[') {
         advance(lexer);
-        return tokenInit(TOKEN_LBRACKET, value, 0);
+        return tokenInit(TOKEN_LBRACKET, value, strlen(value), 0);
     } else if (lexer->cur == ']') {
         advance(lexer);
-        return tokenInit(TOKEN_RBRACKET, value, 0);
+        return tokenInit(TOKEN_RBRACKET, value, strlen(value), 0);
     } else if (lexer->cur == '{') {
         advance(lexer);
-        return tokenInit(TOKEN_LBRACE, value, 0);
+        return tokenInit(TOKEN_LBRACE, value, strlen(value), 0);
     } else if (lexer->cur == '}') {
         advance(lexer);
-        return tokenInit(TOKEN_RBRACE, value, 0);
+        return tokenInit(TOKEN_RBRACE, value, strlen(value), 0);
     }
 
     //Finally, return unexpected token is nothing matches
     advance(lexer);
-    return tokenInit(TOKEN_UNEXPECTED, value, 0);
+    return tokenInit(TOKEN_UNEXPECTED, value, strlen(value), 0);
 }
 #endif
