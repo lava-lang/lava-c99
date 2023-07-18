@@ -7,7 +7,7 @@
 
 #define DEBUG_MODE 0
 #define BASIC_OUTPUT 1
-#define DEBUG_ALLOCS 1
+#define DEBUG_ALLOCS 0
 
 #if DEBUG_MODE == 1
 #define INFO(MSG, ...) \
@@ -53,29 +53,28 @@ exit(EXIT_FAILURE); \
 static size_t ALLOC_COUNT = 0;
 static size_t FREE_COUNT = 0;
 
-static void* mallocSafe(size_t size, char* file, int line) {
-    void* ptr = malloc(size);
+static void checkPtr(void* ptr, size_t size, char* file, int line, bool debug) {
     if (!ptr) {
         PANIC("Could not allocate %zu bytes!\n", size)
     }
-    ALLOC_COUNT++;
+    if (!debug) return;
     #if DEBUG_ALLOCS == 1
         fprintf(stderr, "Allocation at: ");
         fprintf(stderr, "%s:%i\n", file, line);
     #endif
+}
+
+static void* mallocSafe(size_t size, char* file, int line) {
+    void* ptr = malloc(size);
+    checkPtr(ptr, size, file, line, true);
+    ALLOC_COUNT++;
     return ptr;
 }
 
 static void* callocSafe(size_t elements, size_t size, char* file, int line) {
     void* ptr = calloc(elements, size);
-    if (!ptr) {
-        PANIC("Could not allocate %zu bytes!\n", size)
-    }
+    checkPtr(ptr, size, file, line, true);
     ALLOC_COUNT++;
-    #if DEBUG_ALLOCS == 1
-        fprintf(stderr, "Allocation at: ");
-        fprintf(stderr, "%s:%i\n", file, line);
-    #endif
     return ptr;
 }
 
@@ -111,6 +110,8 @@ char* charToStr(char c) {
     return str;
 }
 
+//TODO replace use with StringBuffer structure that
+// has bigger initial size and reallocs when needed
 char* mallocStr(char* source) {
     size_t size = strlen(source) + 1;
     char* result = MALLOC(size * sizeof(char));

@@ -6,10 +6,15 @@
 #include "include/file.h"
 #include "include/ast.h"
 #include "include/cgen.h"
+#include "include/region.h"
 
 int main(int argc, char *argv[]) {
     //Begin profiling
     clock_t startAll = clock();
+
+    //Init virtual memory region
+    GLOBAL_REGION_CAPACITY = 10000;
+    initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
 
     //Exit if arguments is less than 2
     ASSERT(argc < 2, "Two arguments required, %d were passed.", argc)
@@ -22,7 +27,7 @@ int main(int argc, char *argv[]) {
     Lexer* lexer = lexerInit(argv[1], inputCode);
     Parser* parser = parserInit(lexer);
     AST* root = parseAST(parser, globalScope, TOKEN_EOF);
-    DEBUG("Tokens Consumed: %d\n", TOKENS_CONSUMED)
+    BASIC("Tokens Consumed: %d\n", TOKENS_CONSUMED)
 
     #if DEBUG_MODE == 1
         ASTCompound* compound = (ASTCompound*) root;
@@ -33,16 +38,17 @@ int main(int argc, char *argv[]) {
     #endif
 
     clock_t endParse = clock();
-    DEBUG("AST Nodes Constructed: %d\n", AST_NODES_CONSTRUCTED)
+    BASIC("AST Nodes Constructed: %d\n", AST_NODES_CONSTRUCTED)
 
     clock_t startCodegen = clock();
+    printf("ALLOCATION CHECKPOINT\n");
     OutputBuffer* outputBuffer = generateC(root);
-//    char* generatedCode = bufferBuild(outputBuffer);
-//    DEBUG("C Code Generation:\n%s\n", generatedCode)
+    char* generatedCode = bufferBuild(outputBuffer);
+    DEBUG("C Code Generation:\n%s\n", generatedCode)
     clock_t endCodegen = clock();
 
     //Write generated C file to disk
-//    write_file("../output.c", generatedCode);
+    write_file("../output.c", generatedCode);
 
     clock_t endAll = clock();
     BASIC("Parsing: %f", (double)(endParse - startParse) / CLOCKS_PER_SEC)
@@ -50,15 +56,14 @@ int main(int argc, char *argv[]) {
     BASIC("Full: %f\n", (double)(endAll - startAll) / CLOCKS_PER_SEC)
 
     //Free memory allocations
-
-    scopeFree(globalScope);
-    lexerFree(lexer);
+    FREE(inputCode);
+//    scopeFree(globalScope);
     parserFree(parser);
-//    astFree(root);
+    FREE(((ASTCompound*) root)->array);
     bufferFree(outputBuffer);
 
     //Make sure there are no leaks
-    printf("AST NODES CONSTRUCTED: %d; KILLED: %d\n", AST_NODES_CONSTRUCTED, FREE_NODE_COUNT);
+    freeGlobalRegion();
     checkAllocations();
 
     return 0;

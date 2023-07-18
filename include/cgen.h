@@ -10,7 +10,6 @@ void visit(AST* node, OutputBuffer* buffer);
 
 void visitNode(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, node->token->value);
-    astFree(node);
 }
 
 void visitCompound(ASTCompound* node, OutputBuffer* buffer, char* delimiter) {
@@ -22,7 +21,7 @@ void visitCompound(ASTCompound* node, OutputBuffer* buffer, char* delimiter) {
         }
     }
 //    arrayFree(node->array);
-    //astFree((AST*) node);
+//    FREE(node->array);
 }
 
 void visitDataType(AST* node, OutputBuffer* buffer) {
@@ -86,8 +85,6 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
     if (!arg) { //If this is not a function argument
         bufferAppend(buffer, ";");
     }
-    astFree(varDef->dataType);
-    astFree((AST*) varDef);
 }
 
 void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
@@ -96,7 +93,8 @@ void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
     hoist = concatStr(hoist, "_t ");
     hoist = concatStr(hoist, structDef->identifier->token->value);
     hoist = concatStr(hoist, ";");
-    bufferAddDef(buffer, hoist);
+    bufferAppendPrefix(buffer, hoist);
+    FREE(hoist); //Cleanup string, since value is copied and not saved
 
     bufferAppend(buffer, "\nstruct ");
     visit(structDef->identifier, buffer);
@@ -106,14 +104,13 @@ void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
-    astFree((AST*) structDef);
+    FREE(structDef->members->array); //Cleanup array allocations
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "\n"); //Append initial new line for space between functions and variables
     size_t bufStartPos = strlen(buffer->code);
     visit(funcDef->returnType, buffer);
-    astFree(funcDef->returnType);
     bufferAppend(buffer, " ");
     visit(funcDef->identifier, buffer);
     bufferAppend(buffer, "(");
@@ -125,7 +122,6 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
             bufferAppend(buffer, ", ");
         }
     }
-    astFree((AST*) funcDef->arguments);
     //TODO make work..
     //visitCompound(funcDef->arguments, buffer, ", ");
     bufferAppend(buffer, ")");
@@ -142,8 +138,10 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     strncpy(hoist, buffer->code+bufStartPos, bufSize);
     hoist[bufSize] = ';';
     hoist[bufSize + 1] = '\0';
-    bufferAddDef(buffer, hoist);
-    astFree((AST*) funcDef);
+    bufferAppendPrefix(buffer, hoist);
+
+    FREE(funcDef->arguments->array); //Cleanup array allocations
+    FREE(funcDef->statements->array);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
@@ -154,19 +152,17 @@ void visitReturn(ASTReturn* returnDef, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
     visitNode(returnDef->expression, buffer);
     bufferAppend(buffer, ";");
-    astFree((AST*) returnDef);
 }
 
 void visitImport(AST* node, OutputBuffer* buffer) {
     if (strstr(node->token->value, ".h") || node->token->value[0] == '<' || node->token->value[0] == '"') { //C Import
-        bufferAddImport(buffer, node->token->value);
+        bufferAppendImport(buffer, node->token->value);
     } else { //Lava import
         char* value = charToStr('"');
         value = concatStr(value, node->token->value);
         value = concatStr(value, ".h\"");
-        bufferAddImport(buffer, value);
+        bufferAppendImport(buffer, value);
     }
-    astFree(node);
 }
 
 void visit(AST* node, OutputBuffer* buffer) {
@@ -176,8 +172,10 @@ void visit(AST* node, OutputBuffer* buffer) {
 
     if (node->astType == AST_COMPOUND) {
         visitCompound((ASTCompound*) node, buffer, "\n");
-    } else if (node->astType == AST_DATA_TYPE || node->astType == AST_IDENTIFIER || node->astType == AST_VAR_VALUE) {
+    } else if (node->astType == AST_DATA_TYPE) {
         visitDataType(node, buffer);
+    } else if (node->astType == AST_IDENTIFIER || node->astType == AST_VAR_VALUE) {
+        visitNode(node, buffer);
     }
 
     else if (node->astType == AST_VAR_DEF) {
@@ -203,9 +201,6 @@ void visit(AST* node, OutputBuffer* buffer) {
 
 OutputBuffer* generateC(AST* root) {
     OutputBuffer* buffer = bufferInit();
-    //TODO create some sort of bootstrap
-    bufferAddImport(buffer, "<stdbool.h>");
-    bufferAddImport(buffer, "<stdint.h>");
     visit(root, buffer);
     return buffer;
 }

@@ -76,6 +76,7 @@ void bufferAppendIndent(OutputBuffer* buffer) {
         }
         tabs[buffer->tab] = '\0';
         bufferAppend(buffer, tabs);
+        FREE(tabs);
     }
 }
 

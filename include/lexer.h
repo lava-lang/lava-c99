@@ -20,7 +20,7 @@ typedef struct Lexer {
 } Lexer;
 
 Lexer* lexerInit(char* filepath, char* contents) {
-    Lexer* lexer = CALLOC(1, sizeof(Lexer));
+    Lexer* lexer = RALLOC(1, sizeof(Lexer));
     lexer->filepath = filepath;
     lexer->contents = contents;
     lexer->pos = 0;
@@ -29,11 +29,6 @@ Lexer* lexerInit(char* filepath, char* contents) {
     lexer->col = 0;
     lexer->cur = lexer->contents[lexer->pos];
     return lexer;
-}
-
-void lexerFree(Lexer* lexer) {
-    FREE(lexer->contents);
-    FREE(lexer);
 }
 
 char advance(Lexer* lexer) {
@@ -338,9 +333,11 @@ Token* lexNextToken(Lexer* lexer) {
         }
     } else if (lexer->cur == '"') {
         advance(lexer);
+        FREE(value);
         return lexNextStringOrChar(lexer, TOKEN_STRING_VALUE, '"');
     } else if (lexer->cur == '\'') {
         advance(lexer);
+        FREE(value);
         return lexNextStringOrChar(lexer, TOKEN_CHAR_VALUE, '\'');
     } else if (lexer->cur == '/') {
         advance(lexer);

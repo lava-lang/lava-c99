@@ -16,7 +16,7 @@ typedef struct Parser {
 } Parser;
 
 Parser* parserInit(Lexer* lexer) {
-    Parser* parser = CALLOC(1, sizeof(Parser));
+    Parser* parser = RALLOC(1, sizeof(Parser));
     parser->lexer = lexer;
     parser->token = lexNextToken(lexer);
     parser->type = parser->token->type;
@@ -27,10 +27,10 @@ Parser* parserInit(Lexer* lexer) {
 
 void parserFree(Parser* parser) {
     for (int i = 0; i < parser->tokens->len; ++i) {
-        tokenFree((Token*) parser->tokens->elements[i]);
+        //TODO remove need to keep array of tokens
+        FREE(((Token*) parser->tokens->elements[i])->value);
     }
     FREE(parser->tokens);
-    FREE(parser);
 }
 
 #undef ERROR //Redefine ERROR now that Lexing has finished

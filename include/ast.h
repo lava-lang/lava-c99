@@ -4,6 +4,7 @@
 #include "token.h"
 #include "debug.h"
 #include "lexer.h"
+#include "region.h"
 
 static int AST_NODES_CONSTRUCTED = 0;
 
@@ -72,7 +73,7 @@ AST* initASTBase(Token* token, AST* ast, ASTType astType) {
 }
 
 AST* initAST(Token* token, ASTType astType) {
-    return initASTBase(token, CALLOC(1, sizeof(AST)), astType);
+    return initASTBase(token, RALLOC(1, sizeof(AST)), astType);
 }
 
 typedef struct ASTCompound {
@@ -81,7 +82,7 @@ typedef struct ASTCompound {
 } ASTCompound;
 
 AST* initASTCompound(DynArray* array) {
-    ASTCompound* compound = CALLOC(1, sizeof(ASTCompound));
+    ASTCompound* compound = RALLOC(1, sizeof(ASTCompound));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) compound, AST_COMPOUND);
     compound->array = array;
     return (AST*) compound;
@@ -95,7 +96,7 @@ typedef struct ASTVarDef {
 } ASTVarDef;
 
 AST* initASTVarDef(AST* dataType, AST* identifier, AST* expression) {
-    ASTVarDef* varDef = CALLOC(1, sizeof(ASTVarDef));
+    ASTVarDef* varDef = RALLOC(1, sizeof(ASTVarDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) varDef, AST_VAR_DEF);
     varDef->dataType = dataType;
     varDef->identifier = identifier;
@@ -110,7 +111,7 @@ typedef struct ASTStructDef {
 } ASTStructDef;
 
 AST* initASTStructDef(AST* identifier, AST* members) {
-    ASTStructDef* structDef = CALLOC(1, sizeof(ASTStructDef));
+    ASTStructDef* structDef = RALLOC(1, sizeof(ASTStructDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) structDef, AST_STRUCT_DEF);
     structDef->identifier = identifier;
     structDef->members = (ASTCompound*) members;
@@ -126,7 +127,7 @@ typedef struct ASTFuncDef {
 } ASTFuncDef;
 
 AST* initASTFuncDef(AST* returnType, AST* identifier, AST* arguments, AST* statements) {
-    ASTFuncDef* funcDef = CALLOC(1, sizeof(ASTFuncDef));
+    ASTFuncDef* funcDef = RALLOC(1, sizeof(ASTFuncDef));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) funcDef, AST_FUNC_DEF);
     funcDef->returnType = returnType;
     funcDef->identifier = identifier;
@@ -142,7 +143,7 @@ typedef struct ASTBinaryOp {
 } ASTBinaryOp;
 
 AST* initASTBinaryOp(AST* left, AST* right) {
-    ASTBinaryOp* binaryOp = CALLOC(1, sizeof(ASTBinaryOp));
+    ASTBinaryOp* binaryOp = RALLOC(1, sizeof(ASTBinaryOp));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) binaryOp, AST_BINARY_OP);
     binaryOp->left = left;
     binaryOp->right = right;
@@ -155,55 +156,9 @@ typedef struct ASTReturn {
 } ASTReturn;
 
 AST* initASTReturn(AST* expression) {
-    ASTReturn* returnStatement = CALLOC(1, sizeof(ASTReturn));
+    ASTReturn* returnStatement = RALLOC(1, sizeof(ASTReturn));
     initASTBase(&STATIC_TOKEN_NONE, (AST*) returnStatement, AST_RETURN);
     returnStatement->expression = expression;
     return (AST*) returnStatement;
 }
-
-static int FREE_NODE_COUNT = 0;
-void astFree(AST* node) {
-    if (!node) return;
-//    if (node->scope) FREE(node->scope);
-    FREE_NODE_COUNT++;
-    FREE(node);
-}
-
-void astCompoundFree(ASTCompound* node) {
-    for (int i = 0; i < node->array->len; ++i) {
-        astFree((AST*) node->array->elements[i]);
-    }
-}
-
-//void astFreeTree(AST* node) {
-//    switch (node->astType) {
-//        //comp, var, struct, func, binop, return
-//        case AST_COMPOUND:
-//            for (int i = 0; i < ((ASTCompound *) node)->array->len; ++i) {
-//                astFreeTree((AST*) ((ASTCompound *) node)->array->elements[i]);
-//            }
-//            FREE(((ASTCompound *) node)->array);
-//            break;
-//
-//        case AST_FUNC_DEF:
-//            astFree(((ASTFuncDef*) node)->returnType);
-//            astFree(((ASTFuncDef*) node)->identifier);
-//            astFreeTree((AST*) ((ASTFuncDef*) node)->arguments);
-//            astFreeTree((AST*) ((ASTFuncDef*) node)->statements);
-//            astFree(node);
-//            break;
-//        case AST_BINARY_OP:
-//            astFree(((ASTBinaryOp*) node)->left);
-//            astFree(((ASTBinaryOp*) node)->right);
-//            astFree(node);
-//            break;
-//        case AST_RETURN:
-//            astFree(((ASTReturn*) node)->expression);
-//            astFree(node);
-//            break;
-//        default:
-//            astFree(node);
-//            break;
-//    }
-//}
 #endif //LAVA_AST_H
