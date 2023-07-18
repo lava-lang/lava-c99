@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "util.h"
+#include "region.h"
 
 const char* TOKEN_NAMES[] = {
         "End of File",
@@ -153,21 +154,11 @@ typedef struct Token {
 
 static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
 
-Token* tokenInitBase(Token* token, TokenType type, char* value, size_t flags) {
+Token* tokenInit(TokenType type, char* value, size_t flags) {
+    Token* token = RALLOC(1, sizeof(Token));
     token->type = type;
     token->value = value;
     token->flags = flags;
-    printf("CONSTRUCTED TOKEN: %s\n", TOKEN_NAMES[type]);
     return token;
-}
-
-Token* tokenInit(TokenType type, char* value, size_t flags) {
-    return tokenInitBase(CALLOC(1, sizeof(Token)), type, value, flags);
-}
-
-void tokenFree(Token* token) {
-    printf("KILLED TOKEN: %s\n", TOKEN_NAMES[token->type]);
-    FREE(token->value);
-    FREE(token);
 }
 #endif
