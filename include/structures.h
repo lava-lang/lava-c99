@@ -32,9 +32,8 @@ void arrayAppend(DynArray* array, void* element) {
 }
 
 typedef struct OutputBuffer {
+    char* prefix;
     char* code;
-    DynArray* imports;
-    DynArray* definitions;
     size_t tab;
 } OutputBuffer;
 
@@ -42,16 +41,15 @@ OutputBuffer* bufferInit() {
     OutputBuffer* buffer = CALLOC(1, sizeof(OutputBuffer));
     buffer->code = CALLOC(2, sizeof(char));
     buffer->code[0] = '\0';
-    buffer->imports = arrayInit(sizeof(char *));
-    buffer->definitions = arrayInit(sizeof(char *));
+    buffer->prefix = CALLOC(2, sizeof(char));
+    buffer->prefix[0] = '\0';
     buffer->tab = 0;
     return buffer;
 }
 
 void bufferFree(OutputBuffer* buffer) {
     FREE(buffer->code);
-    arrayFree(buffer->imports);
-    arrayFree(buffer->definitions);
+    FREE(buffer->prefix);
     FREE(buffer);
 }
 
@@ -81,29 +79,17 @@ void bufferAppendIndent(OutputBuffer* buffer) {
     }
 }
 
-void bufferAddImport(OutputBuffer* buffer, char* value) {
-//    char* prefix = mallocStr("#include ");
-//    value = concatStr(prefix, value); //Append include
-//    value = concatStr(value, "\n");
-    arrayAppend(buffer->imports, mallocStr(value));
+void bufferAppendPrefix(OutputBuffer* buffer, char* value) {
+    buffer->prefix = concatStr(buffer->prefix, value);
 }
 
-void bufferAddDef(OutputBuffer* buffer, char* value) {
-    value = concatStr(value, "\n");
-    arrayAppend(buffer->definitions, value);
+void bufferAppendImport(OutputBuffer* buffer, char* value) {
+    bufferAppendPrefix(buffer, "#include ");
+    bufferAppendPrefix(buffer, value);
+    bufferAppendPrefix(buffer, "\n");
 }
 
 char* bufferBuild(OutputBuffer* buffer) {
-    char* code = mallocStr("\0");
-    for (size_t i = 0; i < buffer->imports->len; ++i) {
-        code = concatStr(buffer->imports->elements[i], code);
-    }
-    if (buffer->definitions->len > 0) {
-        code = concatStr(code, "\n");
-        for (size_t i = 0; i < buffer->definitions->len; ++i) {
-            code = concatStr(code, buffer->definitions->elements[i]);
-        }
-    }
-    return (buffer->code = concatStr(code, buffer->code));
+    return (buffer->prefix = concatStr(buffer->prefix, buffer->code));
 }
 #endif
