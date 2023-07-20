@@ -157,21 +157,15 @@ void visitReturn(ASTReturn* returnDef, OutputBuffer* buffer) {
 }
 
 void visitImport(AST* node, OutputBuffer* buffer) {
-    char* importValue = viewToStr(&node->token->view); //TODO remove alloc
-    if (strstr(importValue, ".h") || importValue[0] == '<' || importValue[0] == '"') { //C Import
+    if (node->token->view.start[0] == '<' || node->token->view.start[0] == '"') { //C Import
         bufferAppendPrefix(buffer, "#include ");
         bufferAppendPrefixView(buffer, &node->token->view);
         bufferAppendPrefix(buffer, "\n");
     } else { //Lava import
-        char* value = charToStr('"');
-        value = concatStr(value, importValue);
-        value = concatStr(value, ".h\"");
-
-        bufferAppendPrefix(buffer, "#include ");
-        bufferAppendPrefix(buffer, value);
-        bufferAppendPrefix(buffer, "\n");
+        bufferAppendPrefix(buffer, "#include \"");
+        bufferAppendPrefixView(buffer, &node->token->view);
+        bufferAppendPrefix(buffer, ".h\"\n");
     }
-    FREE(importValue); //TODO remove free
 }
 
 void visit(AST* node, OutputBuffer* buffer) {

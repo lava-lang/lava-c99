@@ -56,7 +56,6 @@ int main(int argc, char *argv[]) {
     //Free memory allocations
     FREE(inputCode);
 //    scopeFree(globalScope);
-    parserFree(parser);
     FREE(((ASTCompound*) root)->array);
     bufferFree(outputBuffer);
 

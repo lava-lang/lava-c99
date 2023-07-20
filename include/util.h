@@ -98,13 +98,6 @@ static void freeSafe(void* ptr) {
 #define REALLOC(PTR, SIZE) reallocSafe(PTR, SIZE)
 #define FREE(PTR) freeSafe(PTR)
 
-char* charToStr(char c) {
-    char* str = MALLOC(sizeof(char) * 2);
-    str[0] = c;
-    str[1] = '\0';
-    return str;
-}
-
 //TODO replace use with StringBuffer structure that
 // has bigger initial size and reallocs when needed
 char* mallocStr(char* source) {

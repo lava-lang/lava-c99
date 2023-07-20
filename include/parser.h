@@ -12,7 +12,6 @@ typedef struct Parser {
     Token* token;
     Lexer* lexer;
     TokenType type;
-    DynArray* tokens;
 } Parser;
 
 Parser* parserInit(Lexer* lexer) {
@@ -20,17 +19,7 @@ Parser* parserInit(Lexer* lexer) {
     parser->lexer = lexer;
     parser->token = lexNextToken(lexer);
     parser->type = parser->token->type;
-    parser->tokens = arrayInit(sizeof(Token*));
-    arrayAppend(parser->tokens, parser->token);
     return parser;
-}
-
-void parserFree(Parser* parser) {
-    for (int i = 0; i < parser->tokens->len; ++i) {
-        //TODO remove need to keep array of tokens
-//        FREE(((Token*) parser->tokens->elements[i])->value);
-    }
-    FREE(parser->tokens);
 }
 
 #undef ERROR //Redefine ERROR now that Lexing has finished
@@ -48,7 +37,6 @@ Token* parserConsume(Parser* parser, TokenType type) {
     Token* prev = parser->token;
     parser->token = lexNextToken(parser->lexer);
     parser->type = parser->token->type;
-    arrayAppend(parser->tokens, parser->token);
     if (parser->token->type == TOKEN_UNEXPECTED) {
         ERROR("Unexpected Token! (%s)", viewToStr(&parser->token->view));
     }
