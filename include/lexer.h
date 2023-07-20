@@ -97,14 +97,10 @@ void skipComment(Lexer* lexer) {
 }
 
 void advanceUntilChar(Lexer* lexer, char target, bool includeChar) {
-    bool shouldLoop = true;
-    while (shouldLoop) { //Consume characters until cur == includeChar
+    while (true) { //Consume characters until cur == includeChar
         if (lexer->cur == target) {
-            if (includeChar) {
-                shouldLoop = false;
-            } else {
-                break;
-            }
+            if (includeChar) advance(lexer);
+            break;
         }
         advance(lexer);
     }
