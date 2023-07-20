@@ -16,9 +16,8 @@ typedef struct Lexer {
     size_t len;
     size_t line;
     size_t col; //Only set once error thrown. Position of lava col within contents
-    char* viewStart;
-    size_t viewLen;
     char cur;
+    StrView view;
 } Lexer;
 
 Lexer* lexerInit(char* filepath, char* contents) {
@@ -30,14 +29,18 @@ Lexer* lexerInit(char* filepath, char* contents) {
     lexer->line = 1;
     lexer->col = 0;
     lexer->cur = contents[lexer->pos];
-    lexer->viewStart = contents;
-    lexer->viewLen = 1;
+    lexer->view.start = contents;
+    lexer->view.len = 0;
     return lexer;
 }
 
-char advance(Lexer* lexer) {
-    lexer->viewLen++;
+char setLexerPos(Lexer* lexer) {
     return (lexer->cur = lexer->contents[++(lexer->pos)]);
+}
+
+char advance(Lexer* lexer) {
+    lexer->view.len++;
+    return setLexerPos(lexer);
 }
 
 char advanceFor(Lexer* lexer, size_t steps) {
@@ -47,13 +50,17 @@ char advanceFor(Lexer* lexer, size_t steps) {
     return lexer->cur;
 }
 
+char advanceNoView(Lexer* lexer) {
+    return setLexerPos(lexer);
+}
+
 char peek(Lexer* lexer, size_t offset) {
     return lexer->pos + offset >= lexer->len ? '\0' : lexer->contents[lexer->pos + offset];
 }
 
-void resetViewStart(Lexer* lexer) {
-    lexer->viewStart = &lexer->contents[lexer->pos];
-    lexer->viewLen = 1;
+void resetView(Lexer* lexer) {
+    lexer->view.start = &lexer->contents[lexer->pos];
+    lexer->view.len = 0;
 }
 
 int isCharWhitespace(char c) {
@@ -89,7 +96,7 @@ void skipComment(Lexer* lexer) {
     }
 }
 
-char* buildBufferUntilChar(Lexer* lexer, char* buffer, char target, bool includeChar) {
+void advanceUntilChar(Lexer* lexer, char target, bool includeChar) {
     bool shouldLoop = true;
     while (shouldLoop) { //Consume characters until cur == includeChar
         if (lexer->cur == target) {
@@ -99,11 +106,8 @@ char* buildBufferUntilChar(Lexer* lexer, char* buffer, char target, bool include
                 break;
             }
         }
-        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
-        strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
-    return buffer;
 }
 
 size_t findStartOfErrorSnippet(Lexer* lexer) {
@@ -153,7 +157,7 @@ void printSyntaxErrorLocation(Lexer* lexer, size_t start) {
         putchar('-');
     }
     printf("^\n");
-    arrayFree(lines);
+    //TODO crashes arrayFree(lines);
 }
 
 #define ERROR(MSG, ...) \
@@ -164,45 +168,40 @@ printSyntaxErrorLocation(lexer, start); \
 exit(EXIT_FAILURE); \
 
 Token* lexNextDigit(Lexer* lexer) {
-    char* buffer = charToStr(lexer->cur);
     int type = TOKEN_INTEGER_VALUE;
-
-    advance(lexer);
     while (isdigit(lexer->cur) || lexer->cur == '.' || lexer->cur == '_') {
         if (lexer->cur == '.') {
             type = TOKEN_FLOAT_VALUE;
         }
-        if (lexer->cur != '_') {
-            buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
-            strncat(buffer, lexer->contents + lexer->pos, 1);
-        }
+//        if (lexer->cur != '_') {
+            //TODO
+//        }
         advance(lexer);
     }
-    if (buffer[strlen(buffer) - 1] == '.') {
-        PANIC("Value: %s is invalid for type %s", buffer, TOKEN_NAMES[type]);
+    if (lexer->cur == '.' || lexer->cur == '_') { //No trialing . or _
+        PANIC("Value: %s is invalid for type %s", viewToStr(&lexer->view), TOKEN_NAMES[type]);
     }
-
-    return tokenInit(type, buffer, strlen(buffer), 0);
+    return tokenInit(type, &lexer->view, 0);
 }
 
-Token* lexNextVarType(Lexer* lexer, TokenType tokenType, char* buffer, TokenFlag type) {
+Token* lexNextVarType(Lexer* lexer, TokenType tokenType, TokenFlag type) {
     size_t flags = VAR_TYPE | type;
-    if (lexer->cur == '*' || tokenType == TOKEN_STRING) {
+    if (lexer->cur == '*') {
         advance(lexer);
+        flags |= VAR_POINTER;
+    } else if (tokenType == TOKEN_STRING) {
         flags |= VAR_POINTER;
     } else if (lexer->cur == '[') {
         advanceFor(lexer, 2);
         flags |= VAR_ARRAY;
     }
-    return tokenInit(tokenType, buffer, strlen(buffer), flags);
+    return tokenInit(tokenType, &lexer->view, flags);
 }
 
 Token* lexNextCStatement(Lexer* lexer, char endChar) {
-    char* buffer = charToStr(lexer->cur); //Buffer initialized with first C char
-    advance(lexer); //Advance past first comment char, since it is now in the initial buffer
-    buffer = buildBufferUntilChar(lexer, buffer, endChar, true); //Consume characters until EOS (;)
-    advance(lexer); //Advance past closing C token character
-    return tokenInit(TOKEN_C_STATEMENT, buffer, strlen(buffer), 0);
+    resetView(lexer); //Reset to skip the c. prefix
+    advanceUntilChar(lexer, endChar, true); //Consume characters until EOS (;)
+    return tokenInit(TOKEN_C_STATEMENT, &lexer->view, 0);
 }
 
 Token* lexNextCBlock(Lexer* lexer) {
@@ -213,97 +212,91 @@ Token* lexNextCBlock(Lexer* lexer) {
 }
 
 Token* lexNextImport(Lexer* lexer) {
-    skipWhitespace(lexer);
-    char* buffer = charToStr(lexer->cur);
-    advance(lexer);
-    buffer = buildBufferUntilChar(lexer, buffer, ';', false); //Consume characters until EOS (;)
-    return tokenInit(TOKEN_IMPORT, buffer, strlen(buffer), 0);
+    skipWhitespace(lexer); //Skip any whitespace after import keyword
+    resetView(lexer); //Reset current view to start of import value
+    advanceUntilChar(lexer, ';', false); //Consume characters until EOS (;)
+    return tokenInit(TOKEN_IMPORT, &lexer->view, 0);
 }
 
 Token* lexNextIdentifier(Lexer* lexer) {
-    char* buffer = charToStr(lexer->cur);
-    advance(lexer);
     while (isalnum(lexer->cur)) {
-        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
-        strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
 
     //TODO pass C types directly here instead of redoing work in cgen
-    if (strcmp(buffer, "null") == 0) {
-        return tokenInit(TOKEN_NULL, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "void") == 0) {
-        return tokenInit(TOKEN_VOID, buffer, strlen(buffer), VAR_TYPE);
-    } else if (strcmp(buffer, "i8") == 0) {
-        return lexNextVarType(lexer, TOKEN_I8, buffer, VAR_INT);
-    } else if (strcmp(buffer, "i16") == 0) {
-        return lexNextVarType(lexer, TOKEN_I16, buffer, VAR_INT);
-    } else if (strcmp(buffer, "int") == 0) {
-        return lexNextVarType(lexer, TOKEN_INT, buffer, VAR_INT);
-    } else if (strcmp(buffer, "i32") == 0) {
-        return lexNextVarType(lexer, TOKEN_I32, buffer, VAR_INT);
-    } else if (strcmp(buffer, "i64") == 0) {
-        return lexNextVarType(lexer, TOKEN_I64, buffer, VAR_INT);
-    } else if (strcmp(buffer, "u8") == 0) {
-        return lexNextVarType(lexer, TOKEN_U8, buffer, VAR_INT);
-    } else if (strcmp(buffer, "u16") == 0) {
-        return lexNextVarType(lexer, TOKEN_U16, buffer, VAR_INT);
-    } else if (strcmp(buffer, "u32") == 0) {
-        return lexNextVarType(lexer, TOKEN_U32, buffer, VAR_INT);
-    } else if (strcmp(buffer, "u64") == 0) {
-        return lexNextVarType(lexer, TOKEN_U64, buffer, VAR_INT);
-    } else if (strcmp(buffer, "f32") == 0 || strcmp(buffer, "float") == 0) {
-        return lexNextVarType(lexer, TOKEN_F32, buffer, VAR_FLOAT);
-    } else if (strcmp(buffer, "f64") == 0) {
-        return lexNextVarType(lexer, TOKEN_F64, buffer, VAR_FLOAT);
-    } else if (strcmp(buffer, "str") == 0) {
-        return lexNextVarType(lexer, TOKEN_STRING, buffer, VAR_STR);
-    } else if (strcmp(buffer, "char") == 0) {
-        return lexNextVarType(lexer, TOKEN_CHAR, buffer, VAR_CHAR);
-    } else if (strcmp(buffer, "bool") == 0) {
-        return lexNextVarType(lexer, TOKEN_BOOLEAN, buffer, VAR_BOOL);
-    } else if (strcmp(buffer, "true") == 0 || strcmp(buffer, "false") == 0) {
-        return tokenInit(TOKEN_BOOLEAN_VALUE, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "struct") == 0) { //TODO move to lexKeyword
-        return tokenInit(TOKEN_STRUCT_DEF, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "enum") == 0) {
-        return tokenInit(TOKEN_ENUM_DEF, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "if") == 0) {
-        return tokenInit(TOKEN_IF, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "else") == 0) {
-        return tokenInit(TOKEN_ELSE, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "while") == 0) {
-        return tokenInit(TOKEN_WHILE, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "for") == 0) {
-        return tokenInit(TOKEN_FOR, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "return") == 0) {
-        return tokenInit(TOKEN_RETURN, buffer, strlen(buffer), 0);
-    } else if (strcmp(buffer, "import") == 0) {
-        FREE(buffer); //TODO pass to lexNextImport?
+    if (viewCmp(&lexer->view, "null")) {
+        return tokenInit(TOKEN_NULL, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "void")) {
+        return tokenInit(TOKEN_VOID, &lexer->view, VAR_TYPE);
+    } else if (viewCmp(&lexer->view, "i8")) {
+        return lexNextVarType(lexer, TOKEN_I8, VAR_INT);
+    } else if (viewCmp(&lexer->view, "i16")) {
+        return lexNextVarType(lexer, TOKEN_I16, VAR_INT);
+    } else if (viewCmp(&lexer->view, "int")) {
+        return lexNextVarType(lexer, TOKEN_INT, VAR_INT);
+    } else if (viewCmp(&lexer->view, "i32")) {
+        return lexNextVarType(lexer, TOKEN_I32, VAR_INT);
+    } else if (viewCmp(&lexer->view, "i64")) {
+        return lexNextVarType(lexer, TOKEN_I64, VAR_INT);
+    } else if (viewCmp(&lexer->view, "u8")) {
+        return lexNextVarType(lexer, TOKEN_U8, VAR_INT);
+    } else if (viewCmp(&lexer->view, "u16")) {
+        return lexNextVarType(lexer, TOKEN_U16, VAR_INT);
+    } else if (viewCmp(&lexer->view, "u32")) {
+        return lexNextVarType(lexer, TOKEN_U32, VAR_INT);
+    } else if (viewCmp(&lexer->view, "u64")) {
+        return lexNextVarType(lexer, TOKEN_U64, VAR_INT);
+    } else if (viewCmp(&lexer->view, "f32") || viewCmp(&lexer->view, "float")) {
+        return lexNextVarType(lexer, TOKEN_F32, VAR_FLOAT);
+    } else if (viewCmp(&lexer->view, "f64")) {
+        return lexNextVarType(lexer, TOKEN_F64, VAR_FLOAT);
+    } else if (viewCmp(&lexer->view, "str")) {
+        return lexNextVarType(lexer, TOKEN_STRING, VAR_STR);
+    } else if (viewCmp(&lexer->view, "char")) {
+        return lexNextVarType(lexer, TOKEN_CHAR, VAR_CHAR);
+    } else if (viewCmp(&lexer->view, "bool")) {
+        return lexNextVarType(lexer, TOKEN_BOOLEAN, VAR_BOOL);
+    } else if (viewCmp(&lexer->view, "true") || viewCmp(&lexer->view, "false")) {
+        return tokenInit(TOKEN_BOOLEAN_VALUE, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "struct")) { //TODO move to lexKeyword
+        return tokenInit(TOKEN_STRUCT_DEF, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "enum")) {
+        return tokenInit(TOKEN_ENUM_DEF, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "if")) {
+        return tokenInit(TOKEN_IF, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "else")) {
+        return tokenInit(TOKEN_ELSE, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "while")) {
+        return tokenInit(TOKEN_WHILE, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "for")) {
+        return tokenInit(TOKEN_FOR, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "return")) {
+        return tokenInit(TOKEN_RETURN, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "import")) {
+        //FREE(buffer); //TODO pass to lexNextImport?
         return lexNextImport(lexer);
     }
     //Assume if it's not a reserved identifier, it must be a name
-    return tokenInit(TOKEN_IDENTIFIER, buffer, strlen(buffer), 0);
+    return tokenInit(TOKEN_IDENTIFIER, &lexer->view, 0);
 }
 
 Token* lexNextStringOrChar(Lexer* lexer, TokenType type, char enclosingChar) {
-    char* buffer = charToStr(lexer->cur); //Contains first string char
     advance(lexer); //Move to next string char
+    resetView(lexer); //Reset to skip past this char for the view
     while (lexer->cur != enclosingChar) { //Grow with chars until closing string char
-        buffer = REALLOC(buffer, (strlen(buffer) + 2) * sizeof(char));
-        strncat(buffer, lexer->contents + lexer->pos, 1);
         advance(lexer);
     }
-    advance(lexer); //Advance past closing string char
-    return tokenInit(type, buffer, strlen(buffer), 0);
+    advanceNoView(lexer); //Advance past closing string char, but don't include it in the view
+    return tokenInit(type, &lexer->view, 0);
 }
 
 Token* lexNextToken(Lexer* lexer) {
     skipWhitespace(lexer);
     skipComment(lexer);
+    resetView(lexer);
 
     if (lexer->pos >= lexer->len) {
-        return tokenInit(TOKEN_EOF, mallocStr("EOF"), 3, 0);
+        return tokenInit(TOKEN_EOF, &EMPTY_VIEW, 0);
     } else if (lexer->cur == 'c' && peek(lexer, 1) == '.') {
         /*if (peek(lexer, 1) == '.') {*/
             advance(lexer);
@@ -327,80 +320,74 @@ Token* lexNextToken(Lexer* lexer) {
     } else if (isalnum(lexer->cur)) {
         return lexNextIdentifier(lexer);
     }
-
-    char* value = charToStr(lexer->cur);
+    
     if (lexer->cur == ';') {
         advance(lexer);
-        return tokenInit(TOKEN_EOS, value, strlen(value), 0);
+        return tokenInit(TOKEN_EOS, &lexer->view, 0);
     } else if (lexer->cur == '=') {
         advance(lexer);
         if (lexer->cur == '=') {
-            FREE(value);
             advance(lexer);
-            return tokenInit(TOKEN_EQUALS, "==", 2, 0);
+            return tokenInit(TOKEN_EQUALS, &lexer->view, 0);
         } else {
-            return tokenInit(TOKEN_ASSIGNMENT, value, strlen(value), 0);
+            return tokenInit(TOKEN_ASSIGNMENT, &lexer->view, 0);
         }
     } else if (lexer->cur == '"') {
-        advance(lexer);
-        FREE(value);
         return lexNextStringOrChar(lexer, TOKEN_STRING_VALUE, '"');
     } else if (lexer->cur == '\'') {
-        advance(lexer);
-        FREE(value);
         return lexNextStringOrChar(lexer, TOKEN_CHAR_VALUE, '\'');
     } else if (lexer->cur == '/') {
         advance(lexer);
-        return tokenInit(TOKEN_DIVISION, value, strlen(value), 0);
+        return tokenInit(TOKEN_DIVISION, &lexer->view, 0);
     } else if (lexer->cur == '+') {
         advance(lexer);
-        return tokenInit(TOKEN_PLUS, value, strlen(value), 0);
+        return tokenInit(TOKEN_PLUS, &lexer->view, 0);
     } else if (lexer->cur == '-') {
         advance(lexer);
-        return tokenInit(TOKEN_MINUS, value, strlen(value), 0);
+        return tokenInit(TOKEN_MINUS, &lexer->view, 0);
     } else if (lexer->cur == '*') {
         advance(lexer);
-        return tokenInit(TOKEN_MULTIPLY, value, strlen(value), 0);
+        return tokenInit(TOKEN_MULTIPLY, &lexer->view, 0);
     } else if (lexer->cur == '<') {
         advance(lexer);
-        return tokenInit(TOKEN_LESS_THAN, value, strlen(value), 0);
+        return tokenInit(TOKEN_LESS_THAN, &lexer->view, 0);
     } else if (lexer->cur == '>') {
         advance(lexer);
-        return tokenInit(TOKEN_MORE_THAN, value, strlen(value), 0);
+        return tokenInit(TOKEN_MORE_THAN, &lexer->view, 0);
     } else if (lexer->cur == '!') {
         advance(lexer);
-        return tokenInit(TOKEN_NOT, value, strlen(value), 0);
+        return tokenInit(TOKEN_NOT, &lexer->view, 0);
     } else if (lexer->cur == '(') {
         advance(lexer);
-        return tokenInit(TOKEN_LPAREN, value, strlen(value), 0);
+        return tokenInit(TOKEN_LPAREN, &lexer->view, 0);
     } else if (lexer->cur == ')') {
         advance(lexer);
-        return tokenInit(TOKEN_RPAREN, value, strlen(value), 0);
+        return tokenInit(TOKEN_RPAREN, &lexer->view, 0);
     } else if (lexer->cur == ':') {
         advance(lexer);
-        return tokenInit(TOKEN_COLON, value, strlen(value), 0);
+        return tokenInit(TOKEN_COLON, &lexer->view, 0);
     } else if (lexer->cur == ',') {
         advance(lexer);
-        return tokenInit(TOKEN_COMMA, value, strlen(value), 0);
+        return tokenInit(TOKEN_COMMA, &lexer->view, 0);
     } else if (lexer->cur == '.') {
         advance(lexer);
-        return tokenInit(TOKEN_DOT, value, strlen(value), 0);
+        return tokenInit(TOKEN_DOT, &lexer->view, 0);
     } else if (lexer->cur == '[') {
         advance(lexer);
-        return tokenInit(TOKEN_LBRACKET, value, strlen(value), 0);
+        return tokenInit(TOKEN_LBRACKET, &lexer->view, 0);
     } else if (lexer->cur == ']') {
         advance(lexer);
-        return tokenInit(TOKEN_RBRACKET, value, strlen(value), 0);
+        return tokenInit(TOKEN_RBRACKET, &lexer->view, 0);
     } else if (lexer->cur == '{') {
         advance(lexer);
-        return tokenInit(TOKEN_LBRACE, value, strlen(value), 0);
+        return tokenInit(TOKEN_LBRACE, &lexer->view, 0);
     } else if (lexer->cur == '}') {
         advance(lexer);
-        return tokenInit(TOKEN_RBRACE, value, strlen(value), 0);
+        return tokenInit(TOKEN_RBRACE, &lexer->view, 0);
     }
 
     //Finally, return unexpected token is nothing matches
     advance(lexer);
-    return tokenInit(TOKEN_UNEXPECTED, value, strlen(value), 0);
+    return tokenInit(TOKEN_UNEXPECTED, &lexer->view, 0);
 }
 #endif

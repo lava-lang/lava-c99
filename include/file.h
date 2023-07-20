@@ -11,7 +11,7 @@ char* read_file(char* filename) {
     ASSERT(!f, "Could not open %s!", filename);
 
     fseek(f, 0, SEEK_END);
-    length = ftell (f);
+    length = ftell(f);
     fseek(f, 0, SEEK_SET);
     buffer = CALLOC(length, length);
     if (buffer) {

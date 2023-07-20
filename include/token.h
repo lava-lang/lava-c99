@@ -149,21 +149,16 @@ typedef enum TokenFlag {
 
 typedef struct Token {
     TokenType type;
-//    char* value;
     StrView view;
     size_t flags;
 } Token;
 
 static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
 
-Token* tokenInit(TokenType type, const char* start, size_t viewLen, size_t flags) {
+Token* tokenInit(TokenType type, StrView* view, size_t flags) {
     Token* token = RALLOC(1, sizeof(Token));
     token->type = type;
-
-    char* startCopy = start; //TODO validate needed
-    StrView view = {.start = startCopy, .len = viewLen};
-    token->view = view;
-
+    memcpy(&token->view, view, sizeof(StrView)); //Copy view pointer, as this will be changed by the lexer
     token->flags = flags;
     return token;
 }

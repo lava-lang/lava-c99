@@ -53,6 +53,7 @@ void bufferFree(OutputBuffer* buffer) {
     FREE(buffer);
 }
 
+//TODO support multiple strings
 void bufferAppend(OutputBuffer* buffer, char* value) {
     buffer->code = concatStr(buffer->code, value);
 }

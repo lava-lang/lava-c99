@@ -9,6 +9,8 @@ typedef struct StrView {
     size_t len;
 } StrView;
 
+static StrView EMPTY_VIEW = {"", 0};
+
 StrView* initStrView(char* start, size_t len) {
     StrView* view = MALLOC(sizeof(StrView));
     view->start = start;
@@ -18,6 +20,10 @@ StrView* initStrView(char* start, size_t len) {
 
 void printView(StrView* view, char* suffix) {
     printf("%.*s%s", (int) view->len, view->start, suffix);
+}
+
+bool viewCmp(StrView* view, char* other) {
+    return strncmp(view->start, other, view->len) == 0;
 }
 
 char* viewToStr(StrView* view) {

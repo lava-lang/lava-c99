@@ -55,6 +55,7 @@ Token* parserConsume(Parser* parser, TokenType type) {
     return prev;
 }
 
+//TODO, pass the return of parserConsume directly
 AST* parseIdentifier(Parser* parser, Scope* scope) {
     Token* identifier = parser->token;
     parserConsume(parser, TOKEN_IDENTIFIER);

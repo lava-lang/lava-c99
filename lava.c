@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     clock_t startAll = clock();
 
     //Init virtual memory region
-    GLOBAL_REGION_CAPACITY = 10000;
+    GLOBAL_REGION_CAPACITY = 5000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
 
     //Exit if arguments is less than 2
