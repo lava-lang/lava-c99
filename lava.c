@@ -13,8 +13,10 @@ int main(int argc, char *argv[]) {
     clock_t startAll = clock();
 
     //Init virtual memory region
+    clock_t startArena = clock();
     GLOBAL_REGION_CAPACITY = 5000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
+    BASIC("Arena: %f", (double)(clock() - startArena) / CLOCKS_PER_SEC)
 
     //Exit if arguments is less than 2
     ASSERT(argc < 2, "Two arguments required, %d were passed.", argc)
@@ -48,7 +50,7 @@ int main(int argc, char *argv[]) {
     //Write generated C file to disk
     clock_t startWrite = clock();
     write_file("../output.c", generatedCode);
-    BASIC("Load: %f", (double)(clock() - startWrite) / CLOCKS_PER_SEC)
+    BASIC("Write: %f", (double)(clock() - startWrite) / CLOCKS_PER_SEC)
     BASIC("Full: %f\n", (double)(clock() - startAll) / CLOCKS_PER_SEC)
 
     //Free memory allocations

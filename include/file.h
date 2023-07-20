@@ -9,6 +9,10 @@ char* read_file(char* filename) {
     long length;
     FILE* f = fopen(filename, "rb");
     ASSERT(!f, "Could not open %s!", filename);
+    if (f == NULL) {
+        fprintf(stderr, "Could not open %s!", filename);
+        exit(EXIT_FAILURE);
+    }
 
     fseek(f, 0, SEEK_END);
     length = ftell(f);
