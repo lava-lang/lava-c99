@@ -4,7 +4,7 @@ import <stdbool.h>;
 //import test;
 
 /* Variables */
-i32 i = 187_686_223;
+i32 i = 187686223;
 int ii = 0;
 f32 f = 1.5;
 str s = "l";

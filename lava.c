@@ -19,7 +19,9 @@ int main(int argc, char *argv[]) {
     //Exit if arguments is less than 2
     ASSERT(argc < 2, "Two arguments required, %d were passed.", argc)
 
+    clock_t startLoad = clock();
     char* inputCode = read_file(argv[1]);
+    BASIC("Load: %f", (double)(clock() - startLoad) / CLOCKS_PER_SEC)
     DEBUG("Lava Input Code:\n%s\n", inputCode)
 
     clock_t startParse = clock();
@@ -27,7 +29,7 @@ int main(int argc, char *argv[]) {
     Lexer* lexer = lexerInit(argv[1], inputCode);
     Parser* parser = parserInit(lexer);
     AST* root = parseAST(parser, globalScope, TOKEN_EOF);
-    BASIC("Tokens Consumed: %d\n", TOKENS_CONSUMED)
+    BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
         ASTCompound* compound = (ASTCompound*) root;
@@ -37,23 +39,17 @@ int main(int argc, char *argv[]) {
         }
     #endif
 
-    clock_t endParse = clock();
-    BASIC("AST Nodes Constructed: %d\n", AST_NODES_CONSTRUCTED)
-
     clock_t startCodegen = clock();
-    printf("ALLOCATION CHECKPOINT\n");
     OutputBuffer* outputBuffer = generateC(root);
     char* generatedCode = bufferBuild(outputBuffer);
     DEBUG("C Code Generation:\n%s\n", generatedCode)
-    clock_t endCodegen = clock();
+    BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
 
     //Write generated C file to disk
+    clock_t startWrite = clock();
     write_file("../output.c", generatedCode);
-
-    clock_t endAll = clock();
-    BASIC("Parsing: %f", (double)(endParse - startParse) / CLOCKS_PER_SEC)
-    BASIC("Codegen: %f", (double)(endCodegen - startCodegen) / CLOCKS_PER_SEC)
-    BASIC("Full: %f\n", (double)(endAll - startAll) / CLOCKS_PER_SEC)
+    BASIC("Load: %f", (double)(clock() - startWrite) / CLOCKS_PER_SEC)
+    BASIC("Full: %f\n", (double)(clock() - startAll) / CLOCKS_PER_SEC)
 
     //Free memory allocations
     FREE(inputCode);
@@ -64,7 +60,9 @@ int main(int argc, char *argv[]) {
 
     //Make sure there are no leaks
     freeGlobalRegion();
-    checkAllocations();
+    BASIC("Tokens Consumed: %d", TOKENS_CONSUMED)
+    BASIC("AST Nodes Constructed: %d", AST_NODES_CONSTRUCTED)
+    BASIC("ALLOCATIONS: %zu/%zu", ALLOC_COUNT, FREE_COUNT);
 
     return 0;
 }

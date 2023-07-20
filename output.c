@@ -6,7 +6,7 @@ typedef struct Vec_t Vec;
 void makeVec(int x, int y, int z);
 int main();
 
-int32_t i = 187_686_223;
+int32_t i = 187686223;
 int ii = 0;
 float f = 1.5;
 char* s = "l";

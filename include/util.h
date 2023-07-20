@@ -93,11 +93,6 @@ static void freeSafe(void* ptr) {
     free(ptr);
 }
 
-static void checkAllocations() {
-    printf("ALLOCATIONS: %zu\n", ALLOC_COUNT);
-    printf("FREES: %zu\n", FREE_COUNT);
-}
-
 #define MALLOC(SIZE) mallocSafe(SIZE, __FILE__, __LINE__)
 #define CALLOC(ELEMENTS, SIZE) callocSafe(ELEMENTS, SIZE, __FILE__, __LINE__)
 #define REALLOC(PTR, SIZE) reallocSafe(PTR, SIZE)
