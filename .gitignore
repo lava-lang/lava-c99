@@ -5,4 +5,4 @@ cmake-build-release/*
 notes/*
 zig/*
 output.c
-test.lava
+*.lava
