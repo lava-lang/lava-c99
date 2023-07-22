@@ -11,19 +11,13 @@ typedef struct StrView {
 
 static StrView EMPTY_VIEW = {"", 0};
 
-StrView* initStrView(char* start, size_t len) {
-    StrView* view = MALLOC(sizeof(StrView));
-    view->start = start;
-    view->len = len;
-    return view;
-}
-
 void printView(StrView* view, char* suffix) {
     printf("%.*s%s", (int) view->len, view->start, suffix);
 }
 
 bool viewCmp(StrView* view, char* other) {
-    return strncmp(view->start, other, view->len) == 0;
+    size_t otherLen = strlen(other);
+    return strncmp(view->start, other, view->len < otherLen ? otherLen : view->len) == 0;
 }
 
 char* viewToStr(StrView* view) {
@@ -31,5 +25,11 @@ char* viewToStr(StrView* view) {
     strncpy(str, view->start, view->len);
     str[view->len] = '\0';
     return str;
+}
+
+StrView* strToView(char* source) {
+    StrView* view = RALLOC(1, sizeof(StrView));
+    view->start = strcpy(RALLOC(1, (view->len = strlen(source) + 1) * sizeof(char)), source);
+    return view;
 }
 #endif //LAVA_STRVIEW_H

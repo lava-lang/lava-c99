@@ -69,24 +69,16 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken);
 
 AST* parseFactor(Parser* parser, Scope* scope) {
     Token* token = parser->token;
-    switch (parser->type) {
-        //TODO replace with var bit mask
-        case TOKEN_INTEGER_VALUE:
-        case TOKEN_FLOAT_VALUE:
-        case TOKEN_STRING_VALUE:
-        case TOKEN_CHAR_VALUE:
-        case TOKEN_BOOLEAN_VALUE:
-            parserConsume(parser, parser->type);
-            return initAST(token, AST_VAR_VALUE);
-        case TOKEN_LPAREN:
-            parserConsume(parser, TOKEN_LPAREN);
-            AST* expression = parseExpression(parser, scope);
-            parserConsume(parser, TOKEN_RPAREN);
-            return expression;
-        default:
-            return parseExpression(parser, scope);
-//            fprintf(stderr, "parseFactor: Unhandled Token: %s\n", TOKEN_NAMES[token->type]);
-//            exit(1);
+    if (parser->token->flags & DATA_VALUE) {
+        parserConsume(parser, parser->type);
+        return initAST(token, AST_VAR_VALUE);
+    } else if (parser->type == TOKEN_LPAREN) {
+        parserConsume(parser, TOKEN_LPAREN);
+        AST* expression = parseExpression(parser, scope);
+        parserConsume(parser, TOKEN_RPAREN);
+        return expression;
+    } else {
+        return parseExpression(parser, scope);
     }
 }
 
@@ -168,12 +160,12 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     AST* dataType = NULL;
     AST* identifier = NULL;
-    while (parser->token->flags & VAR_TYPE || parser->type == TOKEN_IDENTIFIER) {
+    while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_IDENTIFIER) {
         if (parser->type == TOKEN_IDENTIFIER) {
             ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! (%d)", parser->token->type)
             //TODO: alloc new token as copy of dataType->token?
             dataType = initAST(dataType->token, AST_DATA_TYPE);
-        } else if (parser->token->flags & VAR_TYPE) {
+        } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope);
         }
         identifier = parseIdentifier(parser, scope);
@@ -204,7 +196,7 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     DynArray* nodes = arrayInit(sizeof(AST*));
     while (parser->type != breakToken) {
-        if (parser->token->flags & VAR_TYPE) {
+        if (parser->token->flags & DATA_TYPE) {
             parseDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_STRUCT_DEF) {
             parseStructDefinition(nodes, parser, scope);

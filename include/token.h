@@ -137,9 +137,12 @@ typedef enum TokenType {
 } TokenType;
 
 typedef enum TokenFlag {
+    DATA_TYPE   = 1 << 0,
+    DATA_VALUE  = 1 << 1,
+
+    VAR_VOID    = 1 << 9,
     VAR_POINTER = 1 << 10,
     VAR_ARRAY   = 1 << 11,
-    VAR_TYPE    = 1 << 12,
     VAR_INT     = 1 << 13,
     VAR_FLOAT   = 1 << 14,
     VAR_STR     = 1 << 15,
