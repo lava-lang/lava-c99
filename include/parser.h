@@ -200,34 +200,26 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
 
 void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_ENUM);
-    ASTFlag flags = 0;
-    if (parser->type == TOKEN_FLAG) {
-        parserConsume(parser, TOKEN_FLAG);
-        flags |= ENUM_FLAG;
-    }
+    Token* flag = parser->type == TOKEN_FLAG ? parserConsume(parser, TOKEN_FLAG) : &STATIC_TOKEN_NONE;
     AST* identifier = parseIdentifier(parser, scope);
     parserConsume(parser, TOKEN_LBRACE);
     DynArray* constants = arrayInit(sizeof(AST*));
     size_t constantValue = 0; //Initial enum constant value
     while (parser->type == TOKEN_IDENTIFIER) {
         AST* constant = parseIdentifier(parser, scope);
-        if (parser->type != TOKEN_COMMA) { //Must be assigning value to enum constant
+        if (parser->type == TOKEN_ASSIGNMENT) {
             parserConsume(parser, TOKEN_ASSIGNMENT);
             AST* expression = parseExpression(parser, scope);
             arrayAppend(constants, initASTAssignment(constant, expression));
         } else {
-            if (flags & ENUM_FLAG) {
-                arrayAppend(constants, initASTAssignment(constant, initASTInteger(1 << constantValue)));
-            } else {
-                arrayAppend(constants, constant);
-            }
+            arrayAppend(constants, flag->type == TOKEN_FLAG ? initASTAssignment(constant, initASTInteger(1 << constantValue)) : constant);
         }
-        constantValue++;
-        parserConsume(parser, TOKEN_COMMA);
+        if (parser->type == TOKEN_COMMA) parserConsume(parser, TOKEN_COMMA);
         if (parser->type == TOKEN_RBRACE) break;
+        constantValue++;
     }
     parserConsume(parser, TOKEN_RBRACE);
-    arrayAppend(nodes, initASTEnumDef(identifier, initASTCompound(constants), flags));
+    arrayAppend(nodes, initASTEnumDef(identifier, initASTCompound(constants), 0));
 }
 
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {

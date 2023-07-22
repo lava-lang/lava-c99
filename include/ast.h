@@ -43,7 +43,7 @@ typedef enum ASTType {
 } ASTType;
 
 typedef enum ASTFlag {
-    ENUM_FLAG = 1 << 0,
+    TODO = 1 << 0,
 } ASTFlag;
 
 typedef struct Scope Scope;
