@@ -323,9 +323,9 @@ Token* lexNextToken(Lexer* lexer) {
         advance(lexer);
         if (lexer->cur == '=') {
             advance(lexer);
-            return tokenInit(TOKEN_EQUALS, &lexer->view, 0);
+            return tokenInit(TOKEN_EQUALS, &lexer->view, TYPE_BINOP);
         } else {
-            return tokenInit(TOKEN_ASSIGNMENT, &lexer->view, 0);
+            return tokenInit(TOKEN_ASSIGNMENT, &lexer->view, TYPE_BINOP);
         }
     } else if (lexer->cur == '"') {
         return lexNextStringOrChar(lexer, TOKEN_STRING_VALUE, '"');
@@ -336,22 +336,22 @@ Token* lexNextToken(Lexer* lexer) {
         return tokenInit(TOKEN_DIVISION, &lexer->view, 0);
     } else if (lexer->cur == '+') {
         advance(lexer);
-        return tokenInit(TOKEN_PLUS, &lexer->view, 0);
+        return tokenInit(TOKEN_PLUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '-') {
         advance(lexer);
-        return tokenInit(TOKEN_MINUS, &lexer->view, 0);
+        return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '*') {
         advance(lexer);
         return tokenInit(TOKEN_MULTIPLY, &lexer->view, 0);
     } else if (lexer->cur == '<') {
         advance(lexer);
-        return tokenInit(TOKEN_LESS_THAN, &lexer->view, 0);
+        return tokenInit(TOKEN_LESS_THAN, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '>') {
         advance(lexer);
-        return tokenInit(TOKEN_MORE_THAN, &lexer->view, 0);
+        return tokenInit(TOKEN_MORE_THAN, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '!') {
         advance(lexer);
-        return tokenInit(TOKEN_NOT, &lexer->view, 0);
+        return tokenInit(TOKEN_NOT, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '(') {
         advance(lexer);
         return tokenInit(TOKEN_LPAREN, &lexer->view, 0);

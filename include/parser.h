@@ -87,14 +87,10 @@ AST* parseTerm(Parser* parser, Scope* scope) {
     return factor;
 }
 
-int isBinaryOperator(TokenType type) {
-    return type == TOKEN_PLUS || type == TOKEN_MINUS || type == TOKEN_EQUALS || type == TOKEN_NOT || type == TOKEN_ASSIGNMENT || type == TOKEN_LESS_THAN || type == TOKEN_MORE_THAN;
-}
-
 AST* parseExpression(Parser* parser, Scope* scope) {
     AST* ast = parseTerm(parser, scope);
 
-    if (isBinaryOperator(parser->type)) {
+    if (parser->token->flags & TYPE_BINOP) {
         parserConsume(parser, parser->type);
 
         AST* right = parseTerm(parser, scope);
