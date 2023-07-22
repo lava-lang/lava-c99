@@ -57,7 +57,7 @@ void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
     visit(structDef->identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-        visitCompound(structDef->members, buffer, "\n");
+    visitCompound(structDef->members, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
@@ -70,6 +70,26 @@ void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
 
     //Cleanup array allocations
     FREE(structDef->members->array);
+}
+
+void visitEnumDefinition(ASTEnumDef* enumDef, OutputBuffer* buffer) {
+    bufferAppend(buffer, "\nenum ");
+    visit(enumDef->identifier, buffer);
+    bufferAppend(buffer, "_t {\n");
+    bufferIndent(buffer);
+    visitCompound(enumDef->constants, buffer, ",\n");
+    bufferUnindent(buffer);
+    bufferAppend(buffer, "\n};");
+
+    //Hoist struct definition
+    bufferAppendPrefix(buffer, "\ntypedef enum ");
+    bufferAppendPrefixView(buffer, &enumDef->identifier->token->view);
+    bufferAppendPrefix(buffer, "_t ");
+    bufferAppendPrefixView(buffer, &enumDef->identifier->token->view);
+    bufferAppendPrefix(buffer, ";");
+
+    //Cleanup array allocations
+    FREE(enumDef->constants->array);
 }
 
 void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
@@ -148,7 +168,9 @@ void visit(AST* node, OutputBuffer* buffer) {
     else if (node->astType == AST_VAR_DEF) {
         visitVarDefinition((ASTVarDef*) node, buffer, false);
     } else if (node->astType == AST_STRUCT_DEF) {
-        visitStructDefinition((ASTStructDef *) node, buffer);
+        visitStructDefinition((ASTStructDef*) node, buffer);
+    } else if (node->astType == AST_ENUM_DEF) {
+        visitEnumDefinition((ASTEnumDef*) node, buffer);
     } else if (node->astType == AST_FUNC_DEF) {
         visitFuncDefinition((ASTFuncDef*) node, buffer);
     }

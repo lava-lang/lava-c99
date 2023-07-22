@@ -12,6 +12,7 @@ const char* AST_NAMES[] = {
         "Data Type",
         "Variable Definition",
         "Struct Definition",
+        "Enum Definition",
         "Function Definition",
         "Identifier",
         "Compound",
@@ -26,6 +27,7 @@ typedef enum ASTType {
     AST_DATA_TYPE,
     AST_VAR_DEF,
     AST_STRUCT_DEF,
+    AST_ENUM_DEF,
     AST_FUNC_DEF,
     AST_IDENTIFIER,
     AST_COMPOUND,
@@ -116,6 +118,20 @@ AST* initASTStructDef(AST* identifier, AST* members) {
     structDef->identifier = identifier;
     structDef->members = (ASTCompound*) members;
     return (AST*) structDef;
+}
+
+typedef struct ASTEnumDef {
+    AST base;
+    AST* identifier;
+    ASTCompound* constants;
+} ASTEnumDef;
+
+AST* initASTEnumDef(AST* identifier, AST* constants) {
+    ASTEnumDef* enumDef = RALLOC(1, sizeof(ASTEnumDef));
+    initASTBase(&STATIC_TOKEN_NONE, (AST*) enumDef, AST_ENUM_DEF);
+    enumDef->identifier = identifier;
+    enumDef->constants = (ASTCompound*) constants;
+    return (AST*) enumDef;
 }
 
 typedef struct ASTFuncDef {

@@ -6,7 +6,7 @@
 #include "lexer.h"
 
 #define DEBUG_MODE 0
-#define BASIC_OUTPUT 1
+#define BASIC_MODE 1
 #define DEBUG_ALLOCS 0
 
 #if DEBUG_MODE == 1
@@ -27,7 +27,7 @@ fprintf(stderr, "\n%s:%i\n",__FILE__,__LINE__); \
 LAVA(MSG, "Lava Error: ", __VA_ARGS__); \
 exit(EXIT_FAILURE); \
 
-#if DEBUG_MODE == 1
+#if BASIC_MODE == 1
     #define ASSERT(EX, MSG, ...) \
     if ((EX)) { PANIC(MSG, __VA_ARGS__) };
 #else
@@ -41,7 +41,7 @@ exit(EXIT_FAILURE); \
     #define DEBUG(MSG, ...)
 #endif
 
-#if BASIC_OUTPUT == 1 || DEBUG_MODE == 1
+#if BASIC_MODE == 1 || DEBUG_MODE == 1
     #define BASIC(MSG, ...) \
     printf("Lava: "); \
     printf(MSG, __VA_ARGS__); \

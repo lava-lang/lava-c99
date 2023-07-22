@@ -31,7 +31,7 @@ printSyntaxErrorLocation(parser->lexer, start); \
 exit(EXIT_FAILURE); \
 
 Token* parserConsume(Parser* parser, TokenType type) {
-    ASSERT(parser->token->type != type, "Unexpected token! expected: %s, got: %s (%s)", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type], parser->token->value);
+    ASSERT(parser->token->type != type, "Unexpected token! expected: %s, got: %s (%s)", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type], viewToStr(&parser->token->view));
     INFO("Consumed: %s: %s", TOKEN_NAMES[parser->token->type], parser->token->value);
     TOKENS_CONSUMED++;
     Token* prev = parser->token;
@@ -189,6 +189,23 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     arrayAppend(nodes, initASTStructDef(identifier, members));
 }
 
+void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
+    parserConsume(parser, TOKEN_ENUM_DEF);
+    AST* identifier = parseIdentifier(parser, scope);
+    parserConsume(parser, TOKEN_LBRACE);
+    DynArray* constants = arrayInit(sizeof(AST*));
+    while (parser->type == TOKEN_IDENTIFIER) {
+        arrayAppend(constants, parseIdentifier(parser, scope));
+        if (parser->type == TOKEN_COMMA) {
+            parserConsume(parser, TOKEN_COMMA);
+        } else {
+            break;
+        }
+    }
+    parserConsume(parser, TOKEN_RBRACE);
+    arrayAppend(nodes, initASTEnumDef(identifier, initASTCompound(constants)));
+}
+
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     DynArray* nodes = arrayInit(sizeof(AST*));
     while (parser->type != breakToken) {
@@ -196,6 +213,8 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
             parseDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_STRUCT_DEF) {
             parseStructDefinition(nodes, parser, scope);
+        } else if (parser->type == TOKEN_ENUM_DEF) {
+            parseEnumDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_C_STATEMENT) {
             parseCStatement(nodes, parser, scope);
         } else if (parser->type == TOKEN_RETURN) {
