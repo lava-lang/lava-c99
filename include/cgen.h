@@ -113,7 +113,7 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     size_t bufEndPos = strlen(buffer->code);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
-        visitCompound(funcDef->statements, buffer, "\n");
+    visitCompound(funcDef->statements, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
 
@@ -181,6 +181,19 @@ void visit(AST* node, OutputBuffer* buffer) {
         visitReturn((ASTReturn*) node, buffer);
     } else if (node->astType == AST_IMPORT) {
         visitImport(node, buffer);
+    } else if (node->astType == AST_BINARY_OP) {
+        printf("%s\n", viewToStr(&node->token->view));
+        visit(((ASTBinaryOp*) node)->left, buffer);
+        bufferAppendView(buffer, &node->token->view);
+        visit(((ASTBinaryOp*) node)->right, buffer);
+    } else if (node->astType == AST_ASSIGNMENT) {
+        visit(((ASTAssignment*) node)->left, buffer);
+        bufferAppend(buffer, " = ");
+        visit(((ASTAssignment*) node)->right, buffer);
+    } else if (node->astType == AST_INTEGER) {
+        char str[256] = "";
+        snprintf(str, sizeof(str), "%zu", ((ASTInteger*) node)->value);
+        bufferAppend(buffer, str);
     }
 
     else {

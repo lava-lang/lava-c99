@@ -255,9 +255,11 @@ Token* lexNextIdentifier(Lexer* lexer) {
     } else if (viewCmp(&lexer->view, "true") || viewCmp(&lexer->view, "false")) {
         return tokenInit(TOKEN_BOOLEAN_VALUE, &lexer->view, DATA_VALUE);
     } else if (viewCmp(&lexer->view, "struct")) {
-        return tokenInit(TOKEN_STRUCT_DEF, &lexer->view, 0);
+        return tokenInit(TOKEN_STRUCT, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "enum")) {
-        return tokenInit(TOKEN_ENUM_DEF, &lexer->view, 0);
+        return tokenInit(TOKEN_ENUM, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "flag")) {
+        return tokenInit(TOKEN_FLAG, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "if")) {
         return tokenInit(TOKEN_IF, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "else")) {
@@ -333,7 +335,7 @@ Token* lexNextToken(Lexer* lexer) {
         return lexNextStringOrChar(lexer, TOKEN_CHAR_VALUE, '\'');
     } else if (lexer->cur == '/') {
         advance(lexer);
-        return tokenInit(TOKEN_DIVISION, &lexer->view, 0);
+        return tokenInit(TOKEN_DIVIDE, &lexer->view, 0);
     } else if (lexer->cur == '+') {
         advance(lexer);
         return tokenInit(TOKEN_PLUS, &lexer->view, TYPE_BINOP);

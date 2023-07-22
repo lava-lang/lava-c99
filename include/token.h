@@ -35,8 +35,9 @@ const char* TOKEN_NAMES[] = {
         "Boolean Type",
         "Boolean Value",
 
-        "Struct Definition",
-        "Enum Definition",
+        "Struct",
+        "Enum",
+        "Flag",
         "If Statement",
         "Else Statement",
         "While Loop",
@@ -67,9 +68,6 @@ const char* TOKEN_NAMES[] = {
         "Right Bracket",
         "Left Brace",
         "Right Brace",
-
-        "Comment Line",
-        "Comment Multi Line",
 };
 
 typedef enum TokenType {
@@ -102,8 +100,9 @@ typedef enum TokenType {
     TOKEN_BOOLEAN,
     TOKEN_BOOLEAN_VALUE,
 
-    TOKEN_STRUCT_DEF,
-    TOKEN_ENUM_DEF,
+    TOKEN_STRUCT,
+    TOKEN_ENUM,
+    TOKEN_FLAG,
     TOKEN_IF,
     TOKEN_ELSE,
     TOKEN_WHILE,
@@ -117,7 +116,7 @@ typedef enum TokenType {
     TOKEN_ASSIGNMENT,
     TOKEN_EQUALS,
 
-    TOKEN_DIVISION,
+    TOKEN_DIVIDE,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_MULTIPLY,

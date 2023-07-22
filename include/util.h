@@ -5,7 +5,7 @@
 #include <string.h>
 #include "lexer.h"
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 #define BASIC_MODE 1
 #define DEBUG_ALLOCS 0
 
