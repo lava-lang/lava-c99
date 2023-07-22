@@ -22,9 +22,15 @@ void printCompound(ASTCompound* node, int depth) {
 }
 
 void printExpression(AST* node, int depth) {
-    //TODO this should not be null
-    if (node) {
-        printf("%sExpression: ", getIndent(depth)); printView(&node->token->view, "\n");
+    if (node == NULL) return;
+    if (node->astType == AST_BINARY_OP) {
+        ASTBinaryOp* binOp = (ASTBinaryOp*) node;
+        printf("%s%s\n", getIndent(depth), AST_NAMES[node->astType]);
+        printExpression(binOp->left, depth + 1);
+        printf("%sOperator: ", getIndent(depth + 1)); printView(&binOp->base.token->view, "\n");
+        printExpression(binOp->right, depth + 1);
+    } else if (node->astType == AST_VAR_VALUE) {
+        printf("%sValue: ", getIndent(depth)); printView(&node->token->view, "\n");
     }
 }
 
