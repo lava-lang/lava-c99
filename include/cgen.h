@@ -55,7 +55,7 @@ void visitVarDefinition(AST* node, OutputBuffer* buffer, bool arg) {
 void visitStructDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
     visit(node->structDef.identifier, buffer);
-    bufferAppend(buffer, "_t {\n");
+    bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
     visitCompound(node->structDef.members, buffer, "\n");
     bufferUnindent(buffer);
@@ -64,7 +64,7 @@ void visitStructDefinition(AST* node, OutputBuffer* buffer) {
     //Hoist struct definition
     bufferAppendPrefix(buffer, "\ntypedef struct ");
     bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
-    bufferAppendPrefix(buffer, "_t ");
+    bufferAppendPrefix(buffer, " ");
     bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
@@ -73,18 +73,18 @@ void visitStructDefinition(AST* node, OutputBuffer* buffer) {
 }
 
 void visitEnumDefinition(AST* node, OutputBuffer* buffer) {
-    bufferAppend(buffer, "\nenum ");
+    bufferAppend(buffer, "\nenum __attribute__((packed)) ");
     visit(node->enumDef.identifier, buffer);
-    bufferAppend(buffer, "_t {\n");
+    bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
     visitCompound(node->enumDef.constants, buffer, ",\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
-    //Hoist struct definition
+    //Hoist enum definition
     bufferAppendPrefix(buffer, "\ntypedef enum ");
     bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
-    bufferAppendPrefix(buffer, "_t ");
+    bufferAppendPrefix(buffer, " ");
     bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
