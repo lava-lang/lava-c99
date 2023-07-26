@@ -9,20 +9,10 @@
 static int AST_NODES_CONSTRUCTED = 0;
 
 const char* AST_NAMES[] = {
-        "Integer",
-        "Data Type",
-        "Variable Definition",
-        "Struct Definition",
-        "Enum Definition",
-        "Function Definition",
-        "Identifier",
-        "Compound",
-        "Binary Operator",
-        "Var Value",
-        "Assigment",
-        "C Statement",
-        "Return",
-        "Import",
+    "Data Type", "Identifier", "Compound", "Var Value",
+    "Variable Definition", "Struct Definition", "Enum Definition", "Function Definition",
+    "Binary Operator", "Return", "Assigment", "Import",
+    "C Statement", "Integer",
 };
 
 typedef struct AST AST;
