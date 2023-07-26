@@ -12,39 +12,39 @@ void visitNode(AST* node, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
 }
 
-void visitCompound(ASTCompound* node, OutputBuffer* buffer, char* delimiter) {
-    for (size_t i = 0; i < node->array->len; ++i) {
+void visitCompound(AST* node, OutputBuffer* buffer, char* delimiter) {
+    for (size_t i = 0; i < node->comp.array->len; ++i) {
         bufferAppendIndent(buffer);
-        visit((AST*) node->array->elements[i], buffer);
+        visit((AST*) node->comp.array->elements[i], buffer);
         //TODO remove AST_IMPORT exclusion somehow
-        if (i < node->array->len - 1 && ((AST*) node->array->elements[i])->astType != AST_IMPORT) {
+        if (i < node->comp.array->len - 1 && ((AST*) node->comp.array->elements[i])->type != AST_IMPORT) {
             bufferAppend(buffer, delimiter);
         }
     }
 }
 
-void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
-    visit(varDef->dataType, buffer);
-    if (varDef->dataType->token->flags & VAR_POINTER) {
+void visitVarDefinition(AST* node, OutputBuffer* buffer, bool arg) {
+    visit(node->varDef.dataType, buffer);
+    if (node->varDef.dataType->token->flags & VAR_POINTER) {
         bufferAppend(buffer, "*"); //TODO move to visitDataType?
     }
     bufferAppend(buffer, " ");
-    visit(varDef->identifier, buffer);
-    if (varDef->dataType->token->flags & VAR_ARRAY) {
+    visit(node->varDef.identifier, buffer);
+    if (node->varDef.dataType->token->flags & VAR_ARRAY) {
         bufferAppend(buffer, "[]");
     }
-    if (varDef->expression) {
+    if (node->varDef.expression) {
         bufferAppend(buffer, " = ");
-        if (varDef->dataType->token->type == TOKEN_STRING) { //Handle string quotes
+        if (node->varDef.dataType->token->type == TOKEN_STRING) { //Handle string quotes
             bufferAppend(buffer, "\"");
-            visit(varDef->expression, buffer);
+            visit(node->varDef.expression, buffer);
             bufferAppend(buffer, "\"");
-        } else if (varDef->dataType->token->type == TOKEN_CHAR) { //Handle char quotes
+        } else if (node->varDef.dataType->token->type == TOKEN_CHAR) { //Handle char quotes
             bufferAppend(buffer, "\'");
-            visit(varDef->expression, buffer);
+            visit(node->varDef.expression, buffer);
             bufferAppend(buffer, "\'");
         } else {
-            visit(varDef->expression, buffer);
+            visit(node->varDef.expression, buffer);
         }
     }
     if (!arg) { //If this is not a function argument
@@ -52,68 +52,68 @@ void visitVarDefinition(ASTVarDef* varDef, OutputBuffer* buffer, bool arg) {
     }
 }
 
-void visitStructDefinition(ASTStructDef* structDef, OutputBuffer* buffer) {
+void visitStructDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
-    visit(structDef->identifier, buffer);
+    visit(node->structDef.identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-    visitCompound(structDef->members, buffer, "\n");
+    visitCompound(node->structDef.members, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     //Hoist struct definition
     bufferAppendPrefix(buffer, "\ntypedef struct ");
-    bufferAppendPrefixView(buffer, &structDef->identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
     bufferAppendPrefix(buffer, "_t ");
-    bufferAppendPrefixView(buffer, &structDef->identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
     //Cleanup array allocations
-    FREE(structDef->members->array);
+    FREE(node->structDef.members->comp.array);
 }
 
-void visitEnumDefinition(ASTEnumDef* enumDef, OutputBuffer* buffer) {
+void visitEnumDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nenum ");
-    visit(enumDef->identifier, buffer);
+    visit(node->enumDef.identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-    visitCompound(enumDef->constants, buffer, ",\n");
+    visitCompound(node->enumDef.constants, buffer, ",\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     //Hoist struct definition
     bufferAppendPrefix(buffer, "\ntypedef enum ");
-    bufferAppendPrefixView(buffer, &enumDef->identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
     bufferAppendPrefix(buffer, "_t ");
-    bufferAppendPrefixView(buffer, &enumDef->identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
     //Cleanup array allocations
-    FREE(enumDef->constants->array);
+    FREE(node->enumDef.constants->comp.array);
 }
 
-void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
+void visitFuncDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\n"); //Append initial new line for space between functions and variables
     size_t bufStartPos = strlen(buffer->code);
-    visit(funcDef->returnType, buffer);
+    visit(node->funcDef.returnType, buffer);
     bufferAppend(buffer, " ");
-    visit(funcDef->identifier, buffer);
+    visit(node->funcDef.identifier, buffer);
     bufferAppend(buffer, "(");
     //Arguments
-    for (int i = 0; i < funcDef->arguments->array->len; ++i) {
+    for (int i = 0; i < node->funcDef.arguments->comp.array->len; ++i) {
         bufferAppendIndent(buffer);
-        visitVarDefinition((ASTVarDef*) funcDef->arguments->array->elements[i], buffer, true);
-        if (i < funcDef->arguments->array->len - 1) {
+        visitVarDefinition(node->funcDef.arguments->comp.array->elements[i], buffer, true);
+        if (i < node->funcDef.arguments->comp.array->len - 1) {
             bufferAppend(buffer, ", ");
         }
     }
     //TODO make work..
-    //visitCompound(funcDef->arguments, buffer, ", ");
+    //visitCompound(node->funcDef.arguments, buffer, ", ");
     bufferAppend(buffer, ")");
     size_t bufEndPos = strlen(buffer->code);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
-    visitCompound(funcDef->statements, buffer, "\n");
+    visitCompound(node->funcDef.statements, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
 
@@ -126,17 +126,17 @@ void visitFuncDefinition(ASTFuncDef* funcDef, OutputBuffer* buffer) {
     bufferAppendPrefix(buffer, "\n");
     bufferAppendPrefix(buffer, hoist);
 
-    FREE(funcDef->arguments->array); //Cleanup array allocations
-    FREE(funcDef->statements->array);
+    FREE(node->funcDef.arguments->comp.array); //Cleanup array allocations
+    FREE(node->funcDef.statements->comp.array);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
     visitNode(node, buffer);
 }
 
-void visitReturn(ASTReturn* returnDef, OutputBuffer* buffer) {
+void visitReturn(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
-    visitNode(returnDef->expression, buffer);
+    visitNode(node->returnDef.expression, buffer);
     bufferAppend(buffer, ";");
 }
 
@@ -157,47 +157,47 @@ void visit(AST* node, OutputBuffer* buffer) {
         return;
     }
 
-    if (node->astType == AST_COMPOUND) {
-        visitCompound((ASTCompound*) node, buffer, "\n");
-    } else if (node->astType == AST_DATA_TYPE) {
-        visitNode(node, buffer);
-    } else if (node->astType == AST_IDENTIFIER || node->astType == AST_VAR_VALUE) {
+    if (node->type == AST_COMP) {
+        visitCompound(node, buffer, "\n");
+    } else if (node->type == AST_TYPE || node->type == AST_ID || node->type == AST_VALUE) {
         visitNode(node, buffer);
     }
 
-    else if (node->astType == AST_VAR_DEF) {
-        visitVarDefinition((ASTVarDef*) node, buffer, false);
-    } else if (node->astType == AST_STRUCT_DEF) {
-        visitStructDefinition((ASTStructDef*) node, buffer);
-    } else if (node->astType == AST_ENUM_DEF) {
-        visitEnumDefinition((ASTEnumDef*) node, buffer);
-    } else if (node->astType == AST_FUNC_DEF) {
-        visitFuncDefinition((ASTFuncDef*) node, buffer);
+    else if (node->type == AST_VAR) {
+        visitVarDefinition(node, buffer, false);
+    } else if (node->type == AST_STRUCT) {
+        visitStructDefinition(node, buffer);
+    } else if (node->type == AST_ENUM) {
+        visitEnumDefinition(node, buffer);
+    } else if (node->type == AST_FUNC) {
+        visitFuncDefinition(node, buffer);
     }
 
-    else if (node->astType == AST_C_STATEMENT) {
+    else if (node->type == AST_C) {
         visitCStatement(node, buffer);
-    } else if (node->astType == AST_RETURN) {
-        visitReturn((ASTReturn*) node, buffer);
-    } else if (node->astType == AST_IMPORT) {
+    } else if (node->type == AST_RETURN) {
+        visitReturn(node, buffer);
+    } else if (node->type == AST_IMPORT) {
         visitImport(node, buffer);
-    } else if (node->astType == AST_BINARY_OP) {
+    } else if (node->type == AST_BINOP) {
         printf("%s\n", viewToStr(&node->token->view));
-        visit(((ASTBinaryOp*) node)->left, buffer);
+        visit(node->binop.left, buffer);
+        bufferAppend(buffer, " ");
         bufferAppendView(buffer, &node->token->view);
-        visit(((ASTBinaryOp*) node)->right, buffer);
-    } else if (node->astType == AST_ASSIGNMENT) {
-        visit(((ASTAssignment*) node)->left, buffer);
+        bufferAppend(buffer, " ");
+        visit(node->binop.right, buffer);
+    } else if (node->type == AST_ASSIGN) {
+        visit(node->assign.left, buffer);
         bufferAppend(buffer, " = ");
-        visit(((ASTAssignment*) node)->right, buffer);
-    } else if (node->astType == AST_INTEGER) {
+        visit(node->assign.right, buffer);
+    } else if (node->type == AST_INTEGER) {
         char str[256] = "";
-        snprintf(str, sizeof(str), "%zu", ((ASTInteger*) node)->value);
+        snprintf(str, sizeof(str), "%zu", node->integer.value);
         bufferAppend(buffer, str);
     }
 
     else {
-        PANIC("Unhandled AST: %s %s", AST_NAMES[node->astType], node->token->type != TOKEN_NONE ? TOKEN_NAMES[node->token->type] : "");
+        PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
 }
 

@@ -47,19 +47,19 @@ Token* parserConsume(Parser* parser, TokenType type) {
 AST* parseIdentifier(Parser* parser, Scope* scope) {
     Token* identifier = parser->token;
     parserConsume(parser, TOKEN_IDENTIFIER);
-    return initAST(identifier, AST_IDENTIFIER, 0);
+    return initAST(identifier, AST_ID, 0);
 }
 
 AST* parseDataType(Parser* parser, Scope* scope) {
     Token* varType = parser->token;
     parserConsume(parser, parser->type); //Type was checked by parseTokens, so this should be valid. parserConsume will panic if not.
-    return initAST(varType, AST_DATA_TYPE, 0);
+    return initAST(varType, AST_TYPE, 0);
 }
 
 void parseCStatement(DynArray* nodes, Parser* parser, Scope* scope) {
     Token* statement = parser->token;
     parserConsume(parser, TOKEN_C_STATEMENT);
-    arrayAppend(nodes, initAST(statement, AST_C_STATEMENT, 0));
+    arrayAppend(nodes, initAST(statement, AST_C, 0));
 }
 
 AST* parseFactor(Parser* parser, Scope* scope);
@@ -71,7 +71,7 @@ AST* parseFactor(Parser* parser, Scope* scope) {
     Token* token = parser->token;
     if (parser->token->flags & DATA_VALUE) {
         parserConsume(parser, parser->type);
-        return initAST(token, AST_VAR_VALUE, 0);
+        return initAST(token, AST_VALUE, 0);
     } else if (parser->type == TOKEN_LPAREN) {
         parserConsume(parser, TOKEN_LPAREN);
         AST* expression = parseExpression(parser, scope);
@@ -89,7 +89,7 @@ AST* parseTerm(Parser* parser, Scope* scope) {
     while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_MULTIPLY) {
         Token* token = parser->token;
         parserConsume(parser, parser->type);
-        factor = initASTBinaryOp(token, factor, parseFactor(parser, scope));
+        factor = initASTBinop(token, factor, parseFactor(parser, scope));
     }
     return factor;
 }
@@ -102,7 +102,7 @@ AST* parseExpression(Parser* parser, Scope* scope) {
         parserConsume(parser, parser->type);
 
         AST* right = parseTerm(parser, scope);
-        return initASTBinaryOp(token, ast, right);
+        return initASTBinop(token, ast, right);
     }
     return ast;
 }
@@ -147,19 +147,19 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
             ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
         }
     }
-    arrayAppend(nodes, initASTVarDef(dataType, identifier, expression));
+    arrayAppend(nodes, initASTVar(dataType, identifier, expression, 0));
 }
 
 void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier) {
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* nodesArgs = arrayInit(sizeof(AST *));
     parseDefinition(nodesArgs, parser, scope);
-    AST* arguments = initASTCompound(nodesArgs);
+    AST* arguments = initASTComp(nodesArgs);
     parserConsume(parser, TOKEN_RPAREN);
     parserConsume(parser, TOKEN_LBRACE);
     AST* statements = parseAST(parser, scope, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_RBRACE);
-    arrayAppend(nodes, initASTFuncDef(returnType, identifier, arguments, statements));
+    arrayAppend(nodes, initASTFunc(returnType, identifier, arguments, statements, 0));
 }
 
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
@@ -169,7 +169,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
         if (parser->type == TOKEN_IDENTIFIER) {
             ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! (%d)", parser->token->type)
             //TODO: alloc new token as copy of dataType->token?
-            dataType = initAST(dataType->token, AST_DATA_TYPE, 0);
+            dataType = initAST(dataType->token, AST_TYPE, 0);
         } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope);
         }
@@ -195,12 +195,12 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_LBRACE);
     AST* members = parseAST(parser, scope, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_RBRACE);
-    arrayAppend(nodes, initASTStructDef(identifier, members));
+    arrayAppend(nodes, initASTStruct(identifier, members, 0));
 }
 
 void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_ENUM);
-    Token* flag = parser->type == TOKEN_FLAG ? parserConsume(parser, TOKEN_FLAG) : &STATIC_TOKEN_NONE;
+    Token* flag = parser->type == TOKEN_FLAG ? parserConsume(parser, TOKEN_FLAG) : &TOKEN_NONE;
     AST* identifier = parseIdentifier(parser, scope);
     parserConsume(parser, TOKEN_LBRACE);
     DynArray* constants = arrayInit(sizeof(AST*));
@@ -210,16 +210,16 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
         if (parser->type == TOKEN_ASSIGNMENT) {
             parserConsume(parser, TOKEN_ASSIGNMENT);
             AST* expression = parseExpression(parser, scope);
-            arrayAppend(constants, initASTAssignment(constant, expression));
+            arrayAppend(constants, initASTAssign(constant, expression));
         } else {
-            arrayAppend(constants, flag->type == TOKEN_FLAG ? initASTAssignment(constant, initASTInteger(1 << constantValue)) : constant);
+            arrayAppend(constants, flag->type == TOKEN_FLAG ? initASTAssign(constant, initASTInteger(1 << constantValue)) : constant);
         }
         if (parser->type == TOKEN_COMMA) parserConsume(parser, TOKEN_COMMA);
         if (parser->type == TOKEN_RBRACE) break;
         constantValue++;
     }
     parserConsume(parser, TOKEN_RBRACE);
-    arrayAppend(nodes, initASTEnumDef(identifier, initASTCompound(constants), 0));
+    arrayAppend(nodes, initASTEnum(identifier, initASTComp(constants), 0));
 }
 
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
@@ -241,6 +241,6 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
             ERROR("Token Was Not Consumed Or Parsed! %s (%s)", TOKEN_NAMES[parser->type], viewToStr(&parser->token->view));
         }
     }
-    return initASTCompound(nodes);
+    return initASTComp(nodes);
 }
 #endif

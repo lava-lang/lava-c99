@@ -8,9 +8,9 @@
 #include "strview.h"
 
 const char* TOKEN_NAMES[] = {
+        "None",
         "End of File",
         "Unexpected Token",
-        "None",
         "C Statement",
 
         "NULL",
@@ -72,9 +72,9 @@ const char* TOKEN_NAMES[] = {
 
 typedef enum TokenType {
     //Special
+    TOKEN_NONE_,
     TOKEN_EOF,
     TOKEN_UNEXPECTED,
-    TOKEN_NONE,
     TOKEN_C_STATEMENT,
 
     //Basic Types
@@ -156,7 +156,7 @@ typedef struct Token {
     size_t flags;
 } Token;
 
-static Token STATIC_TOKEN_NONE = {TOKEN_NONE, "none"};
+static Token TOKEN_NONE = {TOKEN_NONE_, "none"};
 
 Token* tokenInit(TokenType type, StrView* view, size_t flags) {
     Token* token = RALLOC(1, sizeof(Token));
