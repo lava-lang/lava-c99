@@ -30,44 +30,29 @@ struct AST {
         AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,
         AST_C, AST_INTEGER,
     } type;
-    Token* token;
     ASTFlag flags;
     union {
         DynArray* array;
+        Token* token;
         size_t value;
         AST* expression;
-        StrView* view;
-        struct varDef {
-            AST* dataType;
-            AST* identifier;
-            AST* expression;
-        } varDef;
-        struct idComp {
-            AST* identifier;
-            AST* members;
-        } idComp;
-        struct funcDef {
-            AST* returnType;
-            AST* identifier;
-            AST* arguments;
-            AST* statements;
-        } funcDef;
-        struct dualDef {
-            AST* left;
-            AST* right;
-        } dualDef;
+        struct varDef {AST* dataType; AST* identifier; AST* expression;} varDef;
+        struct structDef {AST* identifier; AST* members;} structDef;
+        struct enumDef {AST* identifier; AST* constants;} enumDef;
+        struct funcDef {AST* returnType; AST* identifier; AST* arguments; AST* statements;} funcDef;
+        struct assign {AST* left; AST* right;} assign;
+        struct binop {AST* left; Token* operator; AST* right;} binop;
     };
 };
 
-AST* initAST(Token* token, ASTType type, ASTFlag flags) {
+AST* initAST(ASTType type, ASTFlag flags) {
     AST* ast = RALLOC(1, sizeof(AST));
-    *ast = (AST) {.token = token, .type = type, .flags = flags};
+    *ast = (AST) {.type = type, .flags = flags};
     AST_NODES_CONSTRUCTED++;
-    //DEBUG("CONSTRUCTED AST: %s\n", AST_NAMES[astType]);
     return ast;
 }
-#define valueAST(TOK, TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TOK, TYPE, FLAGS); _AST->MEMBER = __VA_ARGS__; _AST;})
-#define structAST(TOK, TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TOK, TYPE, FLAGS); _AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; _AST;})
+#define valueAST(TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TYPE, FLAGS); _AST->MEMBER = __VA_ARGS__; _AST;})
+#define structAST(TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TYPE, FLAGS); _AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; _AST;})
 
 typedef struct Scope {
     AST* ast;

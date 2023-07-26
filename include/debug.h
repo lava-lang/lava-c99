@@ -25,9 +25,9 @@ void printExpression(AST* node, int depth) {
     if (node == NULL) return;
     if (node->type == AST_BINOP) {
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->type]);
-        printExpression(node->dualDef.left, depth + 1);
-        printf("%sOperator: ", getIndent(depth + 1)); printView(&node->token->view, "\n");
-        printExpression(node->dualDef.right, depth + 1);
+        printExpression(node->binop.left, depth + 1);
+        printf("%sOperator: ", getIndent(depth + 1)); printView(&node->binop.operator->view, "\n");
+        printExpression(node->binop.right, depth + 1);
     } else if (node->type == AST_VALUE) {
         printf("%sValue: ", getIndent(depth)); printView(&node->token->view, "\n");
     }
@@ -49,9 +49,9 @@ void printAST(AST* node, int depth) {
         printCompound(node->funcDef.statements, depth + 1);
     } else if (node->type == AST_STRUCT) {
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->type]);
-        printf("%sIdentifier: ", getIndent(depth + 1)); printView(&node->idComp.identifier->token->view, "\n");
+        printf("%sIdentifier: ", getIndent(depth + 1)); printView(&node->structDef.identifier->token->view, "\n");
         printf("%sMembers: \n", getIndent(depth + 1));
-        printCompound(node->idComp.members, depth + 1);
+        printCompound(node->structDef.members, depth + 1);
     } else if (node->type == AST_RETURN) {
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->type]);
         printExpression(node->expression, depth + 1);

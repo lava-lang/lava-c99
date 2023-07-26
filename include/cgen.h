@@ -54,42 +54,42 @@ void visitVarDefinition(AST* node, OutputBuffer* buffer, bool arg) {
 
 void visitStructDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
-    visit(node->idComp.identifier, buffer);
+    visit(node->structDef.identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-    visitCompound(node->idComp.members, buffer, "\n");
+    visitCompound(node->structDef.members, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     //Hoist struct definition
     bufferAppendPrefix(buffer, "\ntypedef struct ");
-    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
     bufferAppendPrefix(buffer, "_t ");
-    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
     //Cleanup array allocations
-    FREE(node->idComp.members->array);
+    FREE(node->structDef.members->array);
 }
 
 void visitEnumDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nenum ");
-    visit(node->idComp.identifier, buffer);
+    visit(node->enumDef.identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-    visitCompound(node->idComp.members, buffer, ",\n");
+    visitCompound(node->enumDef.constants, buffer, ",\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     //Hoist struct definition
     bufferAppendPrefix(buffer, "\ntypedef enum ");
-    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
     bufferAppendPrefix(buffer, "_t ");
-    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
     //Cleanup array allocations
-    FREE(node->idComp.members->array);
+    FREE(node->enumDef.constants->array);
 }
 
 void visitFuncDefinition(AST* node, OutputBuffer* buffer) {
@@ -153,17 +153,17 @@ void visitImport(AST* node, OutputBuffer* buffer) {
 }
 
 void visitBinop(AST* node, OutputBuffer* buffer) {
-    visit(node->dualDef.left, buffer);
+    visit(node->binop.left, buffer);
     bufferAppend(buffer, " ");
-    bufferAppendView(buffer, &node->token->view);
+    bufferAppendView(buffer, &node->binop.operator->view);
     bufferAppend(buffer, " ");
-    visit(node->dualDef.right, buffer);
+    visit(node->binop.right, buffer);
 }
 
 void visitAssign(AST* node, OutputBuffer* buffer) {
-    visit(node->dualDef.left, buffer);
+    visit(node->assign.left, buffer);
     bufferAppend(buffer, " = ");
-    visit(node->dualDef.right, buffer);
+    visit(node->assign.right, buffer);
 }
 
 void visitInteger(AST* node, OutputBuffer* buffer) {
