@@ -44,13 +44,7 @@ struct AST {
         struct binop {AST* left; Token* operator; AST* right;} binop;
     };
 };
-
-AST* initAST(ASTType type, ASTFlag flags) {
-    AST* ast = RALLOC(1, sizeof(AST));
-    *ast = (AST) {.type = type, .flags = flags};
-    AST_NODES_CONSTRUCTED++;
-    return ast;
-}
+#define initAST(TYPE, FLAGS) RALLOC(1, sizeof(AST)); *_AST = (AST) {.type = TYPE, .flags = FLAGS}; AST_NODES_CONSTRUCTED++
 #define valueAST(TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TYPE, FLAGS); _AST->MEMBER = __VA_ARGS__; _AST;})
 #define structAST(TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TYPE, FLAGS); _AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; _AST;})
 
