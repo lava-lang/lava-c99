@@ -38,7 +38,7 @@ struct AST {
         AST* expression;
         struct varDef {AST* dataType; AST* identifier; AST* expression;} varDef;
         struct structDef {AST* identifier; AST* members;} structDef;
-        struct enumDef {AST* identifier; AST* constants;} enumDef;
+        struct enumDef {AST* identifier; AST* dataType; AST* constants;} enumDef;
         struct funcDef {AST* returnType; AST* identifier; AST* arguments; AST* statements;} funcDef;
         struct assign {AST* left; AST* right;} assign;
         struct binop {AST* left; Token* operator; AST* right;} binop;

@@ -73,7 +73,7 @@ void visitStructDefinition(AST* node, OutputBuffer* buffer) {
 }
 
 void visitEnumDefinition(AST* node, OutputBuffer* buffer) {
-    bufferAppend(buffer, "\nenum ");
+    bufferAppend(buffer, "\nenum __attribute__((packed)) ");
     visit(node->enumDef.identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
