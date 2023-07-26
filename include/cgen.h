@@ -80,19 +80,24 @@ void visitEnumDefinition(AST* node, OutputBuffer* buffer) {
     if (node->flags & PACKED_DATA) {
         bufferAppend(buffer, "__attribute__((__packed__)) ");
     }
-    visit(node->enumDef.identifier, buffer);
-    bufferAppend(buffer, " {\n");
+    if (node->enumDef.identifier) {
+        visit(node->enumDef.identifier, buffer);
+        bufferAppend(buffer, " ");
+    }
+    bufferAppend(buffer, "{\n");
     bufferIndent(buffer);
     visitCompound(node->enumDef.constants, buffer, ",\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     //Hoist enum definition
-    bufferAppendPrefix(buffer, "\ntypedef enum ");
-    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
-    bufferAppendPrefix(buffer, " ");
-    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
-    bufferAppendPrefix(buffer, ";");
+    if (node->enumDef.identifier) {
+        bufferAppendPrefix(buffer, "\ntypedef enum ");
+        bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
+        bufferAppendPrefix(buffer, " ");
+        bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
+        bufferAppendPrefix(buffer, ";");
+    }
 
     //Cleanup array allocations
     FREE(node->enumDef.constants->array);
@@ -134,6 +139,34 @@ void visitFuncDefinition(AST* node, OutputBuffer* buffer) {
 
     FREE(node->funcDef.arguments->array); //Cleanup array allocations
     FREE(node->funcDef.statements->array);
+}
+
+void visitUnionDefinition(AST* node, OutputBuffer* buffer) {
+    bufferAppend(buffer, "\nunion ");
+    if (node->flags & PACKED_DATA) {
+        bufferAppend(buffer, "__attribute__((__packed__)) ");
+    }
+    if (node->unionDef.identifier) {
+        visit(node->unionDef.identifier, buffer);
+        bufferAppend(buffer, " ");
+    }
+    bufferAppend(buffer, "{\n");
+    bufferIndent(buffer);
+    visitCompound(node->unionDef.members, buffer, ",\n");
+    bufferUnindent(buffer);
+    bufferAppend(buffer, "\n};");
+
+    //Hoist union definition
+    if (node->unionDef.identifier) {
+        bufferAppendPrefix(buffer, "\ntypedef union ");
+        bufferAppendPrefixView(buffer, &node->unionDef.identifier->token->view);
+        bufferAppendPrefix(buffer, " ");
+        bufferAppendPrefixView(buffer, &node->unionDef.identifier->token->view);
+        bufferAppendPrefix(buffer, ";");
+    }
+
+    //Cleanup array allocations
+    FREE(node->unionDef.members->array);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
@@ -187,6 +220,7 @@ void visit(AST* node, OutputBuffer* buffer) {
         case AST_STRUCT: visitStructDefinition(node, buffer); break;
         case AST_ENUM: visitEnumDefinition(node, buffer); break;
         case AST_FUNC: visitFuncDefinition(node, buffer); break;
+        case AST_UNION: visitUnionDefinition(node, buffer); break;
         case AST_C: visitCStatement(node, buffer); break;
         case AST_RETURN: visitReturn(node, buffer); break;
         case AST_IMPORT: visitImport(node, buffer); break;

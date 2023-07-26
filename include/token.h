@@ -39,6 +39,7 @@ const char* TOKEN_NAMES[] = {
 
         "Struct",
         "Enum",
+        "Union",
         "Flag",
         "Packed",
         "If Statement",
@@ -107,6 +108,7 @@ typedef enum TokenType {
 
     TOKEN_STRUCT,
     TOKEN_ENUM,
+    TOKEN_UNION,
     TOKEN_FLAG,
     TOKEN_PACKED,
     TOKEN_IF,
@@ -116,7 +118,7 @@ typedef enum TokenType {
     TOKEN_RETURN,
     TOKEN_IMPORT,
 
-    TOKEN_IDENTIFIER,
+    TOKEN_ID,
     TOKEN_EOS,
 
     TOKEN_ASSIGNMENT,

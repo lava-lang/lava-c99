@@ -46,7 +46,7 @@ Token* parserConsume(Parser* parser, TokenType type) {
 //TODO, pass the return of parserConsume directly
 AST* parseIdentifier(Parser* parser, Scope* scope) {
     Token* identifier = parser->token;
-    parserConsume(parser, TOKEN_IDENTIFIER);
+    parserConsume(parser, TOKEN_ID);
     return valueAST(AST_ID, 0, token, identifier);
 }
 
@@ -160,8 +160,8 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     AST* dataType = NULL;
     AST* identifier = NULL;
-    while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_IDENTIFIER) {
-        if (parser->type == TOKEN_IDENTIFIER) {
+    while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
+        if (parser->type == TOKEN_ID) {
             ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! (%d)", parser->token->type)
             //TODO: alloc new token as copy of dataType->token?
             dataType = valueAST(AST_TYPE, 0, token, dataType->token);
@@ -187,7 +187,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
 void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_STRUCT);
     ASTFlag flags = 0;
-    if (parser->type == TOKEN_PACKED) {
+    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
         parserConsume(parser, TOKEN_PACKED);
         flags |= PACKED_DATA;
     }
@@ -200,15 +200,15 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
 void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_ENUM);
     ASTFlag flags = 0;
-    if (parser->type == TOKEN_FLAG) {
+    if (parser->type == TOKEN_FLAG) { //Bitmask enum
         parserConsume(parser, TOKEN_FLAG);
         flags |= ENUM_FLAG;
     }
-    if (parser->type == TOKEN_PACKED) {
+    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
         parserConsume(parser, TOKEN_PACKED);
         flags |= PACKED_DATA;
     }
-    AST* identifier = parseIdentifier(parser, scope);
+    AST* identifier = parser->type == TOKEN_ID ? parseIdentifier(parser, scope) : NULL;
     AST* dataType = NULL;
     if (parser->token->flags & DATA_TYPE) { //Enum has explicit value size
         if ((parser->token->flags & VAR_INT) == 0) { //Only allow integer value sizes
@@ -219,16 +219,16 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_LBRACE);
     DynArray* constantArray = arrayInit(sizeof(AST*));
     size_t constantValue = 0; //Initial enum constant value
-    while (parser->type == TOKEN_IDENTIFIER) {
+    while (parser->type == TOKEN_ID) {
         AST* constant = parseIdentifier(parser, scope);
         if (parser->type == TOKEN_ASSIGNMENT) { //Assigning value to enum constant
             parserConsume(parser, TOKEN_ASSIGNMENT);
             AST* expression = parseExpression(parser, scope);
-            arrayAppend(nodes, structAST(AST_ASSIGN, 0, structDef, constant, expression));
+            arrayAppend(nodes, structAST(AST_ASSIGN, 0, assign, constant, expression));
         } else { //No assigment, so default generated value
             if (flags & ENUM_FLAG) { //If it's a flag value, auto increment ^2
                 AST* integer = valueAST(AST_INTEGER, 0, value, 1 << constantValue);
-                arrayAppend(constantArray, structAST(AST_ASSIGN, 0, structDef, constant, integer));
+                arrayAppend(constantArray, structAST(AST_ASSIGN, 0, assign, constant, integer));
             } else { //Normal enum constant, no assignment or flag
                 arrayAppend(constantArray, constant);
             }
@@ -242,6 +242,17 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     arrayAppend(nodes, structAST(AST_ENUM, flags, enumDef, identifier, dataType, constants));
 }
 
+void parseUnionDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
+    parserConsume(parser, TOKEN_UNION);
+    AST* identifier = parser->type == TOKEN_ID ? identifier = parseIdentifier(parser, scope) : NULL;
+    parserConsume(parser, TOKEN_LBRACE);
+    DynArray* memberArray = arrayInit(sizeof(AST*));
+    //TODO
+    parserConsume(parser, TOKEN_RBRACE);
+    AST* members = valueAST(AST_COMP, 0, array, memberArray);
+    arrayAppend(nodes, structAST(AST_UNION, 0, unionDef, identifier, members));
+}
+
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     DynArray* nodes = arrayInit(sizeof(AST*));
     while (parser->type != breakToken) {
@@ -251,6 +262,8 @@ AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
             parseStructDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_ENUM) {
             parseEnumDefinition(nodes, parser, scope);
+        } else if (parser->type == TOKEN_UNION) {
+            parseUnionDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_C_STATEMENT) {
             parseCStatement(nodes, parser, scope);
         } else if (parser->type == TOKEN_RETURN) {

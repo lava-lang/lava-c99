@@ -262,8 +262,12 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_STRUCT, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "enum")) {
         return tokenInit(TOKEN_ENUM, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "union")) {
+        return tokenInit(TOKEN_UNION, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "flag")) {
         return tokenInit(TOKEN_FLAG, &lexer->view, 0);
+    } else if (viewCmp(&lexer->view, "packed")) {
+        return tokenInit(TOKEN_PACKED, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "if")) {
         return tokenInit(TOKEN_IF, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "else")) {
@@ -276,11 +280,9 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_RETURN, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "import")) {
         return lexNextImport(lexer);
-    } else if (viewCmp(&lexer->view, "packed")) {
-        return tokenInit(TOKEN_PACKED, &lexer->view, 0);
     }
     //Assume if it's not a reserved identifier, it must be a name
-    return tokenInit(TOKEN_IDENTIFIER, &lexer->view, 0);
+    return tokenInit(TOKEN_ID, &lexer->view, 0);
 }
 
 Token* lexNextStringOrChar(Lexer* lexer, TokenType type, char enclosingChar) {

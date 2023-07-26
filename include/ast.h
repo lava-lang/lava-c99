@@ -12,7 +12,7 @@ const char* AST_NAMES[] = {
     "Data Type", "Identifier", "Compound", "Var Value",
     "Variable Definition", "Struct Definition", "Enum Definition", "Function Definition",
     "Binary Operator", "Return", "Assigment", "Import",
-    "C Statement", "Integer",
+    "C Statement", "Integer", "Union",
 };
 
 typedef struct AST AST;
@@ -29,7 +29,7 @@ struct packed AST {
         AST_TYPE, AST_ID, AST_COMP, AST_VALUE,
         AST_VAR, AST_STRUCT, AST_ENUM, AST_FUNC,
         AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,
-        AST_C, AST_INTEGER,
+        AST_C, AST_INTEGER, AST_UNION,
     } type;
     ASTFlag flags;
     union {
@@ -41,6 +41,7 @@ struct packed AST {
         struct structDef {AST* identifier; AST* members;} structDef;
         struct enumDef {AST* identifier; AST* dataType; AST* constants;} enumDef;
         struct funcDef {AST* returnType; AST* identifier; AST* arguments; AST* statements;} funcDef;
+        struct unionDef {AST* identifier; AST* members;} unionDef;
         struct assign {AST* left; AST* right;} assign;
         struct binop {AST* left; Token* operator; AST* right;} binop;
     };
