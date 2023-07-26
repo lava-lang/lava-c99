@@ -16,8 +16,8 @@ char* getIndent(int depth) {
 }
 
 void printCompound(AST* node, int depth) {
-    for (int i = 0; i < node->comp.array->len; ++i) {
-        printAST(node->comp.array->elements[i], depth + 1);
+    for (int i = 0; i < node->array->len; ++i) {
+        printAST(node->array->elements[i], depth + 1);
     }
 }
 
@@ -49,12 +49,12 @@ void printAST(AST* node, int depth) {
         printCompound(node->funcDef.statements, depth + 1);
     } else if (node->type == AST_STRUCT) {
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->type]);
-        printf("%sIdentifier: ", getIndent(depth + 1)); printView(&node->structDef.identifier->token->view, "\n");
+        printf("%sIdentifier: ", getIndent(depth + 1)); printView(&node->idComp.identifier->token->view, "\n");
         printf("%sMembers: \n", getIndent(depth + 1));
-        printCompound(node->structDef.members, depth + 1);
+        printCompound(node->idComp.members, depth + 1);
     } else if (node->type == AST_RETURN) {
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->type]);
-        printExpression(node->expr.node, depth + 1);
+        printExpression(node->expression, depth + 1);
     } else if (node->type == AST_C) {
         printf("%s%s\n", getIndent(depth), AST_NAMES[node->type]);
         printf("%sValue: ", getIndent(depth + 1)); printView(&node->token->view, "\n");

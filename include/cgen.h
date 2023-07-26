@@ -13,11 +13,11 @@ void visitNode(AST* node, OutputBuffer* buffer) {
 }
 
 void visitCompound(AST* node, OutputBuffer* buffer, char* delimiter) {
-    for (size_t i = 0; i < node->comp.array->len; ++i) {
+    for (size_t i = 0; i < node->array->len; ++i) {
         bufferAppendIndent(buffer);
-        visit((AST*) node->comp.array->elements[i], buffer);
+        visit((AST*) node->array->elements[i], buffer);
         //TODO remove AST_IMPORT exclusion somehow
-        if (i < node->comp.array->len - 1 && ((AST*) node->comp.array->elements[i])->type != AST_IMPORT) {
+        if (i < node->array->len - 1 && ((AST*) node->array->elements[i])->type != AST_IMPORT) {
             bufferAppend(buffer, delimiter);
         }
     }
@@ -54,42 +54,42 @@ void visitVarDefinition(AST* node, OutputBuffer* buffer, bool arg) {
 
 void visitStructDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
-    visit(node->structDef.identifier, buffer);
+    visit(node->idComp.identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-    visitCompound(node->structDef.members, buffer, "\n");
+    visitCompound(node->idComp.members, buffer, "\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     //Hoist struct definition
     bufferAppendPrefix(buffer, "\ntypedef struct ");
-    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
     bufferAppendPrefix(buffer, "_t ");
-    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
     //Cleanup array allocations
-    FREE(node->structDef.members->comp.array);
+    FREE(node->idComp.members->array);
 }
 
 void visitEnumDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nenum ");
-    visit(node->enumDef.identifier, buffer);
+    visit(node->idComp.identifier, buffer);
     bufferAppend(buffer, "_t {\n");
     bufferIndent(buffer);
-    visitCompound(node->enumDef.constants, buffer, ",\n");
+    visitCompound(node->idComp.members, buffer, ",\n");
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     //Hoist struct definition
     bufferAppendPrefix(buffer, "\ntypedef enum ");
-    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
     bufferAppendPrefix(buffer, "_t ");
-    bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->idComp.identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
     //Cleanup array allocations
-    FREE(node->enumDef.constants->comp.array);
+    FREE(node->idComp.members->array);
 }
 
 void visitFuncDefinition(AST* node, OutputBuffer* buffer) {
@@ -100,10 +100,10 @@ void visitFuncDefinition(AST* node, OutputBuffer* buffer) {
     visit(node->funcDef.identifier, buffer);
     bufferAppend(buffer, "(");
     //Arguments
-    for (int i = 0; i < node->funcDef.arguments->comp.array->len; ++i) {
+    for (int i = 0; i < node->funcDef.arguments->array->len; ++i) {
         bufferAppendIndent(buffer);
-        visitVarDefinition(node->funcDef.arguments->comp.array->elements[i], buffer, true);
-        if (i < node->funcDef.arguments->comp.array->len - 1) {
+        visitVarDefinition(node->funcDef.arguments->array->elements[i], buffer, true);
+        if (i < node->funcDef.arguments->array->len - 1) {
             bufferAppend(buffer, ", ");
         }
     }
@@ -126,8 +126,8 @@ void visitFuncDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppendPrefix(buffer, "\n");
     bufferAppendPrefix(buffer, hoist);
 
-    FREE(node->funcDef.arguments->comp.array); //Cleanup array allocations
-    FREE(node->funcDef.statements->comp.array);
+    FREE(node->funcDef.arguments->array); //Cleanup array allocations
+    FREE(node->funcDef.statements->array);
 }
 
 void visitCStatement(AST* node, OutputBuffer* buffer) {
@@ -136,7 +136,7 @@ void visitCStatement(AST* node, OutputBuffer* buffer) {
 
 void visitReturn(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
-    visitNode(node->expr.node, buffer);
+    visitNode(node->expression, buffer);
     bufferAppend(buffer, ";");
 }
 
@@ -168,7 +168,7 @@ void visitAssign(AST* node, OutputBuffer* buffer) {
 
 void visitInteger(AST* node, OutputBuffer* buffer) {
     char str[256] = "";
-    snprintf(str, sizeof(str), "%zu", node->integer.value);
+    snprintf(str, sizeof(str), "%zu", node->value);
     bufferAppend(buffer, str);
 }
 

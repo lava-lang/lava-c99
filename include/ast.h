@@ -33,22 +33,19 @@ struct AST {
     Token* token;
     ASTFlag flags;
     union {
-        struct comp {
-            DynArray* array;
-        } comp;
+        DynArray* array;
+        size_t value;
+        AST* expression;
+        StrView* view;
         struct varDef {
             AST* dataType;
             AST* identifier;
             AST* expression;
         } varDef;
-        struct structDef {
+        struct idComp {
             AST* identifier;
             AST* members;
-        } structDef;
-        struct enumDef {
-            AST* identifier;
-            AST* constants;
-        } enumDef;
+        } idComp;
         struct funcDef {
             AST* returnType;
             AST* identifier;
@@ -59,12 +56,6 @@ struct AST {
             AST* left;
             AST* right;
         } dualDef;
-        struct expr {
-            AST* node;
-        } expr;
-        struct integer {
-            size_t value;
-        } integer;
     };
 };
 
@@ -75,8 +66,8 @@ AST* initAST(Token* token, ASTType type, ASTFlag flags) {
     //DEBUG("CONSTRUCTED AST: %s\n", AST_NAMES[astType]);
     return ast;
 }
-
-#define initSetAST(TOK, TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TOK, TYPE, FLAGS); _AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; _AST;})
+#define valueAST(TOK, TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TOK, TYPE, FLAGS); _AST->MEMBER = __VA_ARGS__; _AST;})
+#define structAST(TOK, TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TOK, TYPE, FLAGS); _AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; _AST;})
 
 typedef struct Scope {
     AST* ast;

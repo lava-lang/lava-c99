@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
     //Free memory allocations
     FREE(inputCode);
     //scopeFree(globalScope);
-    FREE(root->comp.array);
+    FREE(root->array);
     bufferFree(outputBuffer);
 
     //Make sure there are no leaks
