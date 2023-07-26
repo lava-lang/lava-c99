@@ -89,6 +89,8 @@ typedef enum TokenType {
     TOKEN_U16,
     TOKEN_U32,
     TOKEN_U64,
+    TOKEN_USZ,
+    TOKEN_ISZ,
     TOKEN_INTEGER_VALUE, //TODO maybe replaced with VAR_INT?
     TOKEN_F32,
     TOKEN_F64,

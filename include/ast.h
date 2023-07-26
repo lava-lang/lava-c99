@@ -60,9 +60,6 @@ Scope* scopeInit(AST* ast) {
 }
 
 void scopeFree(Scope* scope) {
-    if (scope && scope->ast) {
-        //FREE(scope->ast);
-    }
     FREE(scope);
 }
 #endif //LAVA_AST_H
