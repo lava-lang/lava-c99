@@ -276,6 +276,8 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_RETURN, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "import")) {
         return lexNextImport(lexer);
+    } else if (viewCmp(&lexer->view, "packed")) {
+        return tokenInit(TOKEN_PACKED, &lexer->view, 0);
     }
     //Assume if it's not a reserved identifier, it must be a name
     return tokenInit(TOKEN_IDENTIFIER, &lexer->view, 0);

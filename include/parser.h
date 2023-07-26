@@ -186,15 +186,28 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
 
 void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_STRUCT);
+    ASTFlag flags = 0;
+    if (parser->type == TOKEN_PACKED) {
+        parserConsume(parser, TOKEN_PACKED);
+        flags |= PACKED_DATA;
+    }
     AST* id = parseIdentifier(parser, scope);
     parserConsume(parser, TOKEN_LBRACE);
-    arrayAppend(nodes, structAST(AST_STRUCT, 0, structDef, id, parseAST(parser, scope, TOKEN_RBRACE)));
+    arrayAppend(nodes, structAST(AST_STRUCT, flags, structDef, id, parseAST(parser, scope, TOKEN_RBRACE)));
     parserConsume(parser, TOKEN_RBRACE);
 }
 
 void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_ENUM);
-    Token* flag = parser->type == TOKEN_FLAG ? parserConsume(parser, TOKEN_FLAG) : &TOKEN_NONE;
+    ASTFlag flags = 0;
+    if (parser->type == TOKEN_FLAG) {
+        parserConsume(parser, TOKEN_FLAG);
+        flags |= ENUM_FLAG;
+    }
+    if (parser->type == TOKEN_PACKED) {
+        parserConsume(parser, TOKEN_PACKED);
+        flags |= PACKED_DATA;
+    }
     AST* identifier = parseIdentifier(parser, scope);
     AST* dataType = NULL;
     if (parser->token->flags & DATA_TYPE) { //Enum has explicit value size
@@ -213,7 +226,7 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
             AST* expression = parseExpression(parser, scope);
             arrayAppend(nodes, structAST(AST_ASSIGN, 0, structDef, constant, expression));
         } else { //No assigment, so default generated value
-            if (flag->type == TOKEN_FLAG) { //If it's a flag value, auto increment ^2
+            if (flags & ENUM_FLAG) { //If it's a flag value, auto increment ^2
                 AST* integer = valueAST(AST_INTEGER, 0, value, 1 << constantValue);
                 arrayAppend(constantArray, structAST(AST_ASSIGN, 0, structDef, constant, integer));
             } else { //Normal enum constant, no assignment or flag
@@ -226,7 +239,7 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     }
     parserConsume(parser, TOKEN_RBRACE);
     AST* constants = valueAST(AST_COMP, 0, array, constantArray); //TODO move this to parseAST? like struct members?
-    arrayAppend(nodes, structAST(AST_ENUM, 0, enumDef, identifier, dataType, constants));
+    arrayAppend(nodes, structAST(AST_ENUM, flags, enumDef, identifier, dataType, constants));
 }
 
 AST* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {

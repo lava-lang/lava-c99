@@ -54,6 +54,9 @@ void visitVarDefinition(AST* node, OutputBuffer* buffer, bool arg) {
 
 void visitStructDefinition(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
+    if (node->flags & PACKED_DATA) {
+        bufferAppend(buffer, "__attribute__((__packed__)) ");
+    }
     visit(node->structDef.identifier, buffer);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
@@ -73,7 +76,10 @@ void visitStructDefinition(AST* node, OutputBuffer* buffer) {
 }
 
 void visitEnumDefinition(AST* node, OutputBuffer* buffer) {
-    bufferAppend(buffer, "\nenum __attribute__((packed)) ");
+    bufferAppend(buffer, "\nenum ");
+    if (node->flags & PACKED_DATA) {
+        bufferAppend(buffer, "__attribute__((__packed__)) ");
+    }
     visit(node->enumDef.identifier, buffer);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);

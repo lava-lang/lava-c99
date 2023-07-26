@@ -18,13 +18,14 @@ const char* AST_NAMES[] = {
 typedef struct AST AST;
 typedef enum ASTType ASTType;
 typedef enum ASTFlag {
-    TODO = 1 << 0,
+    ENUM_FLAG   = 1 << 0,
+    PACKED_DATA = 1 << 1,
 } ASTFlag;
 
 typedef struct Scope Scope;
 
-struct AST {
-    enum ASTType {
+struct packed AST {
+    enum packed ASTType {
         AST_TYPE, AST_ID, AST_COMP, AST_VALUE,
         AST_VAR, AST_STRUCT, AST_ENUM, AST_FUNC,
         AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,

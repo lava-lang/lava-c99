@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     freeGlobalRegion();
     BASIC("Tokens Consumed: %d", TOKENS_CONSUMED)
     BASIC("AST Nodes Constructed: %d", AST_NODES_CONSTRUCTED)
-    BASIC("ALLOCATIONS: %zu/%zu", ALLOC_COUNT, FREE_COUNT);
+    BASIC("ALLOCATIONS: %zu/%zu", ALLOC_COUNT, FREE_COUNT)
 
     return 0;
 }

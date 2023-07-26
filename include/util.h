@@ -98,6 +98,8 @@ static void freeSafe(void* ptr) {
 #define REALLOC(PTR, SIZE) reallocSafe(PTR, SIZE)
 #define FREE(PTR) freeSafe(PTR)
 
+#define packed __attribute__((__packed__))
+
 //TODO replace use with StringBuffer structure that
 // has bigger initial size and reallocs when needed
 char* mallocStr(char* source) {
