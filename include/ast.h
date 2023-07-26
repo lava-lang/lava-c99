@@ -65,17 +65,13 @@ struct AST {
             AST* arguments;
             AST* statements;
         } funcDef;
-        struct binop {
+        struct dualDef {
             AST* left;
             AST* right;
-        } binop;
-        struct assign {
-            AST* left;
-            AST* right;
-        } assign;
-        struct returnDef {
-            AST* expression;
-        } returnDef;
+        } dualDef;
+        struct expr {
+            AST* node;
+        } expr;
         struct integer {
             size_t value;
         } integer;
@@ -91,42 +87,6 @@ AST* initAST(Token* token, ASTType type, ASTFlag flags) {
 }
 
 #define initSetAST(TOK, TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TOK, TYPE, FLAGS); _AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; _AST;})
-
-AST* initASTComp(DynArray* array) {
-    return initSetAST(&TOKEN_NONE, AST_COMP, 0, comp, array);
-}
-
-AST* initASTVar(AST* type, AST* id, AST* expr, ASTFlag flags) {
-    return initSetAST(&TOKEN_NONE, AST_VAR, flags, varDef, type, id, expr);
-}
-
-AST* initASTStruct(AST* id, AST* comp, ASTFlag flags) {
-    return initSetAST(&TOKEN_NONE, AST_STRUCT, 0, structDef, id, comp);
-}
-
-AST* initASTEnum(AST* id, AST* comp, ASTFlag flags) {
-    return initSetAST(&TOKEN_NONE, AST_ENUM, 0, enumDef, id, comp);
-}
-
-AST* initASTFunc(AST* type, AST* id, AST* args, AST* body, ASTFlag flags) {
-    return initSetAST(&TOKEN_NONE, AST_FUNC, 0, funcDef, type, id, args, body);
-}
-
-AST* initASTBinop(Token* token, AST* left, AST* right) {
-    return initSetAST(token, AST_BINOP, 0, binop, left, right);
-}
-
-AST* initASTAssign(AST* left, AST* right) {
-    return initSetAST(&TOKEN_NONE, AST_ASSIGN, 0, assign, left, right);
-}
-
-AST* initASTReturn(AST* expr) {
-    return initSetAST(&TOKEN_NONE, AST_RETURN, 0, returnDef, expr);
-}
-
-AST* initASTInteger(size_t value) {
-    return initSetAST(&TOKEN_NONE, AST_INTEGER, 0, integer, value);
-}
 
 typedef struct Scope {
     AST* ast;

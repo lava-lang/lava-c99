@@ -136,7 +136,7 @@ void visitCStatement(AST* node, OutputBuffer* buffer) {
 
 void visitReturn(AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
-    visitNode(node->returnDef.expression, buffer);
+    visitNode(node->expr.node, buffer);
     bufferAppend(buffer, ";");
 }
 
@@ -181,15 +181,15 @@ void visit(AST* node, OutputBuffer* buffer) {
         visitImport(node, buffer);
     } else if (node->type == AST_BINOP) {
         printf("%s\n", viewToStr(&node->token->view));
-        visit(node->binop.left, buffer);
+        visit(node->dualDef.left, buffer);
         bufferAppend(buffer, " ");
         bufferAppendView(buffer, &node->token->view);
         bufferAppend(buffer, " ");
-        visit(node->binop.right, buffer);
+        visit(node->dualDef.right, buffer);
     } else if (node->type == AST_ASSIGN) {
-        visit(node->assign.left, buffer);
+        visit(node->dualDef.left, buffer);
         bufferAppend(buffer, " = ");
-        visit(node->assign.right, buffer);
+        visit(node->dualDef.right, buffer);
     } else if (node->type == AST_INTEGER) {
         char str[256] = "";
         snprintf(str, sizeof(str), "%zu", node->integer.value);
