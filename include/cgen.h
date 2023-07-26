@@ -153,7 +153,6 @@ void visitImport(AST* node, OutputBuffer* buffer) {
 }
 
 void visitBinop(AST* node, OutputBuffer* buffer) {
-    printf("%s\n", viewToStr(&node->token->view));
     visit(node->dualDef.left, buffer);
     bufferAppend(buffer, " ");
     bufferAppendView(buffer, &node->token->view);
