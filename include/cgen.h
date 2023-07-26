@@ -152,52 +152,43 @@ void visitImport(AST* node, OutputBuffer* buffer) {
     }
 }
 
+void visitBinop(AST* node, OutputBuffer* buffer) {
+    printf("%s\n", viewToStr(&node->token->view));
+    visit(node->dualDef.left, buffer);
+    bufferAppend(buffer, " ");
+    bufferAppendView(buffer, &node->token->view);
+    bufferAppend(buffer, " ");
+    visit(node->dualDef.right, buffer);
+}
+
+void visitAssign(AST* node, OutputBuffer* buffer) {
+    visit(node->dualDef.left, buffer);
+    bufferAppend(buffer, " = ");
+    visit(node->dualDef.right, buffer);
+}
+
+void visitInteger(AST* node, OutputBuffer* buffer) {
+    char str[256] = "";
+    snprintf(str, sizeof(str), "%zu", node->integer.value);
+    bufferAppend(buffer, str);
+}
+
 void visit(AST* node, OutputBuffer* buffer) {
-    if (node == NULL) {
-        return;
-    }
-
-    if (node->type == AST_COMP) {
-        visitCompound(node, buffer, "\n");
-    } else if (node->type == AST_TYPE || node->type == AST_ID || node->type == AST_VALUE) {
-        visitNode(node, buffer);
-    }
-
-    else if (node->type == AST_VAR) {
-        visitVarDefinition(node, buffer, false);
-    } else if (node->type == AST_STRUCT) {
-        visitStructDefinition(node, buffer);
-    } else if (node->type == AST_ENUM) {
-        visitEnumDefinition(node, buffer);
-    } else if (node->type == AST_FUNC) {
-        visitFuncDefinition(node, buffer);
-    }
-
-    else if (node->type == AST_C) {
-        visitCStatement(node, buffer);
-    } else if (node->type == AST_RETURN) {
-        visitReturn(node, buffer);
-    } else if (node->type == AST_IMPORT) {
-        visitImport(node, buffer);
-    } else if (node->type == AST_BINOP) {
-        printf("%s\n", viewToStr(&node->token->view));
-        visit(node->dualDef.left, buffer);
-        bufferAppend(buffer, " ");
-        bufferAppendView(buffer, &node->token->view);
-        bufferAppend(buffer, " ");
-        visit(node->dualDef.right, buffer);
-    } else if (node->type == AST_ASSIGN) {
-        visit(node->dualDef.left, buffer);
-        bufferAppend(buffer, " = ");
-        visit(node->dualDef.right, buffer);
-    } else if (node->type == AST_INTEGER) {
-        char str[256] = "";
-        snprintf(str, sizeof(str), "%zu", node->integer.value);
-        bufferAppend(buffer, str);
-    }
-
-    else {
-        PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
+    if (node == NULL) return;
+    switch (node->type) {
+        case AST_COMP: visitCompound(node, buffer, "\n"); break;
+        case AST_TYPE: case AST_ID: case AST_VALUE: visitNode(node, buffer); break;
+        case AST_VAR: visitVarDefinition(node, buffer, false); break;
+        case AST_STRUCT: visitStructDefinition(node, buffer); break;
+        case AST_ENUM: visitEnumDefinition(node, buffer); break;
+        case AST_FUNC: visitFuncDefinition(node, buffer); break;
+        case AST_C: visitCStatement(node, buffer); break;
+        case AST_RETURN: visitReturn(node, buffer); break;
+        case AST_IMPORT: visitImport(node, buffer); break;
+        case AST_BINOP: visitBinop(node, buffer); break;
+        case AST_ASSIGN: visitAssign(node, buffer); break;
+        case AST_INTEGER: visitInteger(node, buffer); break;
+        default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
 }
 
