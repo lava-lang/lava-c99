@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 
     //Init virtual memory region
     clock_t startArena = clock();
-    GLOBAL_REGION_CAPACITY = 7500;
+    GLOBAL_REGION_CAPACITY = 10000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
     BASIC("Arena: %f", (double)(clock() - startArena) / CLOCKS_PER_SEC)
 
@@ -34,9 +34,8 @@ int main(int argc, char *argv[]) {
     BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
-        ASTCompound* compound = (ASTCompound*) root;
-        for (int i = 0; i < compound->array->len; ++i) {
-            AST* node = (AST*) compound->array->elements[i];
+        for (int i = 0; i < root->comp.array->len; ++i) {
+            AST* node = (AST*) root->comp.array->elements[i];
             printAST(node, 0);
         }
     #endif
@@ -56,7 +55,7 @@ int main(int argc, char *argv[]) {
     //Free memory allocations
     FREE(inputCode);
     //scopeFree(globalScope);
-    FREE(((ASTCompound*) root)->array);
+    FREE(root->array);
     bufferFree(outputBuffer);
 
     //Make sure there are no leaks
