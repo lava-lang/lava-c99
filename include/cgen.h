@@ -26,7 +26,7 @@ void visitCompound(AST* parent, AST* node, OutputBuffer* buffer, char* delimiter
 void visitDataType(AST* parent, AST* node, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
     if (node->token->flags & VAR_POINTER) {
-        bufferAppend(buffer, "*"); //TODO move to visitDataType?
+        bufferAppend(buffer, "*");
     }
 }
 

@@ -244,8 +244,6 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_USZ, strToView("size_t"), lexDataType(lexer, VAR_INT));
     } else if  (viewCmp(&lexer->view, "isz")) {
         return tokenInit(TOKEN_ISZ, strToView("ptrdiff_t"), lexDataType(lexer, VAR_INT));
-    } else if (viewCmp(&lexer->view, "float")) {
-        return tokenInit(TOKEN_F32, &lexer->view, lexDataType(lexer, VAR_FLOAT));
     } else if (viewCmp(&lexer->view, "f32")) {
         return tokenInit(TOKEN_F32, strToView("float"), lexDataType(lexer, VAR_FLOAT));
     } else if (viewCmp(&lexer->view, "f64")) {
