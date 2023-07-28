@@ -32,14 +32,23 @@ void* allocRegion(MemRegion* region, size_t allocationSize) {
     return ptr;
 }
 
-void* allocGlobal(size_t allocationSize) {
+void clearRegion(MemRegion* region) {
+    region->len = 0;
+    memset(region->data, 0, region->capacity); //Technically not required, but just in case
+}
+
+void* allocGlobalRegion(size_t allocationSize) {
     return allocRegion(&GLOBAL_REGION, allocationSize);
+}
+
+void clearGlobalRegion() {
+    clearRegion(&GLOBAL_REGION);
 }
 
 #define RALLOC(ELEMENTS, SIZE) rcallocSafe(ELEMENTS, SIZE, __FILE__, __LINE__)
 
 static void* rcallocSafe(size_t elements, size_t size, char* file, int line) {
-    void* ptr = allocGlobal(elements * size);
+    void* ptr = allocGlobalRegion(elements * size);
     checkPtr(ptr, size, file, line, false);
     return ptr;
 }

@@ -9,12 +9,12 @@
 #include "include/region.h"
 
 char* generateCFromLava(char* fileName, char* input) {
-    clock_t startParse = clock();
+    //clock_t startParse = clock();
     Scope* globalScope = scopeInit(NULL);
     Lexer* lexer = lexerInit(fileName, input);
     Parser* parser = parserInit(lexer);
     AST* root = parseAST(parser, globalScope, TOKEN_EOF);
-    BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
+    //BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
         for (int i = 0; i < root->comp.array->len; ++i) {
@@ -23,15 +23,29 @@ char* generateCFromLava(char* fileName, char* input) {
             }
     #endif
 
-    clock_t startCodegen = clock();
+    //clock_t startCodegen = clock();
     OutputBuffer* outputBuffer = generateC(root);
     char* generatedCode = bufferBuild(outputBuffer);
     DEBUG("C Code Generation:\n%s\n", generatedCode)
-    BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
+    //BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
 
     FREE(root->array);
     bufferFree(outputBuffer);
 
+    return generatedCode;
+}
+
+char* generateForXIterations(char* fileName, char* input, int iterations) {
+    char* generatedCode = NULL;
+    clock_t startCompile = clock();
+    for (int i = 0; i < iterations; ++i) {
+        generatedCode = generateCFromLava(fileName, input);
+        clearGlobalRegion();
+    }
+    double timeSecs = (double)(clock() - startCompile) / CLOCKS_PER_SEC;
+    double tokensPerSec = TOKENS_CONSUMED / timeSecs;
+    double nodesPerSec = AST_NODES_CONSTRUCTED / timeSecs;
+    BASIC("Compile: %f (%f x %d) - (%d Tokens/s) - (%d AST/s)", timeSecs, timeSecs / iterations, iterations, (int) tokensPerSec, (int) nodesPerSec);
     return generatedCode;
 }
 
@@ -54,7 +68,8 @@ int main(int argc, char *argv[]) {
     DEBUG("Lava Input Code:\n%s\n", inputCode)
 
     //Generate C from Lava
-    char* generatedCode = generateCFromLava(argv[1], inputCode);
+    //char* generatedCode = generateCFromLava(argv[1], inputCode);
+    char* generatedCode = generateForXIterations(argv[1], inputCode, 10000);
 
     //Write generated C file to disk
     clock_t startWrite = clock();
@@ -67,6 +82,7 @@ int main(int argc, char *argv[]) {
 
     //Make sure there are no leaks
     freeGlobalRegion();
+
     BASIC("Tokens Consumed: %d", TOKENS_CONSUMED)
     BASIC("AST Nodes Constructed: %d", AST_NODES_CONSTRUCTED)
     BASIC("ALLOCATIONS: %zu/%zu", ALLOC_COUNT, FREE_COUNT)
