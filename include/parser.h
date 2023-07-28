@@ -149,6 +149,9 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* nodesArgs = arrayInit(sizeof(AST *));
     parseDefinition(nodesArgs, parser, scope);
+    for (int i = 0; i < nodesArgs->len; ++i) {
+        ((AST*) nodesArgs->elements[i])->flags |= ARGUMENT;
+    }
     AST* args = valueAST(AST_COMP, 0, array, nodesArgs);
     parserConsume(parser, TOKEN_RPAREN);
     parserConsume(parser, TOKEN_LBRACE);
@@ -159,21 +162,41 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
 
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     AST* dataType = NULL;
-    AST* identifier = NULL;
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
         if (parser->type == TOKEN_ID) {
-            ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! (%d)", parser->token->type)
+            ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! found (%s)", TOKEN_NAMES[parser->type])
             //TODO: alloc new token as copy of dataType->token?
             dataType = valueAST(AST_TYPE, 0, token, dataType->token);
         } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope);
         }
-        identifier = parseIdentifier(parser, scope);
-        if (parser->type == TOKEN_LPAREN) { //Parsing Function Def
-            parseFuncDefinition(nodes, parser, scope, dataType, identifier);
-            break; //Break out of loop, as no more work once function is constructed
+        //First conditional chain, testing to detect func pointer, function def, or standard variable
+        if (parser->type == TOKEN_COLON) { //Parsing function pointer
+            parserConsume(parser, TOKEN_COLON);
+            parserConsume(parser, TOKEN_LPAREN);
+            DynArray* argumentArray = arrayInit(sizeof(AST*));
+            while (parser->type != TOKEN_RPAREN) { //Consume function argument types
+                arrayAppend(argumentArray, parseDataType(parser, scope));
+                if (parser->type == TOKEN_COMMA) {
+                    parserConsume(parser, TOKEN_COMMA);
+                }
+            }
+            parserConsume(parser, TOKEN_RPAREN);
+            AST* identifier = parseIdentifier(parser, scope); //Construct function pointer AST
+            AST* argumentTypes = valueAST(AST_COMP, 0, array, argumentArray);
+            arrayAppend(nodes, structAST(AST_FUNC_VAR, 0, funcDef, dataType, identifier, argumentTypes, NULL));
+            //TODO fix hack. this stops function pointers being supported by comma seperated definition without explicit data types.
+            // this should be fixed at some point. Maybe function pointers need their own function instead of being inside parseDefinition?
+            dataType = NULL;
+        } else if (parser->type == TOKEN_ID) { //If we get here, we must be parsing a function or variable
+            AST* identifier = parseIdentifier(parser, scope);
+            if (parser->type == TOKEN_LPAREN) { //Parsing Function Def
+                parseFuncDefinition(nodes, parser, scope, dataType, identifier);
+                break; //Break out of loop, as no more work once function is constructed
+            }
+            parseVarDefinition(nodes, parser, scope, dataType, identifier); //Finally, it must be a standard variable
         }
-        parseVarDefinition(nodes, parser, scope, dataType, identifier);
+        //Final conditional chain, regardless of the outcome of the previous chain, we want to handle COMMA and EOS
         if (parser->type == TOKEN_EOS) { //Reached end of variable definitions
             parserConsume(parser, TOKEN_EOS);
             break;

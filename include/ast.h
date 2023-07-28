@@ -12,7 +12,7 @@ const char* AST_NAMES[] = {
     "Data Type", "Identifier", "Compound", "Var Value",
     "Variable Definition", "Struct Definition", "Enum Definition", "Function Definition",
     "Binary Operator", "Return", "Assigment", "Import",
-    "C Statement", "Integer", "Union",
+    "C Statement", "Integer", "Union", "Variable Function",
 };
 
 typedef struct AST AST;
@@ -20,6 +20,7 @@ typedef enum ASTType ASTType;
 typedef enum ASTFlag {
     ENUM_FLAG   = 1 << 0,
     PACKED_DATA = 1 << 1,
+    ARGUMENT    = 1 << 2,
 } ASTFlag;
 
 typedef struct Scope Scope;
@@ -29,7 +30,7 @@ struct packed AST {
         AST_TYPE, AST_ID, AST_COMP, AST_VALUE,
         AST_VAR, AST_STRUCT, AST_ENUM, AST_FUNC,
         AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,
-        AST_C, AST_INTEGER, AST_UNION,
+        AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
     } type;
     ASTFlag flags;
     union {
