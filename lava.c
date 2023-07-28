@@ -8,6 +8,33 @@
 #include "include/cgen.h"
 #include "include/region.h"
 
+char* generateCFromLava(char* fileName, char* input) {
+    clock_t startParse = clock();
+    Scope* globalScope = scopeInit(NULL);
+    Lexer* lexer = lexerInit(fileName, input);
+    Parser* parser = parserInit(lexer);
+    AST* root = parseAST(parser, globalScope, TOKEN_EOF);
+    BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
+
+    #if DEBUG_MODE == 1
+        for (int i = 0; i < root->comp.array->len; ++i) {
+                AST* node = (AST*) root->comp.array->elements[i];
+                printAST(node, 0);
+            }
+    #endif
+
+    clock_t startCodegen = clock();
+    OutputBuffer* outputBuffer = generateC(root);
+    char* generatedCode = bufferBuild(outputBuffer);
+    DEBUG("C Code Generation:\n%s\n", generatedCode)
+    BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
+
+    FREE(root->array);
+    bufferFree(outputBuffer);
+
+    return generatedCode;
+}
+
 int main(int argc, char *argv[]) {
     //Begin profiling
     clock_t startAll = clock();
@@ -26,25 +53,8 @@ int main(int argc, char *argv[]) {
     BASIC("Load: %f", (double)(clock() - startLoad) / CLOCKS_PER_SEC)
     DEBUG("Lava Input Code:\n%s\n", inputCode)
 
-    clock_t startParse = clock();
-    Scope* globalScope = scopeInit(NULL);
-    Lexer* lexer = lexerInit(argv[1], inputCode);
-    Parser* parser = parserInit(lexer);
-    AST* root = parseAST(parser, globalScope, TOKEN_EOF);
-    BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
-
-    #if DEBUG_MODE == 1
-        for (int i = 0; i < root->comp.array->len; ++i) {
-            AST* node = (AST*) root->comp.array->elements[i];
-            printAST(node, 0);
-        }
-    #endif
-
-    clock_t startCodegen = clock();
-    OutputBuffer* outputBuffer = generateC(root);
-    char* generatedCode = bufferBuild(outputBuffer);
-    DEBUG("C Code Generation:\n%s\n", generatedCode)
-    BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
+    //Generate C from Lava
+    char* generatedCode = generateCFromLava(argv[1], inputCode);
 
     //Write generated C file to disk
     clock_t startWrite = clock();
@@ -54,9 +64,6 @@ int main(int argc, char *argv[]) {
 
     //Free memory allocations
     FREE(inputCode);
-    //scopeFree(globalScope);
-    FREE(root->array);
-    bufferFree(outputBuffer);
 
     //Make sure there are no leaks
     freeGlobalRegion();
