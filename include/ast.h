@@ -15,6 +15,7 @@ const char* AST_NAMES[] = {
     "C Statement", "Integer", "Union", "Variable Function",
 };
 
+typedef struct Scope Scope;
 typedef struct AST AST;
 typedef enum ASTType ASTType;
 typedef enum ASTFlag {
@@ -23,7 +24,13 @@ typedef enum ASTFlag {
     ARGUMENT    = 1 << 2,
 } ASTFlag;
 
-typedef struct Scope Scope;
+struct varDef {AST* dataType; AST* identifier; AST* expression;} varDef;
+struct structDef {AST* identifier; AST* members;} structDef;
+struct enumDef {AST* identifier; AST* dataType; AST* constants;} enumDef;
+struct funcDef {AST* returnType; AST* identifier; AST* arguments; AST* statements;} funcDef;
+struct unionDef {AST* identifier; AST* members;} unionDef;
+struct assign {AST* left; AST* right;} assign;
+struct binop {AST* left; Token* operator; AST* right;} binop;
 
 struct packed AST {
     enum packed ASTType {
@@ -38,18 +45,23 @@ struct packed AST {
         Token* token;
         size_t value;
         AST* expression;
-        struct varDef {AST* dataType; AST* identifier; AST* expression;} varDef;
-        struct structDef {AST* identifier; AST* members;} structDef;
-        struct enumDef {AST* identifier; AST* dataType; AST* constants;} enumDef;
-        struct funcDef {AST* returnType; AST* identifier; AST* arguments; AST* statements;} funcDef;
-        struct unionDef {AST* identifier; AST* members;} unionDef;
-        struct assign {AST* left; AST* right;} assign;
-        struct binop {AST* left; Token* operator; AST* right;} binop;
+        struct varDef* varDef;
+        struct structDef* structDef;
+        struct enumDef* enumDef;
+        struct funcDef* funcDef;
+        struct unionDef* unionDef;
+        struct assign* assign;
+        struct binop* binop;
     };
 };
 #define initAST(TYPE, FLAGS) RALLOC(1, sizeof(AST)); *_AST = (AST) {.type = TYPE, .flags = FLAGS}; AST_NODES_CONSTRUCTED++
 #define valueAST(TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TYPE, FLAGS); _AST->MEMBER = __VA_ARGS__; _AST;})
-#define structAST(TYPE, FLAGS, MEMBER, ...) ({AST* _AST = initAST(TYPE, FLAGS); _AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; _AST;})
+#define structAST(TYPE, FLAGS, MEMBER, ...) ({ \
+AST* _AST = initAST(TYPE, FLAGS);              \
+_AST->MEMBER = RALLOC(1, sizeof(MEMBER));      \
+*_AST->MEMBER = (struct MEMBER) {__VA_ARGS__}; \
+_AST; \
+})
 
 typedef struct Scope {
     AST* ast;

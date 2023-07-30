@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     //Generate C from Lava
     //char* generatedCode = generateCFromLava(argv[1], inputCode);
-    char* generatedCode = generateForXIterations(argv[1], inputCode, 10000);
+    char* generatedCode = generateForXIterations(argv[1], inputCode, 100000);
 
     //Write generated C file to disk
     clock_t startWrite = clock();
