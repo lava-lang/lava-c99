@@ -8,13 +8,55 @@
 #include "include/cgen.h"
 #include "include/region.h"
 
+char* generateCFromLava(char* fileName, char* input) {
+    //clock_t startParse = clock();
+//    Scope* globalScope = scopeInit(NULL);
+    Lexer* lexer = lexerInit(fileName, input);
+    Parser* parser = parserInit(lexer);
+    AST* root = parseAST(parser, NULL, TOKEN_EOF);
+    //BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
+
+    #if DEBUG_MODE == 1
+        ASTCompound* compound = (ASTCompound*) root;
+        for (int i = 0; i < compound->array->len; ++i) {
+            AST* node = (AST*) compound->array->elements[i];
+            printAST(node, 0);
+        }
+    #endif
+
+    //clock_t startCodegen = clock();
+    OutputBuffer* outputBuffer = generateC(root);
+    char* generatedCode = bufferBuild(outputBuffer);
+    DEBUG("C Code Generation:\n%s\n", generatedCode)
+    //BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
+
+    FREE(((ASTCompound*) root)->array);
+    bufferFree(outputBuffer);
+
+    return generatedCode;
+}
+
+char* generateForXIterations(char* fileName, char* input, int iterations) {
+    char* generatedCode = NULL;
+    clock_t startCompile = clock();
+    for (int i = 0; i < iterations; ++i) {
+        generatedCode = generateCFromLava(fileName, input);
+        clearGlobalRegion();
+    }
+    double timeSecs = (double)(clock() - startCompile) / CLOCKS_PER_SEC;
+    double tokensPerSec = TOKENS_CONSUMED / timeSecs;
+    double nodesPerSec = AST_NODES_CONSTRUCTED / timeSecs;
+    BASIC("Compile: %f (%f x %d) - (%d Tokens/s) - (%d AST Nodes/s)", timeSecs, timeSecs / iterations, iterations, (int) tokensPerSec, (int) nodesPerSec);
+    return generatedCode;
+}
+
 int main(int argc, char *argv[]) {
     //Begin profiling
     clock_t startAll = clock();
 
     //Init virtual memory region
     clock_t startArena = clock();
-    GLOBAL_REGION_CAPACITY = 7500;
+    GLOBAL_REGION_CAPACITY = 11000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
     BASIC("Arena: %f", (double)(clock() - startArena) / CLOCKS_PER_SEC)
 
@@ -26,26 +68,9 @@ int main(int argc, char *argv[]) {
     BASIC("Load: %f", (double)(clock() - startLoad) / CLOCKS_PER_SEC)
     DEBUG("Lava Input Code:\n%s\n", inputCode)
 
-    clock_t startParse = clock();
-    Scope* globalScope = scopeInit(NULL);
-    Lexer* lexer = lexerInit(argv[1], inputCode);
-    Parser* parser = parserInit(lexer);
-    AST* root = parseAST(parser, globalScope, TOKEN_EOF);
-    BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
-
-    #if DEBUG_MODE == 1
-        ASTCompound* compound = (ASTCompound*) root;
-        for (int i = 0; i < compound->array->len; ++i) {
-            AST* node = (AST*) compound->array->elements[i];
-            printAST(node, 0);
-        }
-    #endif
-
-    clock_t startCodegen = clock();
-    OutputBuffer* outputBuffer = generateC(root);
-    char* generatedCode = bufferBuild(outputBuffer);
-    DEBUG("C Code Generation:\n%s\n", generatedCode)
-    BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
+    //Generate C from Lava
+    //char* generatedCode = generateCFromLava(argv[1], inputCode);
+    char* generatedCode = generateForXIterations(argv[1], inputCode, 100000);
 
     //Write generated C file to disk
     clock_t startWrite = clock();
@@ -55,15 +80,13 @@ int main(int argc, char *argv[]) {
 
     //Free memory allocations
     FREE(inputCode);
-    //scopeFree(globalScope);
-    FREE(((ASTCompound*) root)->array);
-    bufferFree(outputBuffer);
 
     //Make sure there are no leaks
     freeGlobalRegion();
+
     BASIC("Tokens Consumed: %d", TOKENS_CONSUMED)
     BASIC("AST Nodes Constructed: %d", AST_NODES_CONSTRUCTED)
-    BASIC("ALLOCATIONS: %zu/%zu", ALLOC_COUNT, FREE_COUNT);
+    BASIC("ALLOCATIONS: %zu/%zu", ALLOC_COUNT, FREE_COUNT)
 
     return 0;
 }

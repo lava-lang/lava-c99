@@ -6,3 +6,4 @@ notes/*
 zig/*
 output.c
 *.lava
+scratch.c

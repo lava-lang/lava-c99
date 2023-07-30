@@ -182,7 +182,6 @@ void visit(AST* node, OutputBuffer* buffer) {
     } else if (node->astType == AST_IMPORT) {
         visitImport(node, buffer);
     } else if (node->astType == AST_BINARY_OP) {
-        printf("%s\n", viewToStr(&node->token->view));
         visit(((ASTBinaryOp*) node)->left, buffer);
         bufferAppendView(buffer, &node->token->view);
         visit(((ASTBinaryOp*) node)->right, buffer);

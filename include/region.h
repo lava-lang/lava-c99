@@ -32,6 +32,15 @@ void* allocRegion(MemRegion* region, size_t allocationSize) {
     return ptr;
 }
 
+void clearRegion(MemRegion* region) {
+    region->len = 0;
+    memset(region->data, 0, region->capacity); //Technically not required, but just in case
+}
+
+void clearGlobalRegion() {
+    clearRegion(&GLOBAL_REGION);
+}
+
 void* allocGlobal(size_t allocationSize) {
     return allocRegion(&GLOBAL_REGION, allocationSize);
 }
