@@ -58,9 +58,9 @@ void visitVarDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
 
 void visitStructDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
-    if (node->flags & PACKED_DATA) {
-        bufferAppend(buffer, "__attribute__((__packed__)) ");
-    }
+//    if (node->flags & PACKED_DATA) {
+//        bufferAppend(buffer, "__attribute__((__packed__)) ");
+//    }
     visit(node, node->structDef->identifier, buffer);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
@@ -79,13 +79,13 @@ void visitStructDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
 
 void visitEnumDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nenum ");
-    if (node->flags & PACKED_DATA) {
-        bufferAppend(buffer, "__attribute__((__packed__)) ");
-    }
-    if (node->enumDef->identifier) {
+//    if (node->flags & PACKED_DATA) {
+//        bufferAppend(buffer, "__attribute__((__packed__)) ");
+//    }
+//    if (node->enumDef->identifier) {
         visit(node, node->enumDef->identifier, buffer);
         bufferAppend(buffer, " ");
-    }
+//    }
     bufferAppend(buffer, "{\n");
     bufferIndent(buffer);
     visitCompound(node, node->enumDef->constants, buffer, ",\n", true);
@@ -226,14 +226,14 @@ void visit(AST* parent, AST* node, OutputBuffer* buffer) {
         case AST_STRUCT: visitStructDefinition(parent, node, buffer); break;
         case AST_ENUM: visitEnumDefinition(parent, node, buffer); break;
         case AST_FUNC: visitFuncDefinition(parent, node, buffer); break;
-        case AST_UNION: visitUnionDefinition(parent, node, buffer); break;
+//        case AST_UNION: visitUnionDefinition(parent, node, buffer); break;
         case AST_C: visitCStatement(parent, node, buffer); break;
         case AST_RETURN: visitReturn(parent, node, buffer); break;
         case AST_IMPORT: visitImport(parent, node, buffer); break;
         case AST_BINOP: visitBinop(parent, node, buffer); break;
         case AST_ASSIGN: visitAssign(parent, node, buffer); break;
         case AST_INTEGER: visitInteger(parent, node, buffer); break;
-        case AST_FUNC_VAR: visitFuncVar(parent, node, buffer); break;
+//        case AST_FUNC_VAR: visitFuncVar(parent, node, buffer); break;
         default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
 }

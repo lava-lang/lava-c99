@@ -240,11 +240,11 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_U32, strToView("uint32_t"), lexDataType(lexer, VAR_INT));
     } else if (viewCmp(&lexer->view, "u64")) {
         return tokenInit(TOKEN_U64, strToView("uint64_t"), lexDataType(lexer, VAR_INT));
-    } else if  (viewCmp(&lexer->view, "usz")) {
+    }/* else if  (viewCmp(&lexer->view, "usz")) {
         return tokenInit(TOKEN_USZ, strToView("size_t"), lexDataType(lexer, VAR_INT));
     } else if  (viewCmp(&lexer->view, "isz")) {
         return tokenInit(TOKEN_ISZ, strToView("ptrdiff_t"), lexDataType(lexer, VAR_INT));
-    } else if (viewCmp(&lexer->view, "f32")) {
+    }*/ else if (viewCmp(&lexer->view, "f32")) {
         return tokenInit(TOKEN_F32, strToView("float"), lexDataType(lexer, VAR_FLOAT));
     } else if (viewCmp(&lexer->view, "f64")) {
         return tokenInit(TOKEN_F64, strToView("double"), lexDataType(lexer, VAR_FLOAT));
@@ -260,13 +260,13 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_STRUCT, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "enum")) {
         return tokenInit(TOKEN_ENUM, &lexer->view, 0);
-    } else if (viewCmp(&lexer->view, "union")) {
+    }/* else if (viewCmp(&lexer->view, "union")) {
         return tokenInit(TOKEN_UNION, &lexer->view, 0);
-    } else if (viewCmp(&lexer->view, "flag")) {
+    }*/ else if (viewCmp(&lexer->view, "flag")) {
         return tokenInit(TOKEN_FLAG, &lexer->view, 0);
-    } else if (viewCmp(&lexer->view, "packed")) {
+    }/* else if (viewCmp(&lexer->view, "packed")) {
         return tokenInit(TOKEN_PACKED, &lexer->view, 0);
-    } else if (viewCmp(&lexer->view, "if")) {
+    }*/ else if (viewCmp(&lexer->view, "if")) {
         return tokenInit(TOKEN_IF, &lexer->view, 0);
     } else if (viewCmp(&lexer->view, "else")) {
         return tokenInit(TOKEN_ELSE, &lexer->view, 0);
