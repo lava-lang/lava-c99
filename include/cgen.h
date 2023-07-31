@@ -58,9 +58,9 @@ void visitVarDefinition(ASTVarDef* node, OutputBuffer* buffer) {
 
 void visitStructDefinition(ASTStructDef* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
-    if (node->base.flags & PACKED_DATA) {
-        bufferAppend(buffer, "__attribute__((__packed__)) ");
-    }
+//    if (node->base.flags & PACKED_DATA) {
+//        bufferAppend(buffer, "__attribute__((__packed__)) ");
+//    }
     visit(node->identifier, buffer);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);

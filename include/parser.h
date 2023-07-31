@@ -210,10 +210,10 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
 void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_STRUCT);
     ASTFlag flags = 0;
-    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
-        parserConsume(parser, TOKEN_PACKED);
-        flags |= PACKED_DATA;
-    }
+//    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
+//        parserConsume(parser, TOKEN_PACKED);
+//        flags |= PACKED_DATA;
+//    }
     AST* id = parseIdentifier(parser, scope);
     parserConsume(parser, TOKEN_LBRACE);
     arrayAppend(nodes, structAST(AST_STRUCT, flags, ASTStructDef, id, parseAST(parser, scope, TOKEN_RBRACE)));
