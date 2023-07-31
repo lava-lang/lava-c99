@@ -13,7 +13,7 @@ char* generateCFromLava(char* fileName, char* input) {
     Scope* globalScope = scopeInit(NULL);
     Lexer* lexer = lexerInit(fileName, input);
     Parser* parser = parserInit(lexer);
-    AST* root = parseAST(parser, globalScope, TOKEN_EOF);
+    ASTComp* root = parseAST(parser, globalScope, TOKEN_EOF);
     //BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 
     //Init virtual memory region
     clock_t startArena = clock();
-    GLOBAL_REGION_CAPACITY = 10000;
+    GLOBAL_REGION_CAPACITY = 100000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
     BASIC("Arena: %f", (double)(clock() - startArena) / CLOCKS_PER_SEC)
 
