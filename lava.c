@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 
     //Init virtual memory region
     clock_t startArena = clock();
-    GLOBAL_REGION_CAPACITY = 100000;
+    GLOBAL_REGION_CAPACITY = 11000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
     BASIC("Arena: %f", (double)(clock() - startArena) / CLOCKS_PER_SEC)
 
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     //Generate C from Lava
     //char* generatedCode = generateCFromLava(argv[1], inputCode);
-    char* generatedCode = generateForXIterations(argv[1], inputCode, 10000);
+    char* generatedCode = generateForXIterations(argv[1], inputCode, 100000);
 
     //Write generated C file to disk
     clock_t startWrite = clock();
