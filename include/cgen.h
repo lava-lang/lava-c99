@@ -6,16 +6,16 @@
 #include "ast.h"
 #include "debug.h"
 
-void visit(AST* parent, AST* node, OutputBuffer* buffer);
+void visit(AST* node, OutputBuffer* buffer);
 
-void visitNode(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitNode(AST* node, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
 }
 
-void visitCompound(AST* parent, AST* node, OutputBuffer* buffer, char* delimiter, bool skipLastDelim) {
+void visitCompound(ASTComp* node, OutputBuffer* buffer, char* delimiter, bool skipLastDelim) {
     for (size_t i = 0; i < node->array->len; ++i) {
         bufferAppendIndent(buffer);
-        visit(parent, (AST*) node->array->elements[i], buffer);
+        visit((AST*) node->array->elements[i], buffer);
         //TODO remove AST_IMPORT exclusion somehow
         if ((i < node->array->len - 1 || !skipLastDelim) && ((AST*) node->array->elements[i])->type != AST_IMPORT) {
             bufferAppend(buffer, delimiter);
@@ -23,100 +23,98 @@ void visitCompound(AST* parent, AST* node, OutputBuffer* buffer, char* delimiter
     }
 }
 
-void visitDataType(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitDataType(AST* node, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
     if (node->token->flags & VAR_POINTER) {
         bufferAppend(buffer, "*");
     }
 }
 
-void visitVarDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
-    visit(node, node->varDef.dataType, buffer);
+void visitVarDefinition(ASTVarDef* node, OutputBuffer* buffer) {
+    visit(node->dataType, buffer);
     bufferAppend(buffer, " ");
-    visit(node, node->varDef.identifier, buffer);
-    if (node->varDef.dataType->token->flags & VAR_ARRAY) {
+    visit(node->identifier, buffer);
+    if (node->dataType->token->flags & VAR_ARRAY) {
         bufferAppend(buffer, "[]");
     }
-    if (node->varDef.expression) {
+    if (node->expression) {
         bufferAppend(buffer, " = ");
-        if (node->varDef.dataType->token->type == TOKEN_STRING) { //Handle string quotes
+        if (node->dataType->token->type == TOKEN_STRING) { //Handle string quotes
             bufferAppend(buffer, "\"");
-            visit(node, node->varDef.expression, buffer);
+            visit(node->expression, buffer);
             bufferAppend(buffer, "\"");
-        } else if (node->varDef.dataType->token->type == TOKEN_CHAR) { //Handle char quotes
+        } else if (node->dataType->token->type == TOKEN_CHAR) { //Handle char quotes
             bufferAppend(buffer, "\'");
-            visit(node, node->varDef.expression, buffer);
+            visit(node->expression, buffer);
             bufferAppend(buffer, "\'");
         } else {
-            visit(node, node->varDef.expression, buffer);
+            visit(node->expression, buffer);
         }
     }
-    if (!(node->flags & ARGUMENT)) {
+    if (!(node->base.flags & ARGUMENT)) {
         bufferAppend(buffer, ";");
     }
 }
 
-void visitStructDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitStructDefinition(ASTStructDef* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nstruct ");
-    if (node->flags & PACKED_DATA) {
+    if (node->base.flags & PACKED_DATA) {
         bufferAppend(buffer, "__attribute__((__packed__)) ");
     }
-    visit(node, node->structDef.identifier, buffer);
+    visit(node->identifier, buffer);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
-    visitCompound(node, node->structDef.members, buffer, "\n", true);
+    visitCompound(node->members, buffer, "\n", true);
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
     bufferAppendPrefix(buffer, "\ntypedef struct "); //Hoist struct definition
-    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->identifier->token->view);
     bufferAppendPrefix(buffer, " ");
-    bufferAppendPrefixView(buffer, &node->structDef.identifier->token->view);
+    bufferAppendPrefixView(buffer, &node->identifier->token->view);
     bufferAppendPrefix(buffer, ";");
 
-    FREE(node->structDef.members->array); //Cleanup array allocations
+    FREE(node->members->array); //Cleanup array allocations
 }
 
-void visitEnumDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitEnumDefinition(ASTEnumDef* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nenum ");
-    if (node->flags & PACKED_DATA) {
+    if (node->base.flags & PACKED_DATA) {
         bufferAppend(buffer, "__attribute__((__packed__)) ");
     }
-    if (node->enumDef.identifier) {
-        visit(node, node->enumDef.identifier, buffer);
-        bufferAppend(buffer, " ");
-    }
+    visit(node->identifier, buffer);
+    bufferAppend(buffer, " ");
     bufferAppend(buffer, "{\n");
     bufferIndent(buffer);
-    visitCompound(node, node->enumDef.constants, buffer, ",\n", true);
+    visitCompound(node->constants, buffer, ",\n", true);
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
-    if (node->enumDef.identifier) { //Hoist enum definition
+    if (node->identifier) { //Hoist enum definition
         bufferAppendPrefix(buffer, "\ntypedef enum ");
-        bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
+        bufferAppendPrefixView(buffer, &node->identifier->token->view);
         bufferAppendPrefix(buffer, " ");
-        bufferAppendPrefixView(buffer, &node->enumDef.identifier->token->view);
+        bufferAppendPrefixView(buffer, &node->identifier->token->view);
         bufferAppendPrefix(buffer, ";");
     }
 
-    FREE(node->enumDef.constants->array); //Cleanup array allocations
+    FREE(node->constants->array); //Cleanup array allocations
 }
 
-void visitFuncDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitFuncDefinition(ASTFuncDef* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\n"); //Append initial new line for space between functions and variables
     size_t bufStartPos = strlen(buffer->code);
-    visit(node, node->funcDef.returnType, buffer);
+    visit(node->returnType, buffer);
     bufferAppend(buffer, " ");
-    visit(node, node->funcDef.identifier, buffer);
+    visit(node->identifier, buffer);
     bufferAppend(buffer, "(");
-    visitCompound(node, node->funcDef.arguments, buffer, ", ", true);
+    visitCompound(node->arguments, buffer, ", ", true);
     bufferAppend(buffer, ")");
     size_t bufEndPos = strlen(buffer->code);
     bufferAppend(buffer, " {\n");
 
     bufferIndent(buffer);
-    visitCompound(node, node->funcDef.statements, buffer, "\n", true);
+    visitCompound(node->statements, buffer, "\n", true);
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
 
@@ -128,47 +126,47 @@ void visitFuncDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
     bufferAppendPrefix(buffer, "\n");
     bufferAppendPrefix(buffer, hoist);
 
-    FREE(node->funcDef.arguments->array); //Cleanup array allocations
-    FREE(node->funcDef.statements->array);
+    FREE(node->arguments->array); //Cleanup array allocations
+    FREE(node->statements->array);
 }
 
-void visitUnionDefinition(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitUnionDefinition(ASTUnionDef* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "\nunion ");
-    if (node->flags & PACKED_DATA) {
+    if (node->base.flags & PACKED_DATA) {
         bufferAppend(buffer, "__attribute__((__packed__)) ");
     }
-    if (node->unionDef.identifier) {
-        visit(node, node->unionDef.identifier, buffer);
+    if (node->identifier) {
+        visit(node->identifier, buffer);
         bufferAppend(buffer, " ");
     }
     bufferAppend(buffer, "{\n");
     bufferIndent(buffer);
-    visitCompound(node, node->unionDef.members, buffer, ";\n", false);
+    visitCompound(node->members, buffer, ";\n", false);
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
-    if (node->unionDef.identifier) { //Hoist union definition
+    if (node->identifier) { //Hoist union definition
         bufferAppendPrefix(buffer, "\ntypedef union ");
-        bufferAppendPrefixView(buffer, &node->unionDef.identifier->token->view);
+        bufferAppendPrefixView(buffer, &node->identifier->token->view);
         bufferAppendPrefix(buffer, " ");
-        bufferAppendPrefixView(buffer, &node->unionDef.identifier->token->view);
+        bufferAppendPrefixView(buffer, &node->identifier->token->view);
         bufferAppendPrefix(buffer, ";");
     }
 
-    FREE(node->unionDef.members->array); //Cleanup array allocations
+    FREE(node->members->array); //Cleanup array allocations
 }
 
-void visitCStatement(AST* parent, AST* node, OutputBuffer* buffer) {
-    visitNode(node, node, buffer);
+void visitCStatement(AST* node, OutputBuffer* buffer) {
+    visitNode(node, buffer);
 }
 
-void visitReturn(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitReturn(ASTExpr* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
-    visitNode(node, node->expression, buffer);
+    visitNode(node->expr, buffer);
     bufferAppend(buffer, ";");
 }
 
-void visitImport(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitImport(AST* node, OutputBuffer* buffer) {
     if (node->token->view.start[0] == '<' || node->token->view.start[0] == '"') { //C Import
         bufferAppendPrefix(buffer, "#include ");
         bufferAppendPrefixView(buffer, &node->token->view);
@@ -180,68 +178,68 @@ void visitImport(AST* parent, AST* node, OutputBuffer* buffer) {
     }
 }
 
-void visitBinop(AST* parent, AST* node, OutputBuffer* buffer) {
-    visit(node, node->binop.left, buffer);
+void visitBinop(ASTBinop* node, OutputBuffer* buffer) {
+    visit(node->left, buffer);
     bufferAppend(buffer, " ");
-    bufferAppendView(buffer, &node->binop.operator->view);
+    bufferAppendView(buffer, &node->op->view);
     bufferAppend(buffer, " ");
-    visit(node, node->binop.right, buffer);
+    visit(node->right, buffer);
 }
 
-void visitAssign(AST* parent, AST* node, OutputBuffer* buffer) {
-    visit(node, node->assign.left, buffer);
+void visitAssign(ASTAssign* node, OutputBuffer* buffer) {
+    visit(node->left, buffer);
     bufferAppend(buffer, " = ");
-    visit(node, node->assign.right, buffer);
+    visit(node->right, buffer);
 }
 
-void visitInteger(AST* parent, AST* node, OutputBuffer* buffer) {
+void visitInteger(ASTLiteral* node, OutputBuffer* buffer) {
     char str[256] = "";
     snprintf(str, sizeof(str), "%zu", node->value);
     bufferAppend(buffer, str);
 }
 
-void visitFuncVar(AST* parent, AST* node, OutputBuffer* buffer) {
-    visit(node, node->funcDef.returnType, buffer);
+void visitFuncVar(ASTFuncDef* node, OutputBuffer* buffer) {
+    visit(node->returnType, buffer);
     bufferAppend(buffer, " (*");
-    visit(node, node->funcDef.identifier, buffer);
+    visit(node->identifier, buffer);
     bufferAppend(buffer, ")(");
     //Function argument types
-    visitCompound(node, node->funcDef.arguments, buffer, ", ", true);
+    visitCompound(node->arguments, buffer, ", ", true);
     bufferAppend(buffer, ")");
 
-    FREE(node->funcDef.arguments->array); //Cleanup array allocations
+    FREE(node->arguments->array); //Cleanup array allocations
 
-    if (!(node->flags & ARGUMENT)) {
+    if (!(node->base.flags & ARGUMENT)) {
         bufferAppend(buffer, ";");
     }
 }
 
-void visit(AST* parent, AST* node, OutputBuffer* buffer) {
+void visit(AST* node, OutputBuffer* buffer) {
     if (node == NULL) return;
     switch (node->type) {
-        case AST_COMP: visitCompound(parent, node, buffer, "\n", false); break;
-        case AST_TYPE: visitDataType(parent, node, buffer); break;
-        case AST_ID: case AST_VALUE: visitNode(parent, node, buffer); break;
-        case AST_VAR: visitVarDefinition(parent, node, buffer); break;
-        case AST_STRUCT: visitStructDefinition(parent, node, buffer); break;
-        case AST_ENUM: visitEnumDefinition(parent, node, buffer); break;
-        case AST_FUNC: visitFuncDefinition(parent, node, buffer); break;
-        case AST_UNION: visitUnionDefinition(parent, node, buffer); break;
-        case AST_C: visitCStatement(parent, node, buffer); break;
-        case AST_RETURN: visitReturn(parent, node, buffer); break;
-        case AST_IMPORT: visitImport(parent, node, buffer); break;
-        case AST_BINOP: visitBinop(parent, node, buffer); break;
-        case AST_ASSIGN: visitAssign(parent, node, buffer); break;
-        case AST_INTEGER: visitInteger(parent, node, buffer); break;
-        case AST_FUNC_VAR: visitFuncVar(parent, node, buffer); break;
+        case AST_COMP: visitCompound((ASTComp*) node, buffer, "\n", false); break;
+        case AST_TYPE: visitDataType(node, buffer); break;
+        case AST_ID: case AST_VALUE: visitNode(node, buffer); break;
+        case AST_VAR: visitVarDefinition((ASTVarDef*) node, buffer); break;
+        case AST_STRUCT: visitStructDefinition((ASTStructDef*) node, buffer); break;
+        case AST_ENUM: visitEnumDefinition((ASTEnumDef*) node, buffer); break;
+        case AST_FUNC: visitFuncDefinition((ASTFuncDef*) node, buffer); break;
+        case AST_UNION: visitUnionDefinition((ASTUnionDef*) node, buffer); break;
+        case AST_C: visitCStatement(node, buffer); break;
+        case AST_RETURN: visitReturn((ASTExpr*) node, buffer); break;
+        case AST_IMPORT: visitImport(node, buffer); break;
+        case AST_BINOP: visitBinop((ASTBinop*) node, buffer); break;
+        case AST_ASSIGN: visitAssign((ASTAssign*) node, buffer); break;
+        case AST_INTEGER: visitInteger((ASTLiteral*) node, buffer); break;
+        case AST_FUNC_VAR: visitFuncVar((ASTFuncDef*) node, buffer); break;
         default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
 }
 
-OutputBuffer* generateC(AST* root) {
+OutputBuffer* generateC(ASTComp* root) {
     OutputBuffer* buffer = bufferInit();
     bufferAppend(buffer, "\n\n"); //Initial \n\n to space definitions
-    visit(NULL, root, buffer);
+    visit((AST*) root, buffer);
     return buffer;
 }
 #endif //LAVA_CGEN_H

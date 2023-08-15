@@ -9,25 +9,25 @@
 #include "include/region.h"
 
 char* generateCFromLava(char* fileName, char* input) {
-    //clock_t startParse = clock();
+    clock_t startParse = clock();
     Scope* globalScope = scopeInit(NULL);
     Lexer* lexer = lexerInit(fileName, input);
     Parser* parser = parserInit(lexer);
-    AST* root = parseAST(parser, globalScope, TOKEN_EOF);
-    //BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
+    ASTComp* root = parseAST(parser, globalScope, TOKEN_EOF);
+    BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
-        for (int i = 0; i < root->comp.array->len; ++i) {
-                AST* node = (AST*) root->comp.array->elements[i];
+        for (int i = 0; i < root->array->len; ++i) {
+                AST* node = (AST*) root->array->elements[i];
                 printAST(node, 0);
             }
     #endif
 
-    //clock_t startCodegen = clock();
+    clock_t startCodegen = clock();
     OutputBuffer* outputBuffer = generateC(root);
     char* generatedCode = bufferBuild(outputBuffer);
     DEBUG("C Code Generation:\n%s\n", generatedCode)
-    //BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
+    BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
 
     FREE(root->array);
     bufferFree(outputBuffer);
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 
     //Init virtual memory region
     clock_t startArena = clock();
-    GLOBAL_REGION_CAPACITY = 10000;
+    GLOBAL_REGION_CAPACITY = 11000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
     BASIC("Arena: %f", (double)(clock() - startArena) / CLOCKS_PER_SEC)
 
@@ -68,8 +68,8 @@ int main(int argc, char *argv[]) {
     DEBUG("Lava Input Code:\n%s\n", inputCode)
 
     //Generate C from Lava
-    //char* generatedCode = generateCFromLava(argv[1], inputCode);
-    char* generatedCode = generateForXIterations(argv[1], inputCode, 10000);
+    char* generatedCode = generateCFromLava(argv[1], inputCode);
+//    char* generatedCode = generateForXIterations(argv[1], inputCode, 100000);
 
     //Write generated C file to disk
     clock_t startWrite = clock();
