@@ -15,33 +15,88 @@ const char* AST_NAMES[] = {
     "C Statement", "Integer", "Union", "Variable Function",
 };
 
-typedef struct AST AST;
 typedef enum packed ASTType {
     AST_TYPE, AST_ID, AST_COMP, AST_VALUE,
     AST_VAR, AST_STRUCT, AST_ENUM, AST_FUNC,
     AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,
     AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
 } ASTType;
+
 typedef enum packed ASTFlag {
     ENUM_FLAG   = 1 << 0,
     PACKED_DATA = 1 << 1,
     ARGUMENT    = 1 << 2,
 } ASTFlag;
-struct AST {
+
+typedef struct AST {
     ASTType type;
     ASTFlag flags;
     Token* token;
-};
-typedef struct ASTComp {AST base; DynArray* array;} ASTComp;
-typedef struct ASTLiteral {AST base; union {size_t value; };} ASTLiteral;
-typedef struct ASTVarDef {AST base; AST* dataType; AST* identifier; AST* expression;} ASTVarDef;
-typedef struct ASTStructDef {AST base; AST* identifier; ASTComp* members;} ASTStructDef;
-typedef struct ASTEnumDef {AST base; AST* identifier; AST* dataType; ASTComp* constants;} ASTEnumDef;
-typedef struct ASTFuncDef {AST base; AST* returnType; AST* identifier; ASTComp* arguments; ASTComp* statements;} ASTFuncDef;
-typedef struct ASTUnionDef {AST base; AST* identifier; ASTComp* members;} ASTUnionDef;
-typedef struct ASTAssign {AST base; AST* left; AST* right;} ASTAssign;
-typedef struct ASTBinop {AST base; AST* left; Token* op; AST* right;} ASTBinop;
-typedef struct ASTExpr {AST base; AST* expr;} ASTExpr;
+} AST;
+
+typedef struct ASTComp {
+    AST base;
+    DynArray* array;
+} ASTComp;
+
+typedef struct ASTLiteral {
+    AST base;
+    union {
+        size_t value;
+    };
+} ASTLiteral;
+
+typedef struct ASTVarDef {
+    AST base;
+    AST* dataType;
+    AST* identifier;
+    AST* expression;
+} ASTVarDef;
+
+typedef struct ASTStructDef {
+    AST base;
+    AST* identifier;
+    ASTComp* members;
+} ASTStructDef;
+
+typedef struct ASTEnumDef {
+    AST base;
+    AST* identifier;
+    AST* dataType;
+    ASTComp* constants;
+} ASTEnumDef;
+
+typedef struct ASTFuncDef {
+    AST base;
+    AST* returnType;
+    AST* identifier;
+    ASTComp* arguments;
+    ASTComp* statements;
+} ASTFuncDef;
+
+typedef struct ASTUnionDef {
+    AST base;
+    AST* identifier;
+    ASTComp* members;
+} ASTUnionDef;
+
+typedef struct ASTAssign {
+    AST base;
+    AST* left;
+    AST* right;
+} ASTAssign;
+
+typedef struct ASTBinop {
+    AST base;
+    AST* left;
+    Token* op;
+    AST* right;
+} ASTBinop;
+
+typedef struct ASTExpr {
+    AST base;
+    AST* expr;
+} ASTExpr;
 
 #define initAST(TYPE, FLAGS, STRUCT) RALLOC(1, sizeof(STRUCT)); AST_NODES_CONSTRUCTED++
 #define basicAST(TYPE, FLAGS, TOK) ({AST* _AST = initAST(TYPE, FLAGS, AST); *_AST = (struct AST) {TYPE, FLAGS, TOK}; _AST;})

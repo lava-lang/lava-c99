@@ -171,7 +171,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
             dataType = parseDataType(parser, scope);
         }
         //First conditional chain, testing to detect func pointer, function def, or standard variable
-        /*if (parser->type == TOKEN_COLON) { //Parsing function pointer
+        if (parser->type == TOKEN_COLON) { //Parsing function pointer
             parserConsume(parser, TOKEN_COLON);
             parserConsume(parser, TOKEN_LPAREN);
             DynArray* argumentArray = arrayInit(sizeof(AST*));
@@ -188,7 +188,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
             //TODO fix hack. this stops function pointers being supported by comma seperated definition without explicit data types.
             // this should be fixed at some point. Maybe function pointers need their own function instead of being inside parseDefinition?
             dataType = NULL;
-        } else*/ if (parser->type == TOKEN_ID) { //If we get here, we must be parsing a function or variable
+        } else if (parser->type == TOKEN_ID) { //If we get here, we must be parsing a function or variable
             AST* identifier = parseIdentifier(parser, scope);
             if (parser->type == TOKEN_LPAREN) { //Parsing Function Def
                 parseFuncDefinition(nodes, parser, scope, dataType, identifier);
@@ -210,10 +210,10 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
 void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     parserConsume(parser, TOKEN_STRUCT);
     ASTFlag flags = 0;
-//    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
-//        parserConsume(parser, TOKEN_PACKED);
-//        flags |= PACKED_DATA;
-//    }
+    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
+        parserConsume(parser, TOKEN_PACKED);
+        flags |= PACKED_DATA;
+    }
     AST* id = parseIdentifier(parser, scope);
     parserConsume(parser, TOKEN_LBRACE);
     arrayAppend(nodes, structAST(AST_STRUCT, flags, ASTStructDef, id, parseAST(parser, scope, TOKEN_RBRACE)));
@@ -227,18 +227,18 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
         parserConsume(parser, TOKEN_FLAG);
         flags |= ENUM_FLAG;
     }
-//    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
-//        parserConsume(parser, TOKEN_PACKED);
-//        flags |= PACKED_DATA;
-//    }
+    if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
+        parserConsume(parser, TOKEN_PACKED);
+        flags |= PACKED_DATA;
+    }
     AST* identifier = parser->type == TOKEN_ID ? parseIdentifier(parser, scope) : NULL;
     AST* dataType = NULL;
-//    if (parser->token->flags & DATA_TYPE) { //Enum has explicit value size
-//        if ((parser->token->flags & VAR_INT) == 0) { //Only allow integer value sizes
-//            ERROR("Enum constant type must be integer! %s (%s)", TOKEN_NAMES[parser->type], viewToStr(&parser->token->view))
-//        }
-//        dataType = parseDataType(parser, scope);
-//    }
+    if (parser->token->flags & DATA_TYPE) { //Enum has explicit value size
+        if ((parser->token->flags & VAR_INT) == 0) { //Only allow integer value sizes
+            ERROR("Enum constant type must be integer! %s (%s)", TOKEN_NAMES[parser->type], viewToStr(&parser->token->view))
+        }
+        dataType = parseDataType(parser, scope);
+    }
     parserConsume(parser, TOKEN_LBRACE);
     DynArray* constantArray = arrayInit(sizeof(AST*));
     size_t constantValue = 0; //Initial enum constant value
@@ -285,9 +285,9 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
             parseStructDefinition(nodes, parser, scope);
         } else if (parser->type == TOKEN_ENUM) {
             parseEnumDefinition(nodes, parser, scope);
-        }/* else if (parser->type == TOKEN_UNION) {
+        } else if (parser->type == TOKEN_UNION) {
             parseUnionDefinition(nodes, parser, scope);
-        }*/ else if (parser->type == TOKEN_C_STATEMENT) {
+        } else if (parser->type == TOKEN_C_STATEMENT) {
             parseCStatement(nodes, parser, scope);
         } else if (parser->type == TOKEN_RETURN) {
             parseReturn(nodes, parser, scope);
