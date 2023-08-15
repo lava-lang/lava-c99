@@ -20,17 +20,18 @@ typedef struct Lexer {
     StrView view;
 } Lexer;
 
-Lexer* lexerInit(char* filepath, char* contents) {
-    Lexer* lexer = RALLOC(1, sizeof(Lexer));
-    lexer->filepath = filepath;
-    lexer->contents = contents;
-    lexer->pos = 0;
-    lexer->len = strlen(contents);
-    lexer->line = 1;
-    lexer->col = 0;
-    lexer->cur = contents[lexer->pos];
-    lexer->view.start = contents;
-    lexer->view.len = 0;
+Lexer lexerSetup(char* filepath, char* contents) {
+    Lexer lexer = {
+        .filepath = filepath,
+        .contents = contents,
+        .pos = 0,
+        .len = strlen(contents),
+        .line = 1,
+        .col = 0,
+        .cur = contents[0],
+        .view.start = contents,
+        .view.len = 0,
+    };
     return lexer;
 }
 
