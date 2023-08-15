@@ -166,11 +166,9 @@ typedef struct Token {
 
 static Token TOKEN_NONE = {TOKEN_NONE_, "none"};
 
-Token* tokenInit(TokenType type, StrView* view, size_t flags) {
-    Token* token = RALLOC(1, sizeof(Token));
-    token->type = type;
-    memcpy(&token->view, view, sizeof(StrView)); //Copy view pointer, as this will be changed by the lexer
-    token->flags = flags;
+Token tokenSetup(TokenType type, StrView* view, size_t flags) {
+    Token token = {.type = type, .flags = flags};
+    memcpy(&token.view, view, sizeof(StrView)); //Copy view pointer, as this will be changed by the lexer
     return token;
 }
 #endif

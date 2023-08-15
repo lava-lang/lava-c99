@@ -31,7 +31,7 @@ typedef enum packed ASTFlag {
 typedef struct AST {
     ASTType type;
     ASTFlag flags;
-    Token* token;
+    Token token;
 } AST;
 
 typedef struct ASTComp {
@@ -89,7 +89,7 @@ typedef struct ASTAssign {
 typedef struct ASTBinop {
     AST base;
     AST* left;
-    Token* op;
+    Token op;
     AST* right;
 } ASTBinop;
 
@@ -99,9 +99,9 @@ typedef struct ASTExpr {
 } ASTExpr;
 
 #define initAST(TYPE, FLAGS, STRUCT) RALLOC(1, sizeof(STRUCT)); AST_NODES_CONSTRUCTED++
-#define basicAST(TYPE, FLAGS, TOK) ({AST* _AST = initAST(TYPE, FLAGS, AST); *_AST = (struct AST) {TYPE, FLAGS, TOK}; _AST;})
+#define basicAST(TYPE, FLAGS, TOK) ({AST* _AST = initAST(TYPE, FLAGS, AST); *_AST = (struct AST) {TYPE, FLAGS, {.type = TOK.type, .flags = TOK.flags, .view = TOK.view}}; _AST;})
 #define valueAST(TYPE, FLAGS, MEMBER, VALUE) ({ASTLiteral* _AST = initAST(TYPE, FLAGS, ASTLiteral); _AST->base.type = TYPE; _AST->base.flags = FLAGS; _AST->MEMBER = VALUE; _AST;})
-#define structAST(TYPE, FLAGS, STRUCT, ...) ({STRUCT* _AST = initAST(TYPE, FLAGS, STRUCT); *_AST = (struct STRUCT) {TYPE, FLAGS, &TOKEN_NONE, __VA_ARGS__}; _AST;})
+#define structAST(TYPE, FLAGS, STRUCT, ...) ({STRUCT* _AST = initAST(TYPE, FLAGS, STRUCT); *_AST = (struct STRUCT) {TYPE, FLAGS, {0}, __VA_ARGS__}; _AST;})
 
 typedef struct Scope {
     AST* ast;
