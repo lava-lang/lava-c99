@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include "structures.h"
-#include "ast.h"
+#include "ast_old.h"
 #include "debug.h"
 
 void visit(AST* node, OutputBuffer* buffer);

@@ -4,7 +4,7 @@
 //TODO Maybe implement for basic Lava MVP
 
 #include "structures.h"
-#include "ast.h"
+#include "ast_old.h"
 
 OutputBuffer* generateASM(AST* root) {
     OutputBuffer* outputBuffer = bufferInit();

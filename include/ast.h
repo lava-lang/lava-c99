@@ -1,120 +1,122 @@
 #ifndef LAVA_AST_H
 #define LAVA_AST_H
 
-#include "token.h"
-#include "debug.h"
-#include "lexer.h"
-#include "region.h"
+typedef struct Statement Statement;
+typedef struct Declaration Declaration;
 
-static int AST_NODES_CONSTRUCTED = 0;
+typedef enum DeclarationType {
+    DECL_NONE,
+    DECL_ENUM,
+    DECL_STRUCT,
+    DECL_UNION,
+    DECL_VAR,
+    DECL_CONST,
+    DECL_TYPEDEF,
+    DECL_FUNC,
+    DECL_NOTE,
+    DECL_IMPORT,
+} DeclarationType;
 
-const char* AST_NAMES[] = {
-    "Data Type", "Identifier", "Compound", "Var Value",
-    "Variable Definition", "Struct Definition", "Enum Definition", "Function Definition",
-    "Binary Operator", "Return", "Assigment", "Import",
-    "C Statement", "Integer", "Union", "Variable Function",
+struct Declaration {
+    DeclarationType type;
+    const char* name;
+    union {
+        struct {
+            //TODO
+        } enumVal;
+        struct {
+            //TODO
+        } funcVal;
+        struct {
+            //TODO
+        } aliasVal;
+        struct {
+            //TODO
+        } varVal;
+        struct {
+            //TODO
+        } constVal;
+        struct {
+            //TODO
+        } importVal;
+    };
 };
 
-typedef enum packed ASTType {
-    AST_TYPE, AST_ID, AST_COMP, AST_VALUE,
-    AST_VAR, AST_STRUCT, AST_ENUM, AST_FUNC,
-    AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,
-    AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
-} ASTType;
+typedef enum packed ExpressionType {
+    EXPRESSION_NONE,
+    EXPRESSION_PAREN,
+    EXPRESSION_INT,
+    EXPRESSION_FLOAT,
+    EXPRESSION_STR,
+    EXPRESSION_NAME,
+    EXPRESSION_CAST,
+    EXPRESSION_CALL,
+    EXPRESSION_INDEX,
+    EXPRESSION_FIELD,
+    EXPRESSION_COMPOUND,
+    EXPRESSION_UNARY,
+    EXPRESSION_BINARY,
+    EXPRESSION_TERNARY,
+    EXPRESSION_MODIFY,
+    EXPRESSION_SIZEOF_EXPR,
+    EXPRESSION_SIZEOF_TYPE,
+    EXPRESSION_TYPEOF_EXPR,
+    EXPRESSION_TYPEOF_TYPE,
+    EXPRESSION_ALIGNOF_EXPR,
+    EXPRESSION_ALIGNOF_TYPE,
+    EXPRESSION_OFFSETOF,
+    EXPRESSION_NEW,
+} ExpressionType;
 
-typedef enum packed ASTFlag {
-    ENUM_FLAG   = 1 << 0,
-    PACKED_DATA = 1 << 1,
-    ARGUMENT    = 1 << 2,
-} ASTFlag;
+typedef struct Expression {
 
-typedef struct AST {
-    ASTType type;
-    ASTFlag flags;
-    Token token;
-} AST;
+} Expression;
 
-typedef struct ASTComp {
-    AST base;
-    DynArray* array;
-} ASTComp;
+typedef enum packed StatementType {
+    STATEMENT_NONE,
+    STATEMENT_DECL,
+    STATEMENT_RETURN,
+    STATEMENT_BREAK,
+    STATEMENT_CONTINUE,
+    STATEMENT_BLOCK,
+    STATEMENT_IF,
+    STATEMENT_WHILE,
+    STATEMENT_DO_WHILE,
+    STATEMENT_FOR,
+    STATEMENT_SWITCH,
+    STATEMENT_ASSIGN,
+    STATEMENT_INIT,
+    STATEMENT_EXPR,
+    STATEMENT_NOTE,
+    STATEMENT_LABEL,
+    STATEMENT_GOTO,
+} StatementType;
 
-typedef struct ASTLiteral {
-    AST base;
+struct Statement {
+    StatementType type;
     union {
-        size_t value;
+        Expression* expr;
+        Declaration* decl;
+        const char* label;
+        struct {
+            //TODO
+        } ifVal;
+        struct {
+            //TODO
+        } whileVal;
+        struct {
+            //TODO
+        } forVal;
+        struct {
+            //TODO
+        } switchVal;
+        struct {
+            //TODO
+        } assign;
+        struct {
+            //TODO
+        } init;
     };
-} ASTLiteral;
+};
 
-typedef struct ASTVarDef {
-    AST base;
-    AST* dataType;
-    AST* identifier;
-    AST* expression;
-} ASTVarDef;
-
-typedef struct ASTStructDef {
-    AST base;
-    AST* identifier;
-    ASTComp* members;
-} ASTStructDef;
-
-typedef struct ASTEnumDef {
-    AST base;
-    AST* identifier;
-    AST* dataType;
-    ASTComp* constants;
-} ASTEnumDef;
-
-typedef struct ASTFuncDef {
-    AST base;
-    AST* returnType;
-    AST* identifier;
-    ASTComp* arguments;
-    ASTComp* statements;
-} ASTFuncDef;
-
-typedef struct ASTUnionDef {
-    AST base;
-    AST* identifier;
-    ASTComp* members;
-} ASTUnionDef;
-
-typedef struct ASTAssign {
-    AST base;
-    AST* left;
-    AST* right;
-} ASTAssign;
-
-typedef struct ASTBinop {
-    AST base;
-    AST* left;
-    Token op;
-    AST* right;
-} ASTBinop;
-
-typedef struct ASTExpr {
-    AST base;
-    AST* expr;
-} ASTExpr;
-
-#define initAST(TYPE, FLAGS, STRUCT) RALLOC(1, sizeof(STRUCT)); AST_NODES_CONSTRUCTED++
-#define basicAST(TYPE, FLAGS, TOK) ({AST* _AST = initAST(TYPE, FLAGS, AST); *_AST = (struct AST) {TYPE, FLAGS, {.type = TOK.type, .flags = TOK.flags, .view = TOK.view}}; _AST;})
-#define valueAST(TYPE, FLAGS, MEMBER, VALUE) ({ASTLiteral* _AST = initAST(TYPE, FLAGS, ASTLiteral); _AST->base.type = TYPE; _AST->base.flags = FLAGS; _AST->MEMBER = VALUE; _AST;})
-#define structAST(TYPE, FLAGS, STRUCT, ...) ({STRUCT* _AST = initAST(TYPE, FLAGS, STRUCT); *_AST = (struct STRUCT) {TYPE, FLAGS, {0}, __VA_ARGS__}; _AST;})
-
-typedef struct Scope {
-    AST* ast;
-} Scope;
-
-Scope* scopeInit(AST* ast) {
-//    Scope* scope = CALLOC(1, sizeof(Scope));
-//    scope->ast = ast;
-//    return scope;
-    return NULL;
-}
-
-void scopeFree(Scope* scope) {
-    FREE(scope);
-}
 #endif //LAVA_AST_H

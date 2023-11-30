@@ -4,7 +4,7 @@
 #include "include/parser.h"
 #include "include/structures.h"
 #include "include/file.h"
-#include "include/ast.h"
+#include "include/ast_old.h"
 #include "include/cgen.h"
 #include "include/region.h"
 
@@ -14,6 +14,8 @@ char* generateCFromLava(char* fileName, char* input) {
     Lexer lexer = lexerSetup(fileName, input);
     Parser parser = parserSetup(&lexer);
     ASTComp* root = parseAST(&parser, globalScope, TOKEN_EOF);
+
+
     BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1

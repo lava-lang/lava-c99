@@ -2,7 +2,7 @@
 #define LAVA_DEBUG_H
 
 #include <stdlib.h>
-#include "ast.h"
+#include "ast_old.h"
 #include "file.h"
 
 void printAST(AST* node, int depth);
