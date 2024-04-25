@@ -1,3 +1,5 @@
+//File Extension is "C" to enable basic GitHub syntax highlighting
+
 //Global scope lambda function
 str getName() -> "lava";
 
