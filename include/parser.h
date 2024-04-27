@@ -162,8 +162,15 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, ASTType pa
 
 AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, ASTType parent) {
     parserConsume(parser, TOKEN_LPAREN);
-    ASTComp* expressions = parseAST(parser, scope, TOKEN_RPAREN, parent);
+    DynArray* expressionArray = arrayInit(sizeof(AST*));
+    while (parser->type != TOKEN_RPAREN) { //Consume function argument expressions
+        arrayAppend(expressionArray, parseExpression(parser, scope, parent));
+        if (parser->type == TOKEN_COMMA) {
+            parserConsume(parser, TOKEN_COMMA);
+        }
+    }
     parserConsume(parser, TOKEN_RPAREN);
+    ASTComp* expressions = structAST(AST_COMP, 0, ASTComp, expressionArray);
     AST* funcCall = (AST*) structAST(AST_FUNC_CALL, 0, ASTFuncCall, identifier, expressions);
     return funcCall;
 }
@@ -207,13 +214,13 @@ AST* parseTerm(Parser* parser, Scope* scope, ASTType parent) {
 }
 
 AST* parseExpression(Parser* parser, Scope* scope, ASTType parent) {
-    AST* ast = parseTerm(parser, scope, parent);
+    AST* left = parseTerm(parser, scope, parent);
     if (parser->token->flags & TYPE_BINOP) {
         Token* token = parser->token;
         parserConsume(parser, parser->type);
-        return (AST*) structAST(AST_BINOP, 0, ASTBinop , ast, token, parseTerm(parser, scope, parent));
+        return (AST*) structAST(AST_BINOP, 0, ASTBinop , left, token, parseTerm(parser, scope, parent));
     }
-    return ast;
+    return left;
 }
 
 void parseReturn(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
@@ -269,6 +276,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     }
     stackPush(scope, &identifier->token->view, ST_FUNC);
 
+    int stackTop = scope->top;
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* nodesArgs = arrayInit(sizeof(AST *));
     parseDefinition(nodesArgs, parser, scope, parent);
@@ -280,6 +288,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     parserConsume(parser, TOKEN_LBRACE);
     ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, parent);
     parserConsume(parser, TOKEN_RBRACE);
+    scope->top = stackTop;
     arrayAppend(nodes, structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, body));
 }
 
@@ -288,19 +297,10 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType pare
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
         if (parser->type == TOKEN_ID) {
             if (dataType == NULL) {
-                //Comma delimited var def did not start with valid dataType, assume this is expression compound
-                //TODO improve using a copy pasted section from "//Consume function argument types"
-                DynArray* expressionArray = arrayInit(sizeof(AST*));
-                while (parser->type != TOKEN_RPAREN) { //Consume function argument types
-                    arrayAppend(expressionArray, parseExpression(parser, scope, parent));
-                    if (parser->type == TOKEN_COMMA) {
-                        parserConsume(parser, TOKEN_COMMA);
-                    }
-                }
-            } else {
-                //TODO: alloc new token as copy of dataType->token?
-                dataType = basicAST(AST_TYPE, 0, dataType->token);
+                ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! found (%s)", TOKEN_NAMES[parser->type])
             }
+            //TODO: alloc new token as copy of dataType->token?
+            dataType = basicAST(AST_TYPE, 0, dataType->token);
         } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope, parent);
         }
