@@ -181,7 +181,7 @@ void visitCStatement(AST* node, OutputBuffer* buffer) {
 
 void visitReturn(ASTExpr* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "return ");
-    visitNode(node->expr, buffer);
+    visit(node->expr, buffer);
     bufferAppend(buffer, ";");
 }
 

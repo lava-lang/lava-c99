@@ -81,7 +81,7 @@ StackEntry stackPush(Scope* scope, StrView* data, StackType type) {
 }
 
 int getPosForIden(Scope* scope, StrView* data) {
-    for (int i = 0; i < scope->top; ++i) {
+    for (int i = 0; i < scope->top + 1; ++i) {
         if (viewViewCmp(&scope->stack[i].view, data) == true) {
             return i;
         }
@@ -215,17 +215,19 @@ AST* parseTerm(Parser* parser, Scope* scope, ASTType parent) {
 
 AST* parseExpression(Parser* parser, Scope* scope, ASTType parent) {
     AST* left = parseTerm(parser, scope, parent);
-    if (parser->token->flags & TYPE_BINOP) {
+    while (parser->type == TOKEN_PLUS || parser->type == TOKEN_MINUS) {
         Token* token = parser->token;
         parserConsume(parser, parser->type);
-        return (AST*) structAST(AST_BINOP, 0, ASTBinop , left, token, parseTerm(parser, scope, parent));
+        AST* binop = (AST*) structAST(AST_BINOP, 0, ASTBinop, left, token, parseExpression(parser, scope, parent));
+        return binop;
     }
     return left;
 }
 
 void parseReturn(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
     parserConsume(parser, TOKEN_RETURN);
-    arrayAppend(nodes, structAST(AST_RETURN, 0, ASTExpr, parseExpression(parser, scope, parent)));
+    AST* expression = parseExpression(parser, scope, parent);
+    arrayAppend(nodes, structAST(AST_RETURN, 0, ASTExpr, expression));
     parserConsume(parser, TOKEN_EOS);
 }
 
