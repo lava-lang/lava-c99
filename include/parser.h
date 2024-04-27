@@ -276,6 +276,28 @@ void parseUnionDefinition(DynArray* nodes, Parser* parser, Scope* scope) {
     arrayAppend(nodes, structAST(AST_UNION, 0, ASTUnionDef, identifier, members));
 }
 
+void parseIf(DynArray* nodes, Parser* parser, Scope* scope) {
+    parserConsume(parser, TOKEN_IF);
+    parserConsume(parser, TOKEN_LPAREN);
+    AST* expression = parseExpression(parser, scope);
+    parserConsume(parser, TOKEN_RPAREN);
+    parserConsume(parser, TOKEN_LBRACE);
+    ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE);
+    parserConsume(parser, TOKEN_RBRACE);
+    arrayAppend(nodes, structAST(AST_IF, 0, ASTIf, expression, body));
+}
+
+void parseWhile(DynArray* nodes, Parser* parser, Scope* scope) {
+    parserConsume(parser, TOKEN_WHILE);
+    parserConsume(parser, TOKEN_LPAREN);
+    AST* expression = parseExpression(parser, scope);
+    parserConsume(parser, TOKEN_RPAREN);
+    parserConsume(parser, TOKEN_LBRACE);
+    ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE);
+    parserConsume(parser, TOKEN_RBRACE);
+    arrayAppend(nodes, structAST(AST_WHILE, 0, ASTWhile, expression, body));
+}
+
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
     DynArray* nodes = arrayInit(sizeof(AST*));
     while (parser->type != breakToken) {
@@ -293,7 +315,13 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken) {
             parseReturn(nodes, parser, scope);
         } else if (parser->type == TOKEN_IMPORT) {
             parseImport(nodes, parser, scope);
-        } else {
+        } else if (parser->type == TOKEN_IF) {
+            parseIf(nodes, parser, scope);
+        } else if (parser->type == TOKEN_WHILE) {
+            parseWhile(nodes, parser, scope);
+        }
+
+        else {
             ERROR("Token Was Not Consumed Or Parsed! %s (%s)", TOKEN_NAMES[parser->type], viewToStr(&parser->token->view));
         }
     }

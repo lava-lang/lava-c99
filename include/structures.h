@@ -32,34 +32,32 @@ void arrayAppend(DynArray* array, void* element) {
 }
 
 typedef struct OutputBuffer {
-    char* prefix;
-    char* code;
+    FILE* fp;
     size_t tab;
 } OutputBuffer;
 
-OutputBuffer* bufferInit() {
+OutputBuffer* bufferInit(FILE* fp) {
     OutputBuffer* buffer = CALLOC(1, sizeof(OutputBuffer));
-    buffer->code = CALLOC(2, sizeof(char));
-    buffer->code[0] = '\0';
-    buffer->prefix = CALLOC(2, sizeof(char));
-    buffer->prefix[0] = '\0';
     buffer->tab = 0;
+    buffer->fp = fp;
     return buffer;
 }
 
 void bufferFree(OutputBuffer* buffer) {
-    FREE(buffer->code);
-    FREE(buffer->prefix);
     FREE(buffer);
 }
 
 //TODO support multiple strings
 void bufferAppend(OutputBuffer* buffer, char* value) {
-    buffer->code = concatStr(buffer->code, value);
+    fputs(value, buffer->fp);
 }
 
 void bufferAppendView(OutputBuffer* buffer, StrView* view) {
-    buffer->code = concatNStr(buffer->code, view->start, view->len);
+    for (size_t i = 0; i < view->len; ++i) {
+        char c = *(view->start + i);
+        if (c == '\0') continue;
+        fputc(c, buffer->fp);
+    }
 }
 
 void bufferIndent(OutputBuffer* buffer) {
@@ -83,17 +81,5 @@ void bufferAppendIndent(OutputBuffer* buffer) {
         bufferAppend(buffer, tabs);
         FREE(tabs);
     }
-}
-
-void bufferAppendPrefix(OutputBuffer* buffer, char* value) {
-    buffer->prefix = concatStr(buffer->prefix, value);
-}
-
-void bufferAppendPrefixView(OutputBuffer* buffer, StrView* view) {
-    buffer->prefix = concatNStr(buffer->prefix, view->start, view->len);
-}
-
-char* bufferBuild(OutputBuffer* buffer) {
-    return (buffer->prefix = concatStr(buffer->prefix, buffer->code));
 }
 #endif
