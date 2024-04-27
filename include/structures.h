@@ -32,14 +32,18 @@ void arrayAppend(DynArray* array, void* element) {
 }
 
 typedef struct OutputBuffer {
-    FILE* fp;
+    FILE* fpPrefix;
+    FILE* fpCode;
+    bool prefix;
     size_t tab;
 } OutputBuffer;
 
-OutputBuffer* bufferInit(FILE* fp) {
+OutputBuffer* bufferInit(FILE* fpPrefix, FILE* fpCode) {
     OutputBuffer* buffer = CALLOC(1, sizeof(OutputBuffer));
+    buffer->fpPrefix = fpPrefix;
+    buffer->fpCode = fpCode;
+    buffer->prefix = true;
     buffer->tab = 0;
-    buffer->fp = fp;
     return buffer;
 }
 
@@ -49,15 +53,31 @@ void bufferFree(OutputBuffer* buffer) {
 
 //TODO support multiple strings
 void bufferAppend(OutputBuffer* buffer, char* value) {
-    fputs(value, buffer->fp);
+    if (buffer->prefix == true) {
+        fputs(value, buffer->fpPrefix);
+    } else {
+        fputs(value, buffer->fpCode);
+    }
 }
 
 void bufferAppendView(OutputBuffer* buffer, StrView* view) {
     for (size_t i = 0; i < view->len; ++i) {
         char c = *(view->start + i);
         if (c == '\0') continue;
-        fputc(c, buffer->fp);
+        if (buffer->prefix == true) {
+            fputc(c, buffer->fpPrefix);
+        } else {
+            fputc(c, buffer->fpCode);
+        }
     }
+}
+
+void bufferPrefix(OutputBuffer* buffer) {
+    buffer->prefix = true;
+}
+
+void bufferCode(OutputBuffer* buffer) {
+    buffer->prefix = false;
 }
 
 void bufferIndent(OutputBuffer* buffer) {

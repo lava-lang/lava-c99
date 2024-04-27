@@ -15,9 +15,13 @@ void printView(StrView* view, char* suffix) {
     printf("%.*s%s", (int) view->len, view->start, suffix);
 }
 
-bool viewCmp(StrView* view, char* other) {
+bool viewStrCmp(StrView* view, char* other) {
     size_t otherLen = strlen(other);
     return strncmp(view->start, other, view->len < otherLen ? otherLen : view->len) == 0;
+}
+
+bool viewViewCmp(StrView* a, StrView* b) {
+    return strncmp(a->start, b->start, a->len < b->len ? b->len : a->len) == 0;
 }
 
 char* viewToStr(StrView* view) {

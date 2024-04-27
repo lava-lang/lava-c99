@@ -21,12 +21,13 @@ typedef enum packed ASTType {
     AST_VAR, AST_STRUCT, AST_ENUM, AST_FUNC,
     AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,
     AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
-    AST_IF, AST_WHILE
+    AST_IF, AST_WHILE, AST_EXPR
 } ASTType;
 typedef enum packed ASTFlag {
     ENUM_FLAG   = 1 << 0,
     PACKED_DATA = 1 << 1,
     ARGUMENT    = 1 << 2,
+    STRUCT_FUNC = 1 << 3,
 } ASTFlag;
 struct AST {
     ASTType type;
@@ -51,18 +52,4 @@ typedef struct ASTWhile {AST base; AST* expr; ASTComp* body;} ASTWhile;
 #define valueAST(TYPE, FLAGS, MEMBER, VALUE) ({ASTLiteral* _AST = initAST(TYPE, FLAGS, ASTLiteral); _AST->base.type = TYPE; _AST->base.flags = FLAGS; _AST->MEMBER = VALUE; _AST;})
 #define structAST(TYPE, FLAGS, STRUCT, ...) ({STRUCT* _AST = initAST(TYPE, FLAGS, STRUCT); *_AST = (struct STRUCT) {TYPE, FLAGS, &TOKEN_NONE, __VA_ARGS__}; _AST;})
 
-typedef struct Scope {
-    AST* ast;
-} Scope;
-
-Scope* scopeInit(AST* ast) {
-//    Scope* scope = CALLOC(1, sizeof(Scope));
-//    scope->ast = ast;
-//    return scope;
-    return NULL;
-}
-
-void scopeFree(Scope* scope) {
-    FREE(scope);
-}
 #endif //LAVA_AST_H
