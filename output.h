@@ -5,9 +5,8 @@
 typedef enum Direction Direction;
 
 typedef struct Vec Vec;
-void add(	int xa, 	int xb) {
-		printf("struct\n");
-		printf("func\n");
+int Vec_add(	int xa, 	int xb) {
+		return xa + xb;
 }
 void makeVec(int x, int y, int z);
 int test(int x, int y, int z);

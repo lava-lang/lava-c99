@@ -118,6 +118,10 @@ void visitFuncDefinition(ASTFuncDef* node, OutputBuffer* buffer) {
         bufferAppend(buffer, "\n");
         visit(node->returnType, buffer);
         bufferAppend(buffer, " ");
+        if (node->structIden != NULL) {
+            bufferAppend(buffer, node->structIden);
+            bufferAppend(buffer, "_");
+        }
         visit(node->identifier, buffer);
         bufferAppend(buffer, "(");
         visitCompound(node->arguments, buffer, ", ", true);
@@ -131,6 +135,10 @@ void visitFuncDefinition(ASTFuncDef* node, OutputBuffer* buffer) {
     }
     visit(node->returnType, buffer);
     bufferAppend(buffer, " ");
+    if (node->structIden != NULL) {
+        bufferAppend(buffer, node->structIden);
+        bufferAppend(buffer, "_");
+    }
     visit(node->identifier, buffer);
     bufferAppend(buffer, "(");
     visitCompound(node->arguments, buffer, ", ", true);
@@ -270,6 +278,10 @@ void visitExpr(ASTExpr* node, OutputBuffer* buffer) {
 }
 
 void visitFuncCall(ASTFuncCall* node, OutputBuffer* buffer) {
+    if (node->structIden != NULL) {
+        bufferAppend(buffer, node->structIden);
+        bufferAppend(buffer, "_");
+    }
     visit(node->identifier, buffer);
     bufferAppend(buffer, "(");
     visitCompound(node->expressions, buffer, ",", true);

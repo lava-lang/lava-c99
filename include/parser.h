@@ -5,13 +5,15 @@
 #include "token.h"
 #include "lexer.h"
 #include "ast.h"
+#include "hashmap.h"
 
 static int TOKENS_CONSUMED = 0;
 static int STACK_MAX = 255;
 
 typedef enum StackType {
     ST_VAR,
-    ST_FUNC
+    ST_FUNC,
+    ST_FUNC_STRUCT,
 } StackType;
 
 typedef struct StackEntry {
@@ -21,11 +23,13 @@ typedef struct StackEntry {
 
 typedef struct Scope {
     StackEntry stack[255];
+    hash_table* table;
     int top;
 } Scope;
 
 Scope* scopeInit() {
     Scope* scope = CALLOC(1, sizeof(Scope));
+    scope->table = init_hash_table(100);
     scope->top = -1;
     return scope;
 }
@@ -137,30 +141,30 @@ Token* parserConsume(Parser* parser, TokenType type) {
 }
 
 //TODO, pass the return of parserConsume directly
-AST* parseIdentifier(Parser* parser, Scope* scope, ASTType parent) {
+AST* parseIdentifier(Parser* parser, Scope* scope, AST* parent) {
     Token* identifier = parser->token;
     parserConsume(parser, TOKEN_ID);
     return basicAST(AST_ID, 0, identifier);
 }
 
-AST* parseDataType(Parser* parser, Scope* scope, ASTType parent) {
+AST* parseDataType(Parser* parser, Scope* scope, AST* parent) {
     Token* varType = parser->token;
     parserConsume(parser, parser->type); //Type was checked by parseTokens, so this should be valid. parserConsume will panic if not.
     return basicAST(AST_TYPE, 0, varType);
 }
 
-void parseCStatement(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseCStatement(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     Token* statement = parser->token;
     parserConsume(parser, TOKEN_C_STATEMENT);
     arrayAppend(nodes, basicAST(AST_C, 0, statement));
 }
 
-AST* parseFactor(Parser* parser, Scope* scope, ASTType parent);
-AST* parseExpression(Parser* parser, Scope* scope, ASTType parent);
-void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent);
-ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, ASTType parent);
+AST* parseFactor(Parser* parser, Scope* scope, AST* parent);
+AST* parseExpression(Parser* parser, Scope* scope, AST* parent);
+void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent);
+ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent);
 
-AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, ASTType parent) {
+AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, AST* parent, char* prefix) {
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* expressionArray = arrayInit(sizeof(AST*));
     while (parser->type != TOKEN_RPAREN) { //Consume function argument expressions
@@ -171,11 +175,10 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, ASTType pa
     }
     parserConsume(parser, TOKEN_RPAREN);
     ASTComp* expressions = structAST(AST_COMP, 0, ASTComp, expressionArray);
-    AST* funcCall = (AST*) structAST(AST_FUNC_CALL, 0, ASTFuncCall, identifier, expressions);
-    return funcCall;
+    return (AST*) structAST(AST_FUNC_CALL, 0, ASTFuncCall, identifier, expressions, prefix);
 }
 
-AST* parseFactor(Parser* parser, Scope* scope, ASTType parent) {
+AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
     Token* token = parser->token;
     if (parser->token->flags & DATA_VALUE) {
         parserConsume(parser, parser->type);
@@ -189,21 +192,25 @@ AST* parseFactor(Parser* parser, Scope* scope, ASTType parent) {
         //TODO parse array
     } else if (parser->type == TOKEN_ID) {
         //TODO validate if this is the right place for the existing iden check
-        if (identifierExists(scope, &parser->token->view) == false) {
+        int stType = getSTForIden(scope, &parser->token->view);
+        hash_table_entry out = {0};
+        int result = find(scope->table, viewToStr(&parser->token->view), &out);
+
+        if (stType == -1 && result != 0) {
             ERROR("Unknown Identifier! (%s)", viewToStr(&parser->token->view));
-        }
-        AST* identifier = parseIdentifier(parser, scope, parent);
-        if (getSTForIden(scope, &identifier->token->view) == ST_FUNC) {
-            return parseFunctionCall(parser, scope, identifier, parent);
+        } else if (stType == ST_VAR) {
+            return parseIdentifier(parser, scope, parent);;
+        } else if (stType == ST_FUNC) {
+            return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, NULL);
         } else {
-            return identifier;
+            return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, out.value);
         }
     } else {
         return parseExpression(parser, scope, parent);
     }
 }
 
-AST* parseTerm(Parser* parser, Scope* scope, ASTType parent) {
+AST* parseTerm(Parser* parser, Scope* scope, AST* parent) {
     AST* factor = parseFactor(parser, scope, parent);
     while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_MULTIPLY) {
         Token* token = parser->token;
@@ -213,7 +220,7 @@ AST* parseTerm(Parser* parser, Scope* scope, ASTType parent) {
     return factor;
 }
 
-AST* parseExpression(Parser* parser, Scope* scope, ASTType parent) {
+AST* parseExpression(Parser* parser, Scope* scope, AST* parent) {
     AST* left = parseTerm(parser, scope, parent);
     while (parser->type == TOKEN_PLUS || parser->type == TOKEN_MINUS) {
         Token* token = parser->token;
@@ -224,14 +231,14 @@ AST* parseExpression(Parser* parser, Scope* scope, ASTType parent) {
     return left;
 }
 
-void parseReturn(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseReturn(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     parserConsume(parser, TOKEN_RETURN);
     AST* expression = parseExpression(parser, scope, parent);
     arrayAppend(nodes, structAST(AST_RETURN, 0, ASTExpr, expression));
     parserConsume(parser, TOKEN_EOS);
 }
 
-void parseImport(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseImport(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     arrayAppend(nodes, basicAST(AST_IMPORT, 0, parser->token));
     parserConsume(parser, TOKEN_IMPORT);
     parserConsume(parser, TOKEN_EOS);
@@ -254,7 +261,7 @@ bool isValueCompatible(AST* dataType, AST* expression) {
     }
 }
 
-void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, ASTType parent) {
+void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, AST* parent) {
     if (identifierExists(scope, &identifier->token->view) == true) {
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
@@ -270,13 +277,21 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
     arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
 }
 
-void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier, ASTType parent) {
-    int flags = parent == AST_STRUCT ? STRUCT_FUNC : 0;
+void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier, AST* parent) {
+    int flags = parent->type == AST_STRUCT ? STRUCT_FUNC : 0;
 
     if (identifierExists(scope, &identifier->token->view) == true) {
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
-    stackPush(scope, &identifier->token->view, ST_FUNC);
+    char* structIden = NULL;
+    if (parent->type == AST_STRUCT) {
+        stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT);
+        ASTStructDef* astStructDef = (ASTStructDef*) parent;
+        insert(scope->table, viewToStr(&identifier->token->view), viewToStr(&astStructDef->identifier->token->view));
+        structIden = viewToStr(&astStructDef->identifier->token->view);
+    } else {
+        stackPush(scope, &identifier->token->view, ST_FUNC);
+    }
 
     int stackTop = scope->top;
     parserConsume(parser, TOKEN_LPAREN);
@@ -291,10 +306,10 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, parent);
     parserConsume(parser, TOKEN_RBRACE);
     scope->top = stackTop;
-    arrayAppend(nodes, structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, body));
+    arrayAppend(nodes, structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, body, structIden));
 }
 
-void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     AST* dataType = NULL;
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
         if (parser->type == TOKEN_ID) {
@@ -343,7 +358,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType pare
     }
 }
 
-void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     parserConsume(parser, TOKEN_STRUCT);
     ASTFlag flags = 0;
     if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
@@ -353,12 +368,15 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTTyp
     AST* id = parseIdentifier(parser, scope, parent);
     parserConsume(parser, TOKEN_LBRACE);
     int stackTop = scope->top;
-    arrayAppend(nodes, structAST(AST_STRUCT, flags, ASTStructDef, id, parseAST(parser, scope, TOKEN_RBRACE, AST_STRUCT)));
+    ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
+    ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, (AST*) astStruct);
+    astStruct->members = body;
+    arrayAppend(nodes, astStruct);
     scope->top = stackTop;
     parserConsume(parser, TOKEN_RBRACE);
 }
 
-void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     parserConsume(parser, TOKEN_ENUM);
     ASTFlag flags = 0;
     if (parser->type == TOKEN_FLAG) { //Bitmask enum
@@ -403,7 +421,7 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType 
     arrayAppend(nodes, structAST(AST_ENUM, flags, ASTEnumDef, identifier, dataType, constants));
 }
 
-void parseUnionDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseUnionDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     parserConsume(parser, TOKEN_UNION);
     AST* identifier = parser->type == TOKEN_ID ? identifier = parseIdentifier(parser, scope, parent) : NULL;
     parserConsume(parser, TOKEN_LBRACE);
@@ -414,7 +432,7 @@ void parseUnionDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType
     arrayAppend(nodes, structAST(AST_UNION, 0, ASTUnionDef, identifier, members));
 }
 
-void parseIf(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseIf(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     parserConsume(parser, TOKEN_IF);
     parserConsume(parser, TOKEN_LPAREN);
     AST* expression = parseExpression(parser, scope, parent);
@@ -425,7 +443,7 @@ void parseIf(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
     arrayAppend(nodes, structAST(AST_IF, 0, ASTIf, expression, body));
 }
 
-void parseWhile(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
+void parseWhile(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     parserConsume(parser, TOKEN_WHILE);
     parserConsume(parser, TOKEN_LPAREN);
     AST* expression = parseExpression(parser, scope, parent);
@@ -436,7 +454,7 @@ void parseWhile(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent) {
     arrayAppend(nodes, structAST(AST_WHILE, 0, ASTWhile, expression, body));
 }
 
-ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, ASTType parent) {
+ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent) {
     DynArray* nodes = arrayInit(sizeof(AST*));
     while (parser->type != breakToken) {
         if (parser->token->flags & DATA_TYPE) {

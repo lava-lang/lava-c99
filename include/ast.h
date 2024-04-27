@@ -40,14 +40,14 @@ typedef struct ASTLiteral {AST base; union {size_t value; };} ASTLiteral;
 typedef struct ASTVarDef {AST base; AST* dataType; AST* identifier; AST* expression;} ASTVarDef;
 typedef struct ASTStructDef {AST base; AST* identifier; ASTComp* members;} ASTStructDef;
 typedef struct ASTEnumDef {AST base; AST* identifier; AST* dataType; ASTComp* constants;} ASTEnumDef;
-typedef struct ASTFuncDef {AST base; AST* returnType; AST* identifier; ASTComp* arguments; ASTComp* statements;} ASTFuncDef;
+typedef struct ASTFuncDef {AST base; AST* returnType; AST* identifier; ASTComp* arguments; ASTComp* statements; char* structIden;} ASTFuncDef;
 typedef struct ASTUnionDef {AST base; AST* identifier; ASTComp* members;} ASTUnionDef;
 typedef struct ASTAssign {AST base; AST* left; AST* right;} ASTAssign;
 typedef struct ASTBinop {AST base; AST* left; Token* op; AST* right;} ASTBinop;
 typedef struct ASTExpr {AST base; AST* expr;} ASTExpr;
 typedef struct ASTIf {AST base; AST* expr; ASTComp* body;} ASTIf;
 typedef struct ASTWhile {AST base; AST* expr; ASTComp* body;} ASTWhile;
-typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions;} ASTFuncCall;
+typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions; char* structIden;} ASTFuncCall;
 
 #define initAST(TYPE, FLAGS, STRUCT) RALLOC(1, sizeof(STRUCT)); AST_NODES_CONSTRUCTED++
 #define basicAST(TYPE, FLAGS, TOK) ({AST* _AST = initAST(TYPE, FLAGS, AST); *_AST = (struct AST) {TYPE, FLAGS, TOK}; _AST;})

@@ -13,7 +13,8 @@ void generateCFromLava(char* fileName, char* input) {
     Scope* globalScope = scopeInit();
     Lexer* lexer = lexerInit(fileName, input);
     Parser* parser = parserInit(lexer);
-    ASTComp* root = parseAST(parser, globalScope, TOKEN_EOF, -1);
+    AST empty = {0};
+    ASTComp* root = parseAST(parser, globalScope, TOKEN_EOF, &empty);
     //BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
