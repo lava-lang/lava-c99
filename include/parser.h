@@ -10,7 +10,8 @@ static int TOKENS_CONSUMED = 0;
 static int STACK_MAX = 255;
 
 typedef enum StackType {
-    ST_VAR
+    ST_VAR,
+    ST_FUNC
 } StackType;
 
 typedef struct StackEntry {
@@ -73,19 +74,31 @@ StackEntry stackPush(Scope* scope, StrView* data, StackType type) {
     if(!stackFull(scope)) {
         scope->top = scope->top + 1;
         memcpy(&scope->stack[scope->top].view, data, sizeof(StrView)); //Copy view pointer, as this will be changed by the lexer
-//        scope->stack[scope->top]->type = type;
+        scope->stack[scope->top].type = type;
     } else {
         printf("Could not insert data, Stack is full.\n");
     }
 }
 
-int stackContains(Scope* scope, StrView* data, StackType type) {
+int getPosForIden(Scope* scope, StrView* data) {
     for (int i = 0; i < scope->top; ++i) {
-        if (viewViewCmp(&scope->stack[i].view, data) == true && scope->stack[i].type == type) {
-            return 1;
+        if (viewViewCmp(&scope->stack[i].view, data) == true) {
+            return i;
         }
     }
-    return 0;
+    return -1;
+}
+
+bool identifierExists(Scope* scope, StrView* view) {
+    return getPosForIden(scope, view) == -1 ? false : true;
+}
+
+StackType getSTForIden(Scope* scope, StrView* view) {
+    int pos = getPosForIden(scope, view);
+    if (pos != -1) {
+        return scope->stack[pos].type;
+    }
+    return -1;
 }
 
 typedef struct Parser {
@@ -147,6 +160,14 @@ AST* parseExpression(Parser* parser, Scope* scope, ASTType parent);
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType parent);
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, ASTType parent);
 
+AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, ASTType parent) {
+    parserConsume(parser, TOKEN_LPAREN);
+    ASTComp* expressions = parseAST(parser, scope, TOKEN_RPAREN, parent);
+    parserConsume(parser, TOKEN_RPAREN);
+    AST* funcCall = (AST*) structAST(AST_FUNC_CALL, 0, ASTFuncCall, identifier, expressions);
+    return funcCall;
+}
+
 AST* parseFactor(Parser* parser, Scope* scope, ASTType parent) {
     Token* token = parser->token;
     if (parser->token->flags & DATA_VALUE) {
@@ -161,10 +182,15 @@ AST* parseFactor(Parser* parser, Scope* scope, ASTType parent) {
         //TODO parse array
     } else if (parser->type == TOKEN_ID) {
         //TODO validate if this is the right place for the existing iden check
-        if (stackContains(scope, &parser->token->view, ST_VAR) == false) {
+        if (identifierExists(scope, &parser->token->view) == false) {
             ERROR("Unknown Identifier! (%s)", viewToStr(&parser->token->view));
         }
-        return parseIdentifier(parser, scope, parent);
+        AST* identifier = parseIdentifier(parser, scope, parent);
+        if (getSTForIden(scope, &identifier->token->view) == ST_FUNC) {
+            return parseFunctionCall(parser, scope, identifier, parent);
+        } else {
+            return identifier;
+        }
     } else {
         return parseExpression(parser, scope, parent);
     }
@@ -220,7 +246,7 @@ bool isValueCompatible(AST* dataType, AST* expression) {
 }
 
 void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, ASTType parent) {
-    if (stackContains(scope, &identifier->token->view, ST_VAR) == true) {
+    if (identifierExists(scope, &identifier->token->view) == true) {
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
     stackPush(scope, &identifier->token->view, ST_VAR);
@@ -237,6 +263,12 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
 
 void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier, ASTType parent) {
     int flags = parent == AST_STRUCT ? STRUCT_FUNC : 0;
+
+    if (identifierExists(scope, &identifier->token->view) == true) {
+        ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
+    }
+    stackPush(scope, &identifier->token->view, ST_FUNC);
+
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* nodesArgs = arrayInit(sizeof(AST *));
     parseDefinition(nodesArgs, parser, scope, parent);
@@ -255,9 +287,20 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, ASTType pare
     AST* dataType = NULL;
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
         if (parser->type == TOKEN_ID) {
-            ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! found (%s)", TOKEN_NAMES[parser->type])
-            //TODO: alloc new token as copy of dataType->token?
-            dataType = basicAST(AST_TYPE, 0, dataType->token);
+            if (dataType == NULL) {
+                //Comma delimited var def did not start with valid dataType, assume this is expression compound
+                //TODO improve using a copy pasted section from "//Consume function argument types"
+                DynArray* expressionArray = arrayInit(sizeof(AST*));
+                while (parser->type != TOKEN_RPAREN) { //Consume function argument types
+                    arrayAppend(expressionArray, parseExpression(parser, scope, parent));
+                    if (parser->type == TOKEN_COMMA) {
+                        parserConsume(parser, TOKEN_COMMA);
+                    }
+                }
+            } else {
+                //TODO: alloc new token as copy of dataType->token?
+                dataType = basicAST(AST_TYPE, 0, dataType->token);
+            }
         } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope, parent);
         }

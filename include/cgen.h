@@ -269,6 +269,13 @@ void visitExpr(ASTExpr* node, OutputBuffer* buffer) {
     bufferAppend(buffer, ")");
 }
 
+void visitFuncCall(ASTFuncCall* node, OutputBuffer* buffer) {
+    visit(node->identifier, buffer);
+    bufferAppend(buffer, "(");
+    visitCompound(node->expressions, buffer, ",", true);
+    bufferAppend(buffer, ")");
+}
+
 void visit(AST* node, OutputBuffer* buffer) {
     if (node == NULL) return;
     switch (node->type) {
@@ -290,6 +297,7 @@ void visit(AST* node, OutputBuffer* buffer) {
         case AST_IF: visitIf((ASTIf*) node, buffer); break;
         case AST_WHILE: visitWhile((ASTWhile*) node, buffer); break;
         case AST_EXPR: visitExpr((ASTExpr*) node, buffer); break;
+        case AST_FUNC_CALL: visitFuncCall((ASTFuncCall*) node, buffer); break;
         default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
 }

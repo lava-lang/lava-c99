@@ -10,4 +10,5 @@ void add(	int xa, 	int xb) {
 		printf("func\n");
 }
 void makeVec(int x, int y, int z);
+int test();
 int main();
