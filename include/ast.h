@@ -13,8 +13,11 @@ const char* AST_NAMES[] = {
     "Variable Definition", "Struct Definition", "Enum Definition", "Function Definition",
     "Binary Operator", "Unary Operator", "Return", "Assigment", "Import",
     "C Statement", "Integer", "Union", "Variable Function",
-    "If Statement", "Else Statement", "While Loop", "Expression", "Function Call",
+    "If Statement", "Else Statement", "While Loop", "For Loop", "Expression", "Function Call",
 };
+
+//TODO AST nodes should have their parent as a member, to avoid
+//TODO requiring that logic within parser and cgen
 
 typedef struct AST AST;
 typedef enum packed ASTType {
@@ -22,7 +25,7 @@ typedef enum packed ASTType {
     AST_VAR, AST_STRUCT, AST_ENUM, AST_FUNC,
     AST_BINOP, AST_UNARY, AST_RETURN, AST_ASSIGN, AST_IMPORT,
     AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
-    AST_IF, AST_ELSE, AST_WHILE, AST_EXPR, AST_FUNC_CALL,
+    AST_IF, AST_ELSE, AST_WHILE, AST_FOR, AST_EXPR, AST_FUNC_CALL,
     AST_STRUCT_INIT, AST_STRUCT_MEMBER_REF, AST_BREAK,
 } ASTType;
 typedef enum packed ASTFlag {
@@ -54,6 +57,7 @@ typedef struct ASTExpr {AST base; AST* expr;} ASTExpr;
 typedef struct ASTIf {AST base; AST* expr; ASTComp* body;} ASTIf;
 typedef struct ASTElse {AST base; ASTComp* body;} ASTElse;
 typedef struct ASTWhile {AST base; AST* expr; ASTComp* body;} ASTWhile;
+typedef struct ASTFor {AST base; AST* definition; AST* condition; AST* expression; ASTComp* body;} ASTFor;
 typedef struct ASTBreak {AST base; AST* expr; ASTComp* body;} ASTBreak;
 typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions; char* structIden;} ASTFuncCall;
 typedef struct ASTStructInit {AST base; AST* identifier; ASTStructDef* structDef; ASTComp* expressions;} ASTStructInit;

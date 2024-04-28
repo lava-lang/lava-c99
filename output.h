@@ -1,4 +1,3 @@
 #include <stdbool.h>
-#include <stdio.h>
 
-int main();
+typedef struct Vec Vec;

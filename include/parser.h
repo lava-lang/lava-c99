@@ -577,6 +577,28 @@ void parseWhile(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     arrayAppend(nodes, structAST(AST_WHILE, 0, ASTWhile, expression, body));
 }
 
+void parseFor(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+    parserConsume(parser, TOKEN_FOR);
+    parserConsume(parser, TOKEN_LPAREN);
+    int stackTop = scope->top;
+    DynArray* array = arrayInit(sizeof(AST*));
+    parseDefinition(array, parser, scope, parent);
+    //TODO hack
+    AST* definition = (AST*) array->elements[0];
+    //EOS consume not needed as parseVarDef will consume it
+    //parserConsume(parser, TOKEN_EOS);
+    AST* condition = parseExpression(parser, scope, parent);
+    parserConsume(parser, TOKEN_EOS);
+    ASTComp* astComp = parseAST(parser, scope, TOKEN_RPAREN, parent);
+    AST* expression = astComp->array->elements[0];
+    parserConsume(parser, TOKEN_RPAREN);
+    parserConsume(parser, TOKEN_LBRACE);
+    ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, parent);
+    parserConsume(parser, TOKEN_RBRACE);
+    scope->top = stackTop;
+    arrayAppend(nodes, structAST(AST_FOR, 0, ASTFor, definition, condition, expression, body));
+}
+
 void parseBreak(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     Token* token = parser->token;
     parserConsume(parser, TOKEN_BREAK);
@@ -597,7 +619,10 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         Token* token = parser->token;
         parserConsume(parser, parser->type);
         arrayAppend(nodes, structAST(AST_UNARY, UNARY_LEFT, ASTUnary, identifierOrType, token));
-        parserConsume(parser, TOKEN_EOS);
+        if (parser->type == TOKEN_EOS) {
+            //TODO bit of a hack, stops for loop requiring trailing EOS
+            parserConsume(parser, TOKEN_EOS);
+        }
     } else if (parser->type == TOKEN_LPAREN) { //This must be a void function call outside an expression
         AST* funcCall = parseFunctionCall(parser, scope, parent, identifierOrType, NULL, NULL);
         funcCall->flags |= NON_EXPR_FUNC;
@@ -633,6 +658,8 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
             parseElse(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_WHILE) {
             parseWhile(nodes, parser, scope, parent);
+        } else if (parser->type == TOKEN_FOR) {
+            parseFor(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_BREAK) {
             parseBreak(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_ID) {
