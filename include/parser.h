@@ -220,16 +220,35 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
             AST* identifier = parseIdentifier(parser, scope, parent);
             if (parser->type == TOKEN_DOT) { //We're doing a struct instance function call
                 parserConsume(parser, TOKEN_DOT);
-                AST* funcIden = parseIdentifier(parser, scope, parent);
+                //Check of we're trying to access a struct member
                 hash_table_entry out = {0};
-                int result = find(scope->defs, viewToStr(&funcIden->token->view), &out);
+                int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
+                if (result == 0) {
+                    ASTStructDef* structDef = (ASTStructDef*) out.value;
+                    for (int i = 0; i < structDef->members->array->len; ++i) {
+                        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
+                            ASTVarDef* varDef = (ASTVarDef*) structDef->members->array->elements[i];
+                            if (viewViewCmp(&varDef->identifier->token->view, &parser->token->view) == true) {
+                                //struct member access is a defined member
+                                AST* member = parseIdentifier(parser, scope, parent);
+                                if (parser->type == TOKEN_EOS) {
+                                    parserConsume(parser, TOKEN_EOS);
+                                }
+                                return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
+                            }
+                        }
+                    }
+                }
+                //Check if we're trying to access struct function
+                AST* funcIden = parseIdentifier(parser, scope, parent);
+                result = find(scope->defs, viewToStr(&funcIden->token->view), &out);
                 if (result == 0) {
                     ASTStructDef* structDef = (ASTStructDef*) out.value;
                     //We also pass the variable identifier as parent for the function call, so this func as access to it
                     return parseFunctionCall(parser, scope, identifier, funcIden, structDef, viewToStr(&structDef->identifier->token->view));
-                } else { //Tried to call function on struct that does not exist
-                    ERROR("Unknown Struct Function! (%s)", viewToStr(&funcIden->token->view))
                 }
+                //Tried to call function on struct that does not exist
+                ERROR("Unknown Struct Function! (%s)", viewToStr(&funcIden->token->view))
             } else {
                 return identifier;
             }
@@ -327,6 +346,9 @@ AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, A
     if (expressionArray->len != structVarCount) {
         ERROR("Not enough init values! expected %llu, got %llu", structVarCount, expressionArray->len);
     }
+
+    //Push this type to user defined
+    insert(scope->defs, viewToStr(&identifier->token->view), structDef);
 
     parserConsume(parser, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_EOS);
