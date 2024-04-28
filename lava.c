@@ -18,15 +18,15 @@ void generateCFromLava(char* fileName, char* input) {
     //BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
-        for (int i = 0; i < root->comp.array->len; ++i) {
-                AST* node = (AST*) root->comp.array->elements[i];
+        for (int i = 0; i < root->array->len; ++i) {
+                AST* node = (AST*) root->array->elements[i];
                 printAST(node, 0);
             }
     #endif
 
     //clock_t startCodegen = clock();
     generateC(root, "../output.h", "../output.c");
-    DEBUG("C Code Generation:\n%s\n", generatedCode)
+    //DEBUG("C Code Generation:\n%s\n", generatedCode)
     //BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
 
     FREE(root->array);

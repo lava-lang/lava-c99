@@ -180,6 +180,7 @@ Token* lexNextDigit(Lexer* lexer) {
     return tokenInit(type, &lexer->view, DATA_VALUE);
 }
 
+//TODO user defined types should be lexed here as they are defined by the parser
 size_t lexDataType(Lexer* lexer, TokenFlag type) {
     size_t flags = DATA_TYPE | type;
     if (lexer->cur == '*') {
@@ -359,7 +360,7 @@ Token* lexNextToken(Lexer* lexer) {
         return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '*') {
         advance(lexer);
-        return tokenInit(TOKEN_MULTIPLY, &lexer->view, 0);
+        return tokenInit(TOKEN_STAR, &lexer->view, 0);
     } else if (lexer->cur == '<') {
         advance(lexer);
         if (lexer->cur == '=') {

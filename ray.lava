@@ -2,6 +2,6 @@ struct Vec {
     f32 x, y, z;
 }
 
-f32 vecDot(Vec v1) {
+f32 vecDot(Vec* v1) {
 
 }

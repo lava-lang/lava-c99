@@ -243,7 +243,7 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
 
 AST* parseTerm(Parser* parser, Scope* scope, AST* parent) {
     AST* factor = parseFactor(parser, scope, parent);
-    while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_MULTIPLY || parser->type == TOKEN_EQUALITY ||
+    while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_STAR || parser->type == TOKEN_EQUALITY ||
            parser->type == TOKEN_LESS_THAN || parser->type == TOKEN_LESS_THAN_OR_EQ ||
            parser->type == TOKEN_MORE_THAN || parser->type == TOKEN_MORE_THAN_OR_EQ ||
            parser->type == TOKEN_MODULUS || parser->type == TOKEN_NOT_EQUAL || parser->type == TOKEN_AND) {
@@ -415,13 +415,27 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
     AST* dataType = NULL;
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
         if (parser->type == TOKEN_ID) {
-            if (dataType == NULL) {
-                ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! found (%s)", TOKEN_NAMES[parser->type])
+            if (dataType == NULL) { //We must be using a user defined type as the data type
+                AST* identifier = parseIdentifier(parser, scope, parent);
+                hash_table_entry out = {0};
+                int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
+                if (result != 0) { //User defined type does not exist
+                    ERROR("Type %s does not exist!", viewToStr(&identifier->token->view))
+                }
+                dataType = (AST*) basicAST(AST_TYPE, 0, identifier->token);
+                //ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! found (%s)", TOKEN_NAMES[parser->type])
+            } else {
+                //TODO: alloc new token as copy of dataType->token?
+                Token* token = dataType->token;
+                dataType = basicAST(AST_TYPE, 0, dataType->token);
             }
-            //TODO: alloc new token as copy of dataType->token?
-            dataType = basicAST(AST_TYPE, 0, dataType->token);
         } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope, parent);
+        }
+        if (parser->type == TOKEN_STAR) {
+            parserConsume(parser, TOKEN_STAR);
+            //TODO this should probably be an AST flag
+            dataType->token->flags |= VAR_POINTER;
         }
         //First conditional chain, testing to detect func pointer, function def, or standard variable
         if (parser->type == TOKEN_COLON) { //Parsing function pointer
