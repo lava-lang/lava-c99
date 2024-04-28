@@ -1,13 +1,1 @@
-int* a, b, c;
-
-struct Vec {
-    f32 x, y, z, int* p;
-}
-
-void test(str s, Vec* v) {
-
-}
-
-Vec* v = {1.0, 1, 1, 1};
-
-f32 x = v.x;
+u8[] img = (1);

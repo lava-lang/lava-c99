@@ -49,6 +49,7 @@ const char* TOKEN_NAMES[] = {
         "For Loop",
         "Return Statement",
         "Import Statement",
+        "Pointer Access",
 
         "Identifier",
         "End of Statement",

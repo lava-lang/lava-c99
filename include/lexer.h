@@ -189,15 +189,15 @@ size_t lexDataType(Lexer* lexer, TokenFlag type) {
     } else if (type & VAR_STR) {
 //        flags |= VAR_POINTER;
     } else if (lexer->cur == '[') {
-        advanceFor(lexer, 2);
-        flags |= VAR_ARRAY;
+//        advanceFor(lexer, 2);
+//        flags |= VAR_ARRAY;
     }
     return flags;
 }
 
 Token* lexNextCStatement(Lexer* lexer, char endChar) {
     resetView(lexer); //Reset to skip the c. prefix
-    advanceUntilChar(lexer, endChar, true); //Consume characters until EOS (;)
+    advanceUntilChar(lexer, endChar, false); //Consume characters until EOS (;)
     return tokenInit(TOKEN_C_STATEMENT, &lexer->view, 0);
 }
 
@@ -361,7 +361,7 @@ Token* lexNextToken(Lexer* lexer) {
             advance(lexer);
             return tokenInit(TOKEN_PTR_ACCESS, &lexer->view, 0);
         }
-        return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_BINOP);
+        return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_UNARY | TYPE_BINOP);
     } else if (lexer->cur == '*') {
         advance(lexer);
         return tokenInit(TOKEN_STAR, &lexer->view, 0);
@@ -392,7 +392,7 @@ Token* lexNextToken(Lexer* lexer) {
             advance(lexer);
             return tokenInit(TOKEN_AND, &lexer->view, TYPE_UNARY);
         }
-        return tokenInit(TOKEN_DEREF, &lexer->view, 0);
+        return tokenInit(TOKEN_DEREF, &lexer->view, TYPE_UNARY);
     } else if (lexer->cur == '%') {
         advance(lexer);
         return tokenInit(TOKEN_MODULUS, &lexer->view, 0);

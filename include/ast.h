@@ -27,6 +27,7 @@ typedef enum packed ASTType {
     AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
     AST_IF, AST_ELSE, AST_WHILE, AST_FOR, AST_EXPR, AST_FUNC_CALL,
     AST_STRUCT_INIT, AST_STRUCT_MEMBER_REF, AST_BREAK,
+    AST_ARRAY_INIT,
 } ASTType;
 typedef enum packed ASTFlag {
     ENUM_FLAG     = 1 << 0,
@@ -38,6 +39,7 @@ typedef enum packed ASTFlag {
     UNARY_RIGHT   = 1 << 6,
     NON_EXPR_FUNC = 1 << 7,
     POINTER_TYPE  = 1 << 8,
+    ARRAY_TYPE    = 1 << 9,
 } ASTFlag;
 struct AST {
     ASTType type;
@@ -63,6 +65,7 @@ typedef struct ASTBreak {AST base; AST* expr; ASTComp* body;} ASTBreak;
 typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions; char* structIden;} ASTFuncCall;
 typedef struct ASTStructInit {AST base; AST* identifier; ASTStructDef* structDef; ASTComp* expressions;} ASTStructInit;
 typedef struct ASTStructMemberRef {AST base; AST* varIden; AST* memberIden;} ASTStructMemberRef;
+typedef struct ASTArrayInit {AST base; AST* type; AST* identifier; AST* expression;} ASTArrayInit;
 
 #define initAST(TYPE, FLAGS, STRUCT) RALLOC(1, sizeof(STRUCT)); AST_NODES_CONSTRUCTED++
 #define basicAST(TYPE, FLAGS, TOK) ({AST* _AST = initAST(TYPE, FLAGS, AST); *_AST = (struct AST) {TYPE, FLAGS, TOK}; _AST;})

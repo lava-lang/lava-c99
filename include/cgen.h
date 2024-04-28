@@ -39,7 +39,10 @@ void visitVarDefinition(ASTVarDef* node, ASTType parent, OutputBuffer* buffer) {
 //    }
     bufferAppend(buffer, " ");
     visit(node->identifier, parent, buffer);
-    if (node->dataType->token->flags & VAR_ARRAY) {
+//    if (node->dataType->token->flags & VAR_ARRAY) {
+//        bufferAppend(buffer, "[]");
+//    }
+    if (node->dataType->flags & ARRAY_TYPE) {
         bufferAppend(buffer, "[]");
     }
     if (node->expression) {
@@ -189,6 +192,7 @@ void visitUnionDefinition(ASTUnionDef* node, ASTType parent, OutputBuffer* buffe
 
 void visitCStatement(AST* node, ASTType parent, OutputBuffer* buffer) {
     visitNode(node, parent, buffer);
+    bufferAppend(buffer, ";");
 }
 
 void visitReturn(ASTExpr* node, ASTType parent, OutputBuffer* buffer) {
@@ -338,9 +342,22 @@ void visitStructInit(ASTStructInit* node, ASTType parent, OutputBuffer* buffer) 
     FREE(node->expressions->array);
 }
 
+void visitArrayInit(ASTArrayInit* node, ASTType parent, OutputBuffer* buffer) {
+    visit(node->type, parent, buffer);
+    bufferAppend(buffer, " ");
+    visit(node->identifier, parent, buffer);
+    bufferAppend(buffer, "[");
+    visit(node->expression, parent, buffer);
+    bufferAppend(buffer, "];");
+}
+
 void visitStructMemberRef(ASTStructMemberRef* node, ASTType parent, OutputBuffer* buffer) {
     visit(node->varIden, parent, buffer);
-    bufferAppend(buffer, ".");
+    if (node->varIden->flags & POINTER_TYPE) {
+        bufferAppend(buffer, "->");
+    } else {
+        bufferAppend(buffer, ".");
+    }
     visit(node->memberIden, parent, buffer);
 }
 
@@ -392,6 +409,7 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
         case AST_FUNC_CALL: visitFuncCall((ASTFuncCall*) node, parent, buffer); break;
         case AST_STRUCT_INIT: visitStructInit((ASTStructInit*) node, parent, buffer); break;
         case AST_STRUCT_MEMBER_REF: visitStructMemberRef((ASTStructMemberRef*) node, parent, buffer); break;
+        case AST_ARRAY_INIT: visitArrayInit((ASTArrayInit*) node, parent, buffer); break;
         default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
 }
