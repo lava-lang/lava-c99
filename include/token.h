@@ -127,6 +127,7 @@ typedef enum TokenType {
     TOKEN_FOR,
     TOKEN_RETURN,
     TOKEN_IMPORT,
+    TOKEN_PTR_ACCESS,
 
     TOKEN_ID,
     TOKEN_EOS,
@@ -168,7 +169,7 @@ typedef enum TokenFlag {
     TYPE_UNARY  = 1 << 3,
 
     VAR_VOID    = 1 << 9,
-    VAR_POINTER = 1 << 10,
+//    VAR_POINTER = 1 << 10,
     VAR_ARRAY   = 1 << 11,
     VAR_INT     = 1 << 13,
     VAR_FLOAT   = 1 << 14,

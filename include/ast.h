@@ -37,6 +37,7 @@ typedef enum packed ASTFlag {
     UNARY_LEFT    = 1 << 5,
     UNARY_RIGHT   = 1 << 6,
     NON_EXPR_FUNC = 1 << 7,
+    POINTER_TYPE  = 1 << 8,
 } ASTFlag;
 struct AST {
     ASTType type;

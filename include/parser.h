@@ -21,6 +21,7 @@ typedef enum StackType {
 typedef struct StackEntry {
     StrView view;
     StackType type;
+    bool pointer; //TODO hack..
 } StackEntry;
 
 typedef struct Scope {
@@ -77,11 +78,12 @@ StackEntry stackPop(Scope* scope) {
 }
 
 //Function to insert into the stack
-StackEntry stackPush(Scope* scope, StrView* data, StackType type) {
+StackEntry stackPush(Scope* scope, StrView* data, StackType type, bool pointer) {
     if(!stackFull(scope)) {
         scope->top = scope->top + 1;
         memcpy(&scope->stack[scope->top].view, data, sizeof(StrView)); //Copy view pointer, as this will be changed by the lexer
         scope->stack[scope->top].type = type;
+        scope->stack[scope->top].pointer = pointer;
     } else {
         printf("Could not insert data, Stack is full.\n");
     }
@@ -104,6 +106,14 @@ StackType getSTForIden(Scope* scope, StrView* view) {
     int pos = getPosForIden(scope, view);
     if (pos != -1) {
         return scope->stack[pos].type;
+    }
+    return -1;
+}
+
+bool getIsPointerForIden(Scope* scope, StrView* view) {
+    int pos = getPosForIden(scope, view);
+    if (pos != -1) {
+        return scope->stack[pos].pointer;
     }
     return -1;
 }
@@ -153,7 +163,15 @@ AST* parseIdentifier(Parser* parser, Scope* scope, AST* parent) {
 AST* parseDataType(Parser* parser, Scope* scope, AST* parent) {
     Token* varType = parser->token;
     parserConsume(parser, parser->type); //Type was checked by parseTokens, so this should be valid. parserConsume will panic if not.
-    return basicAST(AST_TYPE, 0, varType);
+    int flags = 0;
+    if (varType->type == TOKEN_STRING) {
+        flags |= POINTER_TYPE;
+    }
+    if (parser->type == TOKEN_STAR) {
+        parserConsume(parser, TOKEN_STAR);
+        flags |= POINTER_TYPE;
+    }
+    return basicAST(AST_TYPE, flags, varType);
 }
 
 void parseCStatement(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
@@ -218,8 +236,13 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
             return parseIdentifier(parser, scope, parent);;
         } else if (stType == ST_VAR_STRUCT) {
             AST* identifier = parseIdentifier(parser, scope, parent);
-            if (parser->type == TOKEN_DOT) { //We're doing a struct instance function call
-                parserConsume(parser, TOKEN_DOT);
+            if (parser->type == TOKEN_DOT || parser->type == TOKEN_PTR_ACCESS) { //We're doing a struct instance function call
+                bool pointer = getIsPointerForIden(scope, &identifier->token->view);
+                if (pointer == true) {
+                    parserConsume(parser, TOKEN_PTR_ACCESS);
+                } else {
+                    parserConsume(parser, TOKEN_DOT);
+                }
                 //Check of we're trying to access a struct member
                 hash_table_entry out = {0};
                 int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
@@ -373,18 +396,18 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
     if (parser->type == TOKEN_ASSIGNMENT) {
         parserConsume(parser, TOKEN_ASSIGNMENT);
         if (parser->type == TOKEN_LBRACE) { //Struct def
-            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT);
+            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
             parseStructInit(nodes, parser, scope, dataType, identifier, parent);
             return; //Avoid having a varDef node added, StructInit will handle those.
         } else { //Otherwise, assume this is standard expression
-            stackPush(scope, &identifier->token->view, ST_VAR);
+            stackPush(scope, &identifier->token->view, ST_VAR, false);
             expression = parseExpression(parser, scope, parent);
             if (!isValueCompatible(dataType, expression)) {
                 ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
             }
         }
     } else { //If we're not assigning, then this must be a function arg.
-        stackPush(scope, &identifier->token->view, ST_VAR);
+        stackPush(scope, &identifier->token->view, ST_VAR, false);
     }
     arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
 }
@@ -398,7 +421,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     char* structIden = NULL;
     DynArray* nodesArgs = arrayInit(sizeof(AST *));
     if (parent->type == AST_STRUCT) {
-        stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT);
+        stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT, false);
         ASTStructDef* astStructDef = (ASTStructDef*) parent;
         insert(scope->defs, viewToStr(&identifier->token->view), astStructDef);
         structIden = viewToStr(&astStructDef->identifier->token->view);
@@ -414,7 +437,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
             }
         }
     } else {
-        stackPush(scope, &identifier->token->view, ST_FUNC);
+        stackPush(scope, &identifier->token->view, ST_FUNC, false);
     }
 
     int stackTop = scope->top;
@@ -437,27 +460,26 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
     AST* dataType = NULL;
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
         if (parser->type == TOKEN_ID) {
-            if (dataType == NULL) { //We must be using a user defined type as the data type
+            hash_table_entry out = {0};
+            int result = find(scope->defs, viewToStr(&parser->token->view), &out);
+            //Use this identifier as data type, as it must be a user defined type
+            if (result == 0) {
                 AST* identifier = parseIdentifier(parser, scope, parent);
-                hash_table_entry out = {0};
-                int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
-                if (result != 0) { //User defined type does not exist
+                /*if (result != 0) { //User defined type does not exist
                     ERROR("Type %s does not exist!", viewToStr(&identifier->token->view))
-                }
+                }*/
                 dataType = (AST*) basicAST(AST_TYPE, 0, identifier->token);
-                //ASSERT(dataType == NULL, "Comma delimited var def did not start with valid dataType! found (%s)", TOKEN_NAMES[parser->type])
+                if (parser->type == TOKEN_STAR) {
+                    parserConsume(parser, TOKEN_STAR);
+                    dataType->flags |= POINTER_TYPE;
+                }
             } else {
                 //TODO: alloc new token as copy of dataType->token?
                 Token* token = dataType->token;
-                dataType = basicAST(AST_TYPE, 0, dataType->token);
+                dataType = basicAST(AST_TYPE, dataType->flags, dataType->token);
             }
         } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope, parent);
-        }
-        if (parser->type == TOKEN_STAR) {
-            parserConsume(parser, TOKEN_STAR);
-            //TODO this should probably be an AST flag
-            dataType->token->flags |= VAR_POINTER;
         }
         //First conditional chain, testing to detect func pointer, function def, or standard variable
         if (parser->type == TOKEN_COLON) { //Parsing function pointer
@@ -644,6 +666,10 @@ void parseBreak(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
 
 void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     AST* identifierOrType = parseIdentifierOrType(parser, scope, parent);
+    if (parser->type == TOKEN_STAR) { //Pointer type
+        parserConsume(parser, TOKEN_STAR);
+        identifierOrType->flags |= POINTER_TYPE;
+    }
     if (parser->type == TOKEN_ID) { //If the next token is another id, then it must be a new type being instantiated
         parseVarDefinition(nodes, parser, scope, identifierOrType, NULL, parent);
     } else if (parser->type == TOKEN_ASSIGNMENT) {

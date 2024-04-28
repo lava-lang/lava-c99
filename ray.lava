@@ -1,7 +1,13 @@
+int* a, b, c;
+
 struct Vec {
-    f32 x, y, z;
+    f32 x, y, z, int* p;
 }
 
-Vec v = {1.0, 1, 1};
+void test(str s, Vec* v) {
+
+}
+
+Vec* v = {1.0, 1, 1, 1};
 
 f32 x = v.x;

@@ -27,13 +27,16 @@ void visitCompound(ASTComp* node, ASTType parent, OutputBuffer* buffer, char* de
 
 void visitDataType(AST* node, ASTType parent, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
-    if (node->token->flags & VAR_POINTER) {
+    if (node->flags & POINTER_TYPE) {
         bufferAppend(buffer, "*");
     }
 }
 
 void visitVarDefinition(ASTVarDef* node, ASTType parent, OutputBuffer* buffer) {
     visit(node->dataType, parent, buffer);
+//    if (node->dataType->token->flags & VAR_POINTER) {
+//        bufferAppend(buffer, "*");
+//    }
     bufferAppend(buffer, " ");
     visit(node->identifier, parent, buffer);
     if (node->dataType->token->flags & VAR_ARRAY) {
@@ -324,6 +327,9 @@ void visitFuncCall(ASTFuncCall* node, ASTType parent, OutputBuffer* buffer) {
 
 void visitStructInit(ASTStructInit* node, ASTType parent, OutputBuffer* buffer) {
     visit(node->structDef->identifier, parent, buffer);
+    if (node->structDef->base.flags & POINTER_TYPE) {
+        bufferAppend(buffer, "*");
+    }
     bufferAppend(buffer, " ");
     visit(node->identifier, parent, buffer);
     bufferAppend(buffer, " = {");

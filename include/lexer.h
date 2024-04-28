@@ -184,10 +184,10 @@ Token* lexNextDigit(Lexer* lexer) {
 size_t lexDataType(Lexer* lexer, TokenFlag type) {
     size_t flags = DATA_TYPE | type;
     if (lexer->cur == '*') {
-        advance(lexer);
-        flags |= VAR_POINTER;
+//        advance(lexer);
+//        flags |= VAR_POINTER;
     } else if (type & VAR_STR) {
-        flags |= VAR_POINTER;
+//        flags |= VAR_POINTER;
     } else if (lexer->cur == '[') {
         advanceFor(lexer, 2);
         flags |= VAR_ARRAY;
@@ -324,7 +324,8 @@ Token* lexNextToken(Lexer* lexer) {
     } else if (isdigit(lexer->cur)) {
         return lexNextDigit(lexer);
     } else if (isalnum(lexer->cur)) {
-        return lexNextIdentifier(lexer);
+        Token* token = lexNextIdentifier(lexer);
+        return token;
     }
     
     if (lexer->cur == ';') {
@@ -356,6 +357,9 @@ Token* lexNextToken(Lexer* lexer) {
         if (lexer->cur == '-') {
             advance(lexer);
             return tokenInit(TOKEN_DECREMENT, &lexer->view, TYPE_UNARY);
+        } else if (lexer->cur == '>') {
+            advance(lexer);
+            return tokenInit(TOKEN_PTR_ACCESS, &lexer->view, 0);
         }
         return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '*') {
