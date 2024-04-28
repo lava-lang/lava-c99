@@ -167,9 +167,18 @@ AST* parseExpression(Parser* parser, Scope* scope, AST* parent);
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent);
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent);
 
-AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, AST* parent, char* prefix) {
+AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, AST* parent, ASTStructDef* structDef, char* prefix) {
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* expressionArray = arrayInit(sizeof(AST*));
+    if (structDef != NULL) { //append struct members to expression list
+        for (int i = 0; i < structDef->members->array->len; ++i) {
+            AST* member = (AST*) structDef->members->array->elements[i];
+            if (member->type == AST_VAR) {
+                ASTVarDef* var = (ASTVarDef*) member;
+                arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, parent, var->identifier));
+            }
+        }
+    }
     while (parser->type != TOKEN_RPAREN) { //Consume function argument expressions
         arrayAppend(expressionArray, parseExpression(parser, scope, parent));
         if (parser->type == TOKEN_COMMA) {
@@ -212,7 +221,8 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
                 int result = find(scope->defs, viewToStr(&funcIden->token->view), &out);
                 if (result == 0) {
                     ASTStructDef* structDef = (ASTStructDef*) out.value;
-                    return parseFunctionCall(parser, scope, funcIden, parent, viewToStr(&structDef->identifier->token->view));
+                    //We also pass the variable identifier as parent for the function call, so this func as access to it
+                    return parseFunctionCall(parser, scope, funcIden, identifier, structDef, viewToStr(&structDef->identifier->token->view));
                 } else { //Tried to call function on struct that does not exist
                     ERROR("Unknown Struct Function! (%s)", viewToStr(&funcIden->token->view))
                 }
@@ -220,7 +230,7 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
                 return identifier;
             }
         } else if (stType == ST_FUNC) {
-            return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, NULL);
+            return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, NULL, NULL);
         } else if (stType == ST_FUNC_STRUCT) {
             ERROR("Problem!", "")
             //return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, out.value);
@@ -349,18 +359,29 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
     char* structIden = NULL;
+    DynArray* nodesArgs = arrayInit(sizeof(AST *));
     if (parent->type == AST_STRUCT) {
         stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT);
         ASTStructDef* astStructDef = (ASTStructDef*) parent;
         insert(scope->defs, viewToStr(&identifier->token->view), astStructDef);
         structIden = viewToStr(&astStructDef->identifier->token->view);
+
+        //Add struct member vars to member function argument list
+        for (int i = 0; i < nodes->len; ++i) {
+            if (((AST*) nodes->elements[i])->type == AST_VAR) {
+                ASTVarDef* member = (ASTVarDef*) nodes->elements[i];
+                //TODO avoid copying these AST nodes. referencing the member nodes causes issues with Cgen
+                ASTVarDef* copy = RALLOC(1, sizeof(ASTVarDef));
+                memcpy(copy, member, sizeof(ASTVarDef));
+                arrayAppend(nodesArgs, copy);
+            }
+        }
     } else {
         stackPush(scope, &identifier->token->view, ST_FUNC);
     }
 
     int stackTop = scope->top;
     parserConsume(parser, TOKEN_LPAREN);
-    DynArray* nodesArgs = arrayInit(sizeof(AST *));
     parseDefinition(nodesArgs, parser, scope, parent);
     for (int i = 0; i < nodesArgs->len; ++i) {
         ((AST*) nodesArgs->elements[i])->flags |= ARGUMENT;
@@ -436,8 +457,8 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
     parserConsume(parser, TOKEN_LBRACE);
     int stackTop = scope->top;
     ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
-    ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, (AST*) astStruct);
-    astStruct->members = body;
+    ASTComp* members = parseAST(parser, scope, TOKEN_RBRACE, (AST*) astStruct);
+    astStruct->members = members;
     arrayAppend(nodes, astStruct);
 
     //Push this new type to the definition table
