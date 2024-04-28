@@ -9,6 +9,7 @@
 
 static int TOKENS_CONSUMED = 0;
 static int STACK_MAX = 255;
+static char empty[1] = {'\0'};
 
 typedef enum StackType {
     ST_VAR,
@@ -23,13 +24,14 @@ typedef struct StackEntry {
 
 typedef struct Scope {
     StackEntry stack[255];
-    hash_table* table;
+    hash_table* defs;
+    //TODO table for registered types
     int top;
 } Scope;
 
 Scope* scopeInit() {
     Scope* scope = CALLOC(1, sizeof(Scope));
-    scope->table = init_hash_table(100);
+    scope->defs = init_hash_table(100);
     scope->top = -1;
     return scope;
 }
@@ -190,11 +192,14 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
         return expression;
     } else if (parser->type == TOKEN_LBRACKET) {
         //TODO parse array
+    } else if (parser->type == TOKEN_RBRACE) {
+        parserConsume(parser, TOKEN_LBRACE);
+        parserConsume(parser, TOKEN_RBRACE);
     } else if (parser->type == TOKEN_ID) {
         //TODO validate if this is the right place for the existing iden check
         int stType = getSTForIden(scope, &parser->token->view);
         hash_table_entry out = {0};
-        int result = find(scope->table, viewToStr(&parser->token->view), &out);
+        int result = find(scope->defs, viewToStr(&parser->token->view), &out);
 
         if (stType == -1 && result != 0) {
             ERROR("Unknown Identifier! (%s)", viewToStr(&parser->token->view));
@@ -261,17 +266,59 @@ bool isValueCompatible(AST* dataType, AST* expression) {
     }
 }
 
+AST* parseType(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+    AST* identifier = parseIdentifier(parser, scope, parent);
+    hash_table_entry out = {0};
+    int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
+    if (result == 0) {
+        //We can cast this to AST, as we know this is the only type inserted into the table
+        return (AST*) out.value;
+    }
+    return NULL;
+}
+
+AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, AST* identifier, AST* parent) {
+    parserConsume(parser, TOKEN_LBRACE);
+    DynArray* expressionArray = arrayInit(sizeof(AST*));
+    while (parser->type != TOKEN_RBRACE) { //Consume function argument expressions
+        arrayAppend(expressionArray, parseExpression(parser, scope, parent));
+        if (parser->type == TOKEN_COMMA) {
+            parserConsume(parser, TOKEN_COMMA);
+        }
+    }
+    parserConsume(parser, TOKEN_RBRACE);
+    parserConsume(parser, TOKEN_EOS);
+    ASTComp* expressions = structAST(AST_COMP, 0, ASTComp, expressionArray);
+    ASTStructDef* structDef = (ASTStructDef*) type;
+    arrayAppend(nodes, structAST(AST_STRUCT_INIT, 0, ASTStructInit, identifier, structDef, expressions));
+}
+
 void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, AST* parent) {
+    //because this is null, assume it must be a user defined type
+    if (dataType == NULL && identifier == NULL) {
+        dataType = parseType(nodes, parser, scope, parent);
+        identifier = parseIdentifier(parser, scope, parent);
+        if (dataType == NULL) {
+            ERROR("Tried to ref user type, but not in Def table! (%s)", viewToStr(&dataType->token->view));
+        }
+    }
+
     if (identifierExists(scope, &identifier->token->view) == true) {
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
     stackPush(scope, &identifier->token->view, ST_VAR);
+
     AST* expression = NULL; //TODO somehow remove use of null
     if (parser->type == TOKEN_ASSIGNMENT) {
         parserConsume(parser, TOKEN_ASSIGNMENT);
-        expression = parseExpression(parser, scope, parent);
-        if (!isValueCompatible(dataType, expression)) {
-            ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
+        if (parser->type == TOKEN_LBRACE) { //Struct def
+            parseStructInit(nodes, parser, scope, dataType, identifier, parent);
+            return; //Avoid having a varDef node added, StructInit will handle those.
+        } else { //Otherwise, assume this is standard expression
+            expression = parseExpression(parser, scope, parent);
+            if (!isValueCompatible(dataType, expression)) {
+                ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
+            }
         }
     }
     arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
@@ -287,7 +334,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     if (parent->type == AST_STRUCT) {
         stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT);
         ASTStructDef* astStructDef = (ASTStructDef*) parent;
-        insert(scope->table, viewToStr(&identifier->token->view), viewToStr(&astStructDef->identifier->token->view));
+        insert(scope->defs, viewToStr(&identifier->token->view), viewToStr(&astStructDef->identifier->token->view));
         structIden = viewToStr(&astStructDef->identifier->token->view);
     } else {
         stackPush(scope, &identifier->token->view, ST_FUNC);
@@ -366,12 +413,17 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
         flags |= PACKED_DATA;
     }
     AST* id = parseIdentifier(parser, scope, parent);
+
     parserConsume(parser, TOKEN_LBRACE);
     int stackTop = scope->top;
     ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
     ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, (AST*) astStruct);
     astStruct->members = body;
     arrayAppend(nodes, astStruct);
+
+    //Push this new type to the definition table
+    insert(scope->defs, viewToStr(&id->token->view), astStruct);
+
     scope->top = stackTop;
     parserConsume(parser, TOKEN_RBRACE);
 }
@@ -475,6 +527,9 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
             parseIf(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_WHILE) {
             parseWhile(nodes, parser, scope, parent);
+        } else if (parser->type == TOKEN_ID) {
+            //Assume if an Identifier has not been consumed at this point, it must be a new defined type
+            parseVarDefinition(nodes, parser, scope, NULL, NULL, parent);
         }
 
         else {

@@ -5,11 +5,10 @@
 #include <stdio.h>
 #include <assert.h>
 
-typedef struct hash_table_entry
-{
-    char *key;
-    char *value;
-    struct hash_table_entry *next;
+typedef struct hash_table_entry {
+    char* key;
+    void* value;
+    struct hash_table_entry* next;
 } hash_table_entry;
 
 typedef struct hash_table
@@ -52,8 +51,7 @@ size_t hashFunction(const char *key, size_t number_of_rows)
 }
 
 //returns 0 on success
-int insert(struct hash_table *the_hash_table, char *key, char *value)
-{
+int insert(struct hash_table *the_hash_table, char* key, void* value) {
     size_t index = hashFunction(key, the_hash_table->size);
     struct hash_table_entry *new_hash_table_entry = malloc(sizeof(struct hash_table_entry));
     if(NULL == new_hash_table_entry)
@@ -64,10 +62,11 @@ int insert(struct hash_table *the_hash_table, char *key, char *value)
     if(NULL == new_hash_table_entry->key)
         return -1;
     strcpy(new_hash_table_entry->key, key);
-    new_hash_table_entry->value=malloc(strlen(value)+1);
-    if(NULL == new_hash_table_entry->value)
-        return -1;
-    strcpy(new_hash_table_entry->value, value);
+    //new_hash_table_entry->value=malloc(strlen(value)+1);
+    //if(NULL == new_hash_table_entry->value)
+        //return -1;
+    //strcpy(new_hash_table_entry->value, value);
+    new_hash_table_entry->value = value; //No need to copy, since we know this pointer will persist
 
     //insert at start of linked list
     new_hash_table_entry->next=the_hash_table->table[index];
