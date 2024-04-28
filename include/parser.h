@@ -13,6 +13,7 @@ static char empty[1] = {'\0'};
 
 typedef enum StackType {
     ST_VAR,
+    ST_VAR_STRUCT,
     ST_FUNC,
     ST_FUNC_STRUCT,
 } StackType;
@@ -198,17 +199,31 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
     } else if (parser->type == TOKEN_ID) {
         //TODO validate if this is the right place for the existing iden check
         int stType = getSTForIden(scope, &parser->token->view);
-        hash_table_entry out = {0};
-        int result = find(scope->defs, viewToStr(&parser->token->view), &out);
-
-        if (stType == -1 && result != 0) {
+        if (stType == -1) {
             ERROR("Unknown Identifier! (%s)", viewToStr(&parser->token->view));
         } else if (stType == ST_VAR) {
             return parseIdentifier(parser, scope, parent);;
+        } else if (stType == ST_VAR_STRUCT) {
+            AST* identifier = parseIdentifier(parser, scope, parent);
+            if (parser->type == TOKEN_DOT) { //We're doing a struct instance function call
+                parserConsume(parser, TOKEN_DOT);
+                AST* funcIden = parseIdentifier(parser, scope, parent);
+                hash_table_entry out = {0};
+                int result = find(scope->defs, viewToStr(&funcIden->token->view), &out);
+                if (result == 0) {
+                    ASTStructDef* structDef = (ASTStructDef*) out.value;
+                    return parseFunctionCall(parser, scope, funcIden, parent, viewToStr(&structDef->identifier->token->view));
+                } else { //Tried to call function on struct that does not exist
+                    ERROR("Unknown Struct Function! (%s)", viewToStr(&funcIden->token->view))
+                }
+            } else {
+                return identifier;
+            }
         } else if (stType == ST_FUNC) {
             return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, NULL);
-        } else {
-            return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, out.value);
+        } else if (stType == ST_FUNC_STRUCT) {
+            ERROR("Problem!", "")
+            //return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, out.value);
         }
     } else {
         return parseExpression(parser, scope, parent);
@@ -266,7 +281,7 @@ bool isValueCompatible(AST* dataType, AST* expression) {
     }
 }
 
-AST* parseType(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+AST* parseType(Parser* parser, Scope* scope, AST* parent) {
     AST* identifier = parseIdentifier(parser, scope, parent);
     hash_table_entry out = {0};
     int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
@@ -296,7 +311,7 @@ AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, A
 void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, AST* parent) {
     //because this is null, assume it must be a user defined type
     if (dataType == NULL && identifier == NULL) {
-        dataType = parseType(nodes, parser, scope, parent);
+        dataType = parseType(parser, scope, parent);
         identifier = parseIdentifier(parser, scope, parent);
         if (dataType == NULL) {
             ERROR("Tried to ref user type, but not in Def table! (%s)", viewToStr(&dataType->token->view));
@@ -306,20 +321,23 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
     if (identifierExists(scope, &identifier->token->view) == true) {
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
-    stackPush(scope, &identifier->token->view, ST_VAR);
 
     AST* expression = NULL; //TODO somehow remove use of null
     if (parser->type == TOKEN_ASSIGNMENT) {
         parserConsume(parser, TOKEN_ASSIGNMENT);
         if (parser->type == TOKEN_LBRACE) { //Struct def
+            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT);
             parseStructInit(nodes, parser, scope, dataType, identifier, parent);
             return; //Avoid having a varDef node added, StructInit will handle those.
         } else { //Otherwise, assume this is standard expression
+            stackPush(scope, &identifier->token->view, ST_VAR);
             expression = parseExpression(parser, scope, parent);
             if (!isValueCompatible(dataType, expression)) {
                 ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
             }
         }
+    } else { //If we're not assigning, then this must be a function arg.
+        stackPush(scope, &identifier->token->view, ST_VAR);
     }
     arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
 }
@@ -334,7 +352,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     if (parent->type == AST_STRUCT) {
         stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT);
         ASTStructDef* astStructDef = (ASTStructDef*) parent;
-        insert(scope->defs, viewToStr(&identifier->token->view), viewToStr(&astStructDef->identifier->token->view));
+        insert(scope->defs, viewToStr(&identifier->token->view), astStructDef);
         structIden = viewToStr(&astStructDef->identifier->token->view);
     } else {
         stackPush(scope, &identifier->token->view, ST_FUNC);
@@ -346,6 +364,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     parseDefinition(nodesArgs, parser, scope, parent);
     for (int i = 0; i < nodesArgs->len; ++i) {
         ((AST*) nodesArgs->elements[i])->flags |= ARGUMENT;
+        //stackPush(scope, &((AST*) nodesArgs)->token->view, ST_VAR);
     }
     ASTComp* args = structAST(AST_COMP, 0, ASTComp, nodesArgs);
     parserConsume(parser, TOKEN_RPAREN);
