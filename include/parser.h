@@ -242,7 +242,7 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
 
 AST* parseTerm(Parser* parser, Scope* scope, AST* parent) {
     AST* factor = parseFactor(parser, scope, parent);
-    while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_MULTIPLY) {
+    while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_MULTIPLY || parser->type == TOKEN_EQUALITY) {
         Token* token = parser->token;
         parserConsume(parser, parser->type);
         factor = (AST*) structAST(AST_BINOP, 0, ASTBinop, factor, token, parseFactor(parser, scope, parent));
@@ -557,6 +557,13 @@ void parseWhile(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     arrayAppend(nodes, structAST(AST_WHILE, 0, ASTWhile, expression, body));
 }
 
+void parseBreak(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+    Token* token = parser->token;
+    parserConsume(parser, TOKEN_BREAK);
+    parserConsume(parser, TOKEN_EOS);
+    arrayAppend(nodes, basicAST(AST_BREAK, 0, token));
+}
+
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent) {
     DynArray* nodes = arrayInit(sizeof(AST*));
     while (parser->type != breakToken) {
@@ -578,6 +585,8 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
             parseIf(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_WHILE) {
             parseWhile(nodes, parser, scope, parent);
+        } else if (parser->type == TOKEN_BREAK) {
+            parseBreak(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_ID) {
             //Assume if an Identifier has not been consumed at this point, it must be a new defined type
             parseVarDefinition(nodes, parser, scope, NULL, NULL, parent);

@@ -114,6 +114,7 @@ typedef enum TokenType {
     TOKEN_IF,
     TOKEN_ELSE,
     TOKEN_WHILE,
+    TOKEN_BREAK,
     TOKEN_FOR,
     TOKEN_RETURN,
     TOKEN_IMPORT,
@@ -122,7 +123,7 @@ typedef enum TokenType {
     TOKEN_EOS,
 
     TOKEN_ASSIGNMENT,
-    TOKEN_EQUALS,
+    TOKEN_EQUALITY,
 
     TOKEN_DIVIDE,
     TOKEN_PLUS,

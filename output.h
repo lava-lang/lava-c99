@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 
 typedef struct Vec Vec;
@@ -8,4 +9,5 @@ int Vec_offset(	int x, 	int y, 	int z, 	int w) {
 int Vec_size(	int x, 	int y, 	int z) {
 		return x + y + z;
 }
+int test();
 int main();

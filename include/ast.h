@@ -23,7 +23,7 @@ typedef enum packed ASTType {
     AST_BINOP, AST_RETURN, AST_ASSIGN, AST_IMPORT,
     AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
     AST_IF, AST_WHILE, AST_EXPR, AST_FUNC_CALL,
-    AST_STRUCT_INIT, AST_STRUCT_MEMBER_REF,
+    AST_STRUCT_INIT, AST_STRUCT_MEMBER_REF, AST_BREAK,
 } ASTType;
 typedef enum packed ASTFlag {
     ENUM_FLAG     = 1 << 0,
@@ -49,6 +49,7 @@ typedef struct ASTBinop {AST base; AST* left; Token* op; AST* right;} ASTBinop;
 typedef struct ASTExpr {AST base; AST* expr;} ASTExpr;
 typedef struct ASTIf {AST base; AST* expr; ASTComp* body;} ASTIf;
 typedef struct ASTWhile {AST base; AST* expr; ASTComp* body;} ASTWhile;
+typedef struct ASTBreak {AST base; AST* expr; ASTComp* body;} ASTBreak;
 typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions; char* structIden;} ASTFuncCall;
 typedef struct ASTStructInit {AST base; AST* identifier; ASTStructDef* structDef; ASTComp* expressions;} ASTStructInit;
 typedef struct ASTStructMemberRef {AST base; AST* varIden; AST* memberIden;} ASTStructMemberRef;

@@ -272,6 +272,8 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_ELSE, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "while")) {
         return tokenInit(TOKEN_WHILE, &lexer->view, 0);
+    } else if (viewStrCmp(&lexer->view, "break")) {
+        return tokenInit(TOKEN_BREAK, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "for")) {
         return tokenInit(TOKEN_FOR, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "return")) {
@@ -331,7 +333,7 @@ Token* lexNextToken(Lexer* lexer) {
         advance(lexer);
         if (lexer->cur == '=') {
             advance(lexer);
-            return tokenInit(TOKEN_EQUALS, &lexer->view, TYPE_BINOP);
+            return tokenInit(TOKEN_EQUALITY, &lexer->view, TYPE_BINOP);
         } else {
             return tokenInit(TOKEN_ASSIGNMENT, &lexer->view, TYPE_BINOP);
         }

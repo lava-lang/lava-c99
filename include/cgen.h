@@ -264,7 +264,7 @@ void visitWhile(ASTWhile* node, OutputBuffer* buffer) {
     visit(node->expr, buffer);
     bufferAppend(buffer, ") {\n");
     bufferIndent(buffer);
-    visitCompound(node->body, buffer, "", false);
+    visitCompound(node->body, buffer, "\n", true);
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n");
     bufferAppendIndent(buffer);
@@ -305,6 +305,11 @@ void visitStructMemberRef(ASTStructMemberRef* node, OutputBuffer* buffer) {
     visit(node->memberIden, buffer);
 }
 
+//TODO this should use visitNode, but no semi gets printed
+void visitBreak(ASTBreak* node, OutputBuffer* buffer) {
+    bufferAppend(buffer, "break;");
+}
+
 void visit(AST* node, OutputBuffer* buffer) {
     if (node == NULL) return;
     switch (node->type) {
@@ -326,6 +331,7 @@ void visit(AST* node, OutputBuffer* buffer) {
         case AST_FUNC_VAR: visitFuncVar((ASTFuncDef*) node, buffer); break;
         case AST_IF: visitIf((ASTIf*) node, buffer); break;
         case AST_WHILE: visitWhile((ASTWhile*) node, buffer); break;
+        case AST_BREAK: visitBreak((ASTBreak*) node, buffer); break;
         case AST_EXPR: visitExpr((ASTExpr*) node, buffer); break;
         case AST_FUNC_CALL: visitFuncCall((ASTFuncCall*) node, buffer); break;
         case AST_STRUCT_INIT: visitStructInit((ASTStructInit*) node, buffer); break;
@@ -338,6 +344,8 @@ void generateC(ASTComp* root, char* prefix, char* code) {
     FILE *fpPrefix = fopen(prefix, "w");
     FILE *fpCode = fopen(code, "w");
     OutputBuffer* buffer = bufferInit(fpPrefix, fpCode);
+    bufferPrefix(buffer);
+    bufferAppend(buffer, "#include <stdbool.h>\n");
     bufferCode(buffer);
     bufferAppend(buffer, "#include \"output.h\"\n\n");
     visit((AST*) root, buffer);
