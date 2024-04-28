@@ -74,7 +74,7 @@ void visitStructDefinition(ASTStructDef* node, OutputBuffer* buffer) {
     visit(node->identifier, buffer);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
-    visitCompound(node->members, buffer, "\n", true);
+    visitCompound(node->members, buffer, "", true);
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
 
@@ -130,6 +130,7 @@ void visitFuncDefinition(ASTFuncDef* node, OutputBuffer* buffer) {
 
     if (isStructFunc == true) {
         bufferPrefix(buffer);
+        bufferAppend(buffer, "\n");
     } else {
         bufferCode(buffer);
     }
