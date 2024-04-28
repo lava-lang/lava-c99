@@ -5,5 +5,6 @@ cmake-build-release/*
 notes/*
 zig/*
 output.c
-*.lava
 scratch.c
+temp.lava
+test_old.lava
