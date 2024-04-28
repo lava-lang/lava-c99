@@ -334,9 +334,8 @@ Token* lexNextToken(Lexer* lexer) {
         if (lexer->cur == '=') {
             advance(lexer);
             return tokenInit(TOKEN_EQUALITY, &lexer->view, TYPE_BINOP);
-        } else {
-            return tokenInit(TOKEN_ASSIGNMENT, &lexer->view, TYPE_BINOP);
         }
+        return tokenInit(TOKEN_ASSIGNMENT, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '"') {
         return lexNextStringOrChar(lexer, TOKEN_STRING_VALUE, '"');
     } else if (lexer->cur == '\'') {
@@ -346,22 +345,52 @@ Token* lexNextToken(Lexer* lexer) {
         return tokenInit(TOKEN_DIVIDE, &lexer->view, 0);
     } else if (lexer->cur == '+') {
         advance(lexer);
+        if (lexer->cur == '+') {
+            advance(lexer);
+            return tokenInit(TOKEN_INCREMENT, &lexer->view, TYPE_BINOP);
+        }
         return tokenInit(TOKEN_PLUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '-') {
         advance(lexer);
+        if (lexer->cur == '-') {
+            advance(lexer);
+            return tokenInit(TOKEN_DECREMENT, &lexer->view, TYPE_BINOP);
+        }
         return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '*') {
         advance(lexer);
         return tokenInit(TOKEN_MULTIPLY, &lexer->view, 0);
     } else if (lexer->cur == '<') {
         advance(lexer);
+        if (lexer->cur == '=') {
+            advance(lexer);
+            return tokenInit(TOKEN_LESS_THAN_OR_EQ, &lexer->view, TYPE_BINOP);
+        }
         return tokenInit(TOKEN_LESS_THAN, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '>') {
         advance(lexer);
+        if (lexer->cur == '=') {
+            advance(lexer);
+            return tokenInit(TOKEN_MORE_THAN_OR_EQ, &lexer->view, TYPE_BINOP);
+        }
         return tokenInit(TOKEN_MORE_THAN, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '!') {
         advance(lexer);
-        return tokenInit(TOKEN_NOT, &lexer->view, TYPE_BINOP);
+        if (lexer->cur == '=') {
+            advance(lexer);
+            return tokenInit(TOKEN_NOT_EQUAL, &lexer->view, 0);
+        }
+        return tokenInit(TOKEN_NOT, &lexer->view, 0);
+    } else if (lexer->cur == '&') {
+        advance(lexer);
+        if (lexer->cur == '&') {
+            advance(lexer);
+            return tokenInit(TOKEN_AND, &lexer->view, 0);
+        }
+        return tokenInit(TOKEN_DEREF, &lexer->view, 0);
+    } else if (lexer->cur == '%') {
+        advance(lexer);
+        return tokenInit(TOKEN_MODULUS, &lexer->view, 0);
     } else if (lexer->cur == '(') {
         advance(lexer);
         return tokenInit(TOKEN_LPAREN, &lexer->view, 0);

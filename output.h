@@ -10,4 +10,5 @@ int Vec_size(	int x, 	int y, 	int z) {
 		return x + y + z;
 }
 int test();
+void fizzBuzz(int max);
 int main();

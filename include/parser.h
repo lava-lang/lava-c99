@@ -131,7 +131,7 @@ printSyntaxErrorLocation(parser->lexer, start); \
 exit(EXIT_FAILURE); \
 
 Token* parserConsume(Parser* parser, TokenType type) {
-    ASSERT(parser->token->type != type, "Unexpected token! expected: %s, got: %s (%s)", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type], viewToStr(&parser->token->view));
+    ASSERT(parser->token->type != type, "Unexpected token! expected: %s, got: %s (%s) - %llu", TOKEN_NAMES[type], TOKEN_NAMES[parser->token->type], viewToStr(&parser->token->view), parser->lexer->line);
     INFO("Consumed: %s: %s", TOKEN_NAMES[parser->token->type], viewToStr(&parser->token->view));
     TOKENS_CONSUMED++;
     Token* prev = parser->token;
@@ -242,10 +242,14 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
 
 AST* parseTerm(Parser* parser, Scope* scope, AST* parent) {
     AST* factor = parseFactor(parser, scope, parent);
-    while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_MULTIPLY || parser->type == TOKEN_EQUALITY) {
+    while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_MULTIPLY || parser->type == TOKEN_EQUALITY ||
+           parser->type == TOKEN_LESS_THAN || parser->type == TOKEN_LESS_THAN_OR_EQ ||
+           parser->type == TOKEN_MORE_THAN || parser->type == TOKEN_MORE_THAN_OR_EQ ||
+           parser->type == TOKEN_MODULUS || parser->type == TOKEN_NOT_EQUAL || parser->type == TOKEN_AND) {
         Token* token = parser->token;
         parserConsume(parser, parser->type);
-        factor = (AST*) structAST(AST_BINOP, 0, ASTBinop, factor, token, parseFactor(parser, scope, parent));
+        AST* right = parseFactor(parser, scope, parent);
+        factor = (AST*) structAST(AST_BINOP, 0, ASTBinop, factor, token, right);
     }
     return factor;
 }
@@ -291,7 +295,7 @@ bool isValueCompatible(AST* dataType, AST* expression) {
     }
 }
 
-AST* parseType(Parser* parser, Scope* scope, AST* parent) {
+AST* parseIdentifierOrType(Parser* parser, Scope* scope, AST* parent) {
     AST* identifier = parseIdentifier(parser, scope, parent);
     hash_table_entry out = {0};
     int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
@@ -299,7 +303,7 @@ AST* parseType(Parser* parser, Scope* scope, AST* parent) {
         //We can cast this to AST, as we know this is the only type inserted into the table
         return (AST*) out.value;
     }
-    return NULL;
+    return identifier;
 }
 
 AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, AST* identifier, AST* parent) {
@@ -331,8 +335,7 @@ AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, A
 
 void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* dataType, AST* identifier, AST* parent) {
     //because this is null, assume it must be a user defined type
-    if (dataType == NULL && identifier == NULL) {
-        dataType = parseType(parser, scope, parent);
+    if (identifier == NULL) {
         identifier = parseIdentifier(parser, scope, parent);
         if (dataType == NULL) {
             ERROR("Tried to ref user type, but not in Def table! (%s)", viewToStr(&dataType->token->view));
@@ -564,6 +567,18 @@ void parseBreak(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     arrayAppend(nodes, basicAST(AST_BREAK, 0, token));
 }
 
+void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+    AST* identifierOrType = parseIdentifierOrType(parser, scope, parent);
+    if (parser->type == TOKEN_ID) { //If the next token is another id, then it must be a new type being instantiated
+        parseVarDefinition(nodes, parser, scope, identifierOrType, NULL, parent);
+    } else if (parser->type == TOKEN_ASSIGNMENT) {
+        parserConsume(parser, TOKEN_ASSIGNMENT);
+        AST* right = parseExpression(parser, scope, parent);
+        parserConsume(parser, TOKEN_EOS);
+        arrayAppend(nodes, structAST(AST_ASSIGN, 0, ASTAssign, identifierOrType, right));
+    }
+}
+
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent) {
     DynArray* nodes = arrayInit(sizeof(AST*));
     while (parser->type != breakToken) {
@@ -588,8 +603,7 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
         } else if (parser->type == TOKEN_BREAK) {
             parseBreak(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_ID) {
-            //Assume if an Identifier has not been consumed at this point, it must be a new defined type
-            parseVarDefinition(nodes, parser, scope, NULL, NULL, parent);
+            parseIdentifierRef(nodes, parser, scope, parent);
         }
 
         else {
