@@ -14,6 +14,8 @@ const char* AST_NAMES[] = {
     "Binary Operator", "Unary Operator", "Return", "Assigment", "Import",
     "C Statement", "Integer", "Union", "Variable Function",
     "If Statement", "Else Statement", "While Loop", "For Loop", "Expression", "Function Call",
+    "Struct Init", "Struct Member Ref", "Break Statement", "Array Init",
+    "Array Access",
 };
 
 //TODO AST nodes should have their parent as a member, to avoid
@@ -27,7 +29,7 @@ typedef enum packed ASTType {
     AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
     AST_IF, AST_ELSE, AST_WHILE, AST_FOR, AST_EXPR, AST_FUNC_CALL,
     AST_STRUCT_INIT, AST_STRUCT_MEMBER_REF, AST_BREAK,
-    AST_ARRAY_INIT,
+    AST_ARRAY_INIT, AST_ARRAY_ACCESS,
 } ASTType;
 typedef enum packed ASTFlag {
     ENUM_FLAG     = 1 << 0,
@@ -66,6 +68,7 @@ typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions; cha
 typedef struct ASTStructInit {AST base; AST* identifier; ASTStructDef* structDef; ASTComp* expressions;} ASTStructInit;
 typedef struct ASTStructMemberRef {AST base; AST* varIden; AST* memberIden;} ASTStructMemberRef;
 typedef struct ASTArrayInit {AST base; AST* type; AST* identifier; AST* expression;} ASTArrayInit;
+typedef struct ASTArrayAccess {AST base; AST* identifier; AST* expression;} ASTArrayAccess;
 
 #define initAST(TYPE, FLAGS, STRUCT) RALLOC(1, sizeof(STRUCT)); AST_NODES_CONSTRUCTED++
 #define basicAST(TYPE, FLAGS, TOK) ({AST* _AST = initAST(TYPE, FLAGS, AST); *_AST = (struct AST) {TYPE, FLAGS, TOK}; _AST;})

@@ -229,6 +229,7 @@ void visitAssign(ASTAssign* node, ASTType parent, OutputBuffer* buffer) {
     visit(node->left, parent, buffer);
     bufferAppend(buffer, " = ");
     visit(node->right, parent, buffer);
+    bufferAppend(buffer, ";");
 }
 
 void visitInteger(ASTLiteral* node, ASTType parent, OutputBuffer* buffer) {
@@ -351,6 +352,13 @@ void visitArrayInit(ASTArrayInit* node, ASTType parent, OutputBuffer* buffer) {
     bufferAppend(buffer, "];");
 }
 
+void visitArrayAccess(ASTArrayAccess* node, ASTType parent, OutputBuffer* buffer) {
+    visit(node->identifier, parent, buffer);
+    bufferAppend(buffer, "[");
+    visit(node->expression, parent, buffer);
+    bufferAppend(buffer, "]");
+}
+
 void visitStructMemberRef(ASTStructMemberRef* node, ASTType parent, OutputBuffer* buffer) {
     visit(node->varIden, parent, buffer);
     if (node->varIden->flags & POINTER_TYPE) {
@@ -410,6 +418,7 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
         case AST_STRUCT_INIT: visitStructInit((ASTStructInit*) node, parent, buffer); break;
         case AST_STRUCT_MEMBER_REF: visitStructMemberRef((ASTStructMemberRef*) node, parent, buffer); break;
         case AST_ARRAY_INIT: visitArrayInit((ASTArrayInit*) node, parent, buffer); break;
+        case AST_ARRAY_ACCESS: visitArrayAccess((ASTArrayAccess*) node, parent, buffer); break;
         default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
 }
@@ -420,6 +429,7 @@ void generateC(ASTComp* root, char* prefix, char* code) {
     OutputBuffer* buffer = bufferInit(fpPrefix, fpCode);
     bufferPrefix(buffer);
     bufferAppend(buffer, "#include <stdbool.h>\n");
+    bufferAppend(buffer, "#include <stdint.h>\n");
     bufferCode(buffer);
     bufferAppend(buffer, "#include \"output.h\"\n\n");
     visit((AST*) root, -1, buffer);

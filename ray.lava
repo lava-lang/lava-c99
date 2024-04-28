@@ -1,1 +1,73 @@
-u8[] img = (1);
+import <stdio.h>;
+import <math.h>;
+
+int WIDTH = 10;
+int HEIGHT = 10;
+
+struct Vec {
+    f32 x, y, z;
+}
+
+f32 dot(Vec *v1, Vec *v2) {
+    return v1->x * v2->x + v1->y * v2->y + v1->z * v2->z;
+}
+
+void writePPM(str fileName, str img, int width, int height) {
+    c.FILE *f;
+    c.f = fopen(fileName, "w");
+    c.fprintf(f, "P6 %d %d %d\n", width, height, 255);
+    c.fwrite(img, 3, width*height, f);
+    c.fclose(f);
+}
+
+f32 checkRay(f32, px, py, pz, dx, dy, dz, r) {
+    Vec v1 = {px, py, pz};
+    Vec v2 = {dx, dy, dz};
+    f32 b = -dot(&v1, &v2);
+    f32 det = b*b - dot(&v1, &v1) + r*r;
+
+    if (det < 0) {
+        return -1;
+    }
+
+    det = c.sqrtf(det);
+    f32 t1 = b - det;
+    f32 t2 = b + det;
+
+    return t1;
+}
+
+int main() {
+    u8[] img = (WIDTH * HEIGHT * 3);
+    u8 distToPlane = 0;
+    f32 cameraY, cameraZ, cameraX, pixelWorldX, pixelWorldY, pixelWorldZ, amp, rayX, rayY, rayZ;
+    for (int px = 0; px<WIDTH; px++) {
+        for (int py = 0; py<HEIGHT; py++) {
+            distToPlane = 100;
+            pixelWorldX = distToPlane;
+            pixelWorldY = (px - WIDTH / 2) / WIDTH;
+            pixelWorldZ = (py - HEIGHT / 2) / WIDTH;
+
+            rayX = pixelWorldX - cameraX;
+            rayY = pixelWorldY - cameraY;
+            rayZ = pixelWorldZ - cameraZ;
+
+            amp = 1/c.sqrtf(rayX*rayX + rayY*rayY + rayZ*rayZ);
+            rayX = rayX * amp;
+            rayY = rayY * amp;
+            rayZ = rayZ * amp;
+
+            if (checkRay(50, 50, 50, rayX, rayY, rayZ, 50)) {
+                img[(py + px*WIDTH)*3 + 0] = 0;
+                img[(py + px*WIDTH)*3 + 1] = 0;
+                img[(py + px*WIDTH)*3 + 2] = 128;
+            }
+            else {
+                img[(py + px*WIDTH)*3 + 0] = 255;
+                img[(py + px*WIDTH)*3 + 1] = 255;
+                img[(py + px*WIDTH)*3 + 2] = 255;
+            }
+        }
+    }
+    writePPM("image.ppm", img, WIDTH, HEIGHT);
+}
