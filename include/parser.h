@@ -311,10 +311,21 @@ AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, A
             parserConsume(parser, TOKEN_COMMA);
         }
     }
+    ASTStructDef* structDef = (ASTStructDef*) type;
+    //TODO store this info in the struct AST
+    size_t structVarCount = 0;
+    for (int i = 0; i < structDef->members->array->len; ++i) {
+        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
+            structVarCount++;
+        }
+    }
+    if (expressionArray->len != structVarCount) {
+        ERROR("Not enough init values! expected %llu, got %llu", structVarCount, expressionArray->len);
+    }
+
     parserConsume(parser, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_EOS);
     ASTComp* expressions = structAST(AST_COMP, 0, ASTComp, expressionArray);
-    ASTStructDef* structDef = (ASTStructDef*) type;
     arrayAppend(nodes, structAST(AST_STRUCT_INIT, 0, ASTStructInit, identifier, structDef, expressions));
 }
 

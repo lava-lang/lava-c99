@@ -310,7 +310,8 @@ void visit(AST* node, OutputBuffer* buffer) {
     switch (node->type) {
         case AST_COMP: visitCompound((ASTComp*) node, buffer, "\n", false); break;
         case AST_TYPE: visitDataType(node, buffer); break;
-        case AST_ID: case AST_VALUE: visitNode(node, buffer); break;
+        case AST_ID: visitNode(node, buffer); break;
+        case AST_VALUE: visitNode(node, buffer); break;
         case AST_VAR: visitVarDefinition((ASTVarDef*) node, buffer); break;
         case AST_STRUCT: visitStructDefinition((ASTStructDef*) node, buffer); break;
         case AST_ENUM: visitEnumDefinition((ASTEnumDef*) node, buffer); break;
