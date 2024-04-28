@@ -545,9 +545,25 @@ void parseIf(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     AST* expression = parseExpression(parser, scope, parent);
     parserConsume(parser, TOKEN_RPAREN);
     parserConsume(parser, TOKEN_LBRACE);
+    int stackTop = scope->top;
     ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, parent);
+    scope->top = stackTop;
     parserConsume(parser, TOKEN_RBRACE);
     arrayAppend(nodes, structAST(AST_IF, 0, ASTIf, expression, body));
+}
+
+void parseElse(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+    parserConsume(parser, TOKEN_ELSE);
+    if (parser->type == TOKEN_LBRACE) {
+        parserConsume(parser, TOKEN_LBRACE);
+        int stackTop = scope->top;
+        ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, parent);
+        scope->top = stackTop;
+        arrayAppend(nodes, structAST(AST_ELSE, 0, ASTElse, body));
+        parserConsume(parser, TOKEN_RBRACE);
+    } else {
+        arrayAppend(nodes, structAST(AST_ELSE, 0, ASTElse, NULL));
+    }
 }
 
 void parseWhile(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
@@ -613,6 +629,8 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
             parseImport(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_IF) {
             parseIf(nodes, parser, scope, parent);
+        } else if (parser->type == TOKEN_ELSE) {
+            parseElse(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_WHILE) {
             parseWhile(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_BREAK) {

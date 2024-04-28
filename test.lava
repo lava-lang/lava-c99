@@ -1,5 +1,20 @@
 import <stdio.h>;
 
+int main() {
+    if (1) {
+        f32 x = 6;
+    } else {
+        int x = 5;
+    }
+
+    if (1) {
+        f32 x = 6;
+    } else if (2) {
+        int x = 5;
+    }
+}
+
+/*
 struct Vec {
     int x, y, z;
 
@@ -52,4 +67,4 @@ int main() {
     c.printf("v.x: %d\n", v.x);
 
     fizzBuzz(20);
-}
+}*/

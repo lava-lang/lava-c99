@@ -259,6 +259,19 @@ void visitIf(ASTIf* node, OutputBuffer* buffer) {
     FREE(node->body->array);
 }
 
+void visitElse(ASTElse* node, OutputBuffer* buffer) {
+    bufferAppend(buffer, "else ");
+    if (node->body != NULL) {
+        bufferAppend(buffer, "{\n");
+        bufferIndent(buffer);
+        visitCompound(node->body, buffer, "\n", true);
+        bufferUnindent(buffer);
+        bufferAppend(buffer, "\n");
+        bufferAppendIndent(buffer);
+        bufferAppend(buffer, "}");
+    }
+}
+
 void visitWhile(ASTWhile* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "while (");
     visit(node->expr, buffer);
@@ -345,6 +358,7 @@ void visit(AST* node, OutputBuffer* buffer) {
         case AST_INTEGER: visitInteger((ASTLiteral*) node, buffer); break;
         case AST_FUNC_VAR: visitFuncVar((ASTFuncDef*) node, buffer); break;
         case AST_IF: visitIf((ASTIf*) node, buffer); break;
+        case AST_ELSE: visitElse((ASTElse*) node, buffer); break;
         case AST_WHILE: visitWhile((ASTWhile*) node, buffer); break;
         case AST_BREAK: visitBreak((ASTBreak*) node, buffer); break;
         case AST_EXPR: visitExpr((ASTExpr*) node, buffer); break;
