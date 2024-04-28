@@ -11,7 +11,7 @@ static int AST_NODES_CONSTRUCTED = 0;
 const char* AST_NAMES[] = {
     "Data Type", "Identifier", "Compound", "Var Value",
     "Variable Definition", "Struct Definition", "Enum Definition", "Function Definition",
-    "Binary Operator", "Return", "Assigment", "Import",
+    "Binary Operator", "Unary Operator", "Return", "Assigment", "Import",
     "C Statement", "Integer", "Union", "Variable Function",
     "If Statement", "While Loop", "Expression", "Function Call",
 };
@@ -31,6 +31,8 @@ typedef enum packed ASTFlag {
     ARGUMENT      = 1 << 2,
     STRUCT_FUNC   = 1 << 3,
     STRUCT_MEMBER = 1 << 4,
+    UNARY_LEFT    = 1 << 5,
+    UNARY_RIGHT    = 1 << 6,
 } ASTFlag;
 struct AST {
     ASTType type;
@@ -46,6 +48,7 @@ typedef struct ASTFuncDef {AST base; AST* returnType; AST* identifier; ASTComp* 
 typedef struct ASTUnionDef {AST base; AST* identifier; ASTComp* members;} ASTUnionDef;
 typedef struct ASTAssign {AST base; AST* left; AST* right;} ASTAssign;
 typedef struct ASTBinop {AST base; AST* left; Token* op; AST* right;} ASTBinop;
+typedef struct ASTUnary {AST base; AST* expression; Token* op;} ASTUnary;
 typedef struct ASTExpr {AST base; AST* expr;} ASTExpr;
 typedef struct ASTIf {AST base; AST* expr; ASTComp* body;} ASTIf;
 typedef struct ASTWhile {AST base; AST* expr; ASTComp* body;} ASTWhile;

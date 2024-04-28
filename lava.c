@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
     //Init virtual memory region
     clock_t startArena = clock();
-    GLOBAL_REGION_CAPACITY = 90000;
+    GLOBAL_REGION_CAPACITY = 91000;
     initGlobalRegion(CALLOC(1, GLOBAL_REGION_CAPACITY));
     BASIC("Arena: %f", (double)(clock() - startArena) / CLOCKS_PER_SEC)
 

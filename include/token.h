@@ -165,6 +165,7 @@ typedef enum TokenFlag {
     DATA_TYPE   = 1 << 0,
     DATA_VALUE  = 1 << 1,
     TYPE_BINOP  = 1 << 2,
+    TYPE_UNARY  = 1 << 3,
 
     VAR_VOID    = 1 << 9,
     VAR_POINTER = 1 << 10,

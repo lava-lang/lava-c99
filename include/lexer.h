@@ -347,14 +347,14 @@ Token* lexNextToken(Lexer* lexer) {
         advance(lexer);
         if (lexer->cur == '+') {
             advance(lexer);
-            return tokenInit(TOKEN_INCREMENT, &lexer->view, TYPE_BINOP);
+            return tokenInit(TOKEN_INCREMENT, &lexer->view, TYPE_UNARY);
         }
         return tokenInit(TOKEN_PLUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '-') {
         advance(lexer);
         if (lexer->cur == '-') {
             advance(lexer);
-            return tokenInit(TOKEN_DECREMENT, &lexer->view, TYPE_BINOP);
+            return tokenInit(TOKEN_DECREMENT, &lexer->view, TYPE_UNARY);
         }
         return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '*') {
@@ -380,12 +380,12 @@ Token* lexNextToken(Lexer* lexer) {
             advance(lexer);
             return tokenInit(TOKEN_NOT_EQUAL, &lexer->view, 0);
         }
-        return tokenInit(TOKEN_NOT, &lexer->view, 0);
+        return tokenInit(TOKEN_NOT, &lexer->view, TYPE_UNARY);
     } else if (lexer->cur == '&') {
         advance(lexer);
         if (lexer->cur == '&') {
             advance(lexer);
-            return tokenInit(TOKEN_AND, &lexer->view, 0);
+            return tokenInit(TOKEN_AND, &lexer->view, TYPE_UNARY);
         }
         return tokenInit(TOKEN_DEREF, &lexer->view, 0);
     } else if (lexer->cur == '%') {

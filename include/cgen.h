@@ -310,6 +310,17 @@ void visitBreak(ASTBreak* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "break;");
 }
 
+void visitUnary(ASTUnary* node, OutputBuffer* buffer) {
+    if (node->base.flags & UNARY_LEFT) {
+        visit(node->expression, buffer);
+        bufferAppendView(buffer, &node->op->view);
+        bufferAppend(buffer, ";");
+    } else {
+        bufferAppendView(buffer, &node->op->view);
+        visit(node->expression, buffer);
+    }
+}
+
 void visit(AST* node, OutputBuffer* buffer) {
     if (node == NULL) return;
     switch (node->type) {
@@ -326,6 +337,7 @@ void visit(AST* node, OutputBuffer* buffer) {
         case AST_RETURN: visitReturn((ASTExpr*) node, buffer); break;
         case AST_IMPORT: visitImport(node, buffer); break;
         case AST_BINOP: visitBinop((ASTBinop*) node, buffer); break;
+        case AST_UNARY: visitUnary((ASTUnary*) node, buffer); break;
         case AST_ASSIGN: visitAssign((ASTAssign*) node, buffer); break;
         case AST_INTEGER: visitInteger((ASTLiteral*) node, buffer); break;
         case AST_FUNC_VAR: visitFuncVar((ASTFuncDef*) node, buffer); break;

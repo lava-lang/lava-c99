@@ -195,6 +195,10 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
     if (parser->token->flags & DATA_VALUE) {
         parserConsume(parser, parser->type);
         return basicAST(AST_VALUE, 0, token);
+    } else if (parser->token->flags & TYPE_UNARY) {
+        parserConsume(parser, parser->type);
+        AST* expression = parseExpression(parser, scope, parent);
+        return (AST*) structAST(AST_UNARY, UNARY_RIGHT, ASTUnary, expression, token);
     } else if (parser->type == TOKEN_LPAREN) {
         parserConsume(parser, TOKEN_LPAREN);
         AST* expression = (AST*) structAST(AST_EXPR, 0, ASTExpr, parseExpression(parser, scope, parent));
@@ -576,6 +580,11 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         AST* right = parseExpression(parser, scope, parent);
         parserConsume(parser, TOKEN_EOS);
         arrayAppend(nodes, structAST(AST_ASSIGN, 0, ASTAssign, identifierOrType, right));
+    } else if (parser->token->flags & TYPE_UNARY) { //Parsing Unary operators where the op second (++, --, etc)
+        Token* token = parser->token;
+        parserConsume(parser, parser->type);
+        arrayAppend(nodes, structAST(AST_UNARY, UNARY_LEFT, ASTUnary, identifierOrType, token));
+        parserConsume(parser, TOKEN_EOS);
     }
 }
 
@@ -584,6 +593,10 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
     while (parser->type != breakToken) {
         if (parser->token->flags & DATA_TYPE) {
             parseDefinition(nodes, parser, scope, parent);
+        } else if (parser->token->flags & TYPE_UNARY) {
+            //Parsing Unary operators where the op comes first (!condition, -5, etc)
+            AST* expression = parseExpression(parser, scope, parent);
+            arrayAppend(nodes, /*structAST(AST_UNARY, 0, ASTUnary, expression, token)*/expression);
         } else if (parser->type == TOKEN_STRUCT) {
             parseStructDefinition(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_ENUM) {
