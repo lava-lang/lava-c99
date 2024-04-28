@@ -287,6 +287,9 @@ void visitFuncCall(ASTFuncCall* node, OutputBuffer* buffer) {
     bufferAppend(buffer, "(");
     visitCompound(node->expressions, buffer, ",", true);
     bufferAppend(buffer, ")");
+    if (node->base.flags & NON_EXPR_FUNC) {
+        bufferAppend(buffer, ";");
+    }
 }
 
 void visitStructInit(ASTStructInit* node, OutputBuffer* buffer) {

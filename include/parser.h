@@ -167,7 +167,7 @@ AST* parseExpression(Parser* parser, Scope* scope, AST* parent);
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent);
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent);
 
-AST* parseFunctionCall(Parser* parser, Scope* scope, AST* identifier, AST* parent, ASTStructDef* structDef, char* prefix) {
+AST* parseFunctionCall(Parser* parser, Scope* scope, AST* parent, AST* identifier, ASTStructDef* structDef, char* prefix) {
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* expressionArray = arrayInit(sizeof(AST*));
     if (structDef != NULL) { //append struct members to expression list
@@ -226,7 +226,7 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
                 if (result == 0) {
                     ASTStructDef* structDef = (ASTStructDef*) out.value;
                     //We also pass the variable identifier as parent for the function call, so this func as access to it
-                    return parseFunctionCall(parser, scope, funcIden, identifier, structDef, viewToStr(&structDef->identifier->token->view));
+                    return parseFunctionCall(parser, scope, identifier, funcIden, structDef, viewToStr(&structDef->identifier->token->view));
                 } else { //Tried to call function on struct that does not exist
                     ERROR("Unknown Struct Function! (%s)", viewToStr(&funcIden->token->view))
                 }
@@ -234,10 +234,7 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
                 return identifier;
             }
         } else if (stType == ST_FUNC) {
-            return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, NULL, NULL);
-        } else if (stType == ST_FUNC_STRUCT) {
-            ERROR("Problem!", "")
-            //return parseFunctionCall(parser, scope, parseIdentifier(parser, scope, parent), parent, out.value);
+            return parseFunctionCall(parser, scope, parent, parseIdentifier(parser, scope, parent), NULL, NULL);
         }
     } else {
         return parseExpression(parser, scope, parent);
@@ -584,6 +581,11 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         Token* token = parser->token;
         parserConsume(parser, parser->type);
         arrayAppend(nodes, structAST(AST_UNARY, UNARY_LEFT, ASTUnary, identifierOrType, token));
+        parserConsume(parser, TOKEN_EOS);
+    } else if (parser->type == TOKEN_LPAREN) { //This must be a void function call outside an expression
+        AST* funcCall = parseFunctionCall(parser, scope, parent, identifierOrType, NULL, NULL);
+        funcCall->flags |= NON_EXPR_FUNC;
+        arrayAppend(nodes, funcCall);
         parserConsume(parser, TOKEN_EOS);
     }
 }

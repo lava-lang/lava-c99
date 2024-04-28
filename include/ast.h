@@ -32,7 +32,8 @@ typedef enum packed ASTFlag {
     STRUCT_FUNC   = 1 << 3,
     STRUCT_MEMBER = 1 << 4,
     UNARY_LEFT    = 1 << 5,
-    UNARY_RIGHT    = 1 << 6,
+    UNARY_RIGHT   = 1 << 6,
+    NON_EXPR_FUNC = 1 << 7,
 } ASTFlag;
 struct AST {
     ASTType type;
