@@ -52,6 +52,10 @@ size_t hashFunction(const char *key, size_t number_of_rows)
 
 //returns 0 on success
 int insert(struct hash_table *the_hash_table, char* key, void* value) {
+    if (value == NULL) {
+        printf("Pushed NULL value to map for '%s'!", key);
+        exit(1);
+    }
     size_t index = hashFunction(key, the_hash_table->size);
     struct hash_table_entry *new_hash_table_entry = malloc(sizeof(struct hash_table_entry));
     if(NULL == new_hash_table_entry)
@@ -86,7 +90,9 @@ int find(struct hash_table *the_hash_table, char *key, struct hash_table_entry* 
         if(0==strcmp(head_ll->key,key))
         {
             //found match! Make a copy and transfer over value
-            memcpy(ret_val, head_ll, sizeof(struct hash_table_entry));
+            if (ret_val != NULL) {
+                memcpy(ret_val, head_ll, sizeof(struct hash_table_entry));
+            }
             return 0;
         }
         head_ll=head_ll->next;

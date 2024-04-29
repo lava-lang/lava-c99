@@ -476,6 +476,7 @@ void generateC(ASTComp* root, char* prefix, char* code) {
     FILE *fpCode = fopen(code, "w");
     OutputBuffer* buffer = bufferInit(fpPrefix, fpCode);
     bufferPrefix(buffer);
+    bufferAppend(buffer, "#include <stdio.h>\n");
     bufferAppend(buffer, "#include <stdbool.h>\n");
     bufferAppend(buffer, "#include <stdint.h>\n");
     bufferCode(buffer);

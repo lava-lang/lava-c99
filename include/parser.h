@@ -208,12 +208,22 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* iden
             AST* member = (AST*) structDef->members->array->elements[i];
             if (member->type == AST_VAR) {
                 ASTVarDef* structVar = (ASTVarDef*) member;
+                //varAccessed->flags |= POINTER_TYPE;
                 arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, REF_TYPE, ASTStructMemberRef, varAccessed, structVar->identifier));
             }
         }
     }
     while (parser->type != TOKEN_RPAREN) { //Consume function argument expressions
         AST* expression = parseExpression(parser, scope, varAccessed);
+        expression->flags &= ~DEREF_TYPE; //TODO fix this hack
+        if (expression->type == AST_ID) {
+            int stType = getSTForIden(scope, &expression->token->view);
+            if (stType == ST_VAR_PTR || stType == ST_VAR_STRUCT_PTR) {
+                if (find(scope->defs, viewToStr(&expression->token->view), NULL) == -1) {
+                    expression->flags |= DEREF_TYPE; //TODO fix this hack
+                }
+            }
+        }
         arrayAppend(expressionArray, expression);
         if (parser->type == TOKEN_COMMA) {
             parserConsume(parser, TOKEN_COMMA);
@@ -484,9 +494,10 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
     char* structIden = NULL;
-    int stackTop = scope->top;
+    int stackTop = -1;
     DynArray* nodesArgs = arrayInit(sizeof(AST *));
     if (parent->type == AST_STRUCT) {
+        stackTop = scope->top;
         stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT, false);
         ASTStructDef* astStructDef = (ASTStructDef*) parent;
         insert(scope->defs, viewToStr(&identifier->token->view), astStructDef);
@@ -507,6 +518,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
         }
     } else {
         stackPush(scope, &identifier->token->view, ST_FUNC, false);
+        stackTop = scope->top;
     }
 
     parserConsume(parser, TOKEN_LPAREN);
@@ -518,10 +530,10 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
 
         //
         hash_table_entry out = {0};
-        int result = find(scope->defs, viewToStr(&argument->dataType->token->view), &out);
-        //stackPush(scope, &argument->identifier->token->view, result == -1 ? ST_VAR : ST_VAR_STRUCT, false);
-        //Push def for this argument identifier if its type is a user defined struct
-        insert(scope->defs, viewToStr(&argument->identifier->token->view), out.value);
+        int result = find(scope->defs, viewToStr(&argument->identifier->token->view), &out);
+        if (result != -1) {
+            insert(scope->defs, viewToStr(&argument->identifier->token->view), out.value);
+        }
     }
 
     ASTComp* args = structAST(AST_COMP, 0, ASTComp, nodesArgs);

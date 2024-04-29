@@ -1,46 +1,171 @@
 import <math.h>;
 
 struct Vec {
-    int x;
-    int y;
-    int z;
+    f64 x, y, z;
 
     void add(Vec* v) {
-        x += v.x;
-        v.x += x;
-        //v.x += x; v.y += y; v.z += z;
+        x += v.x; y += v.y; z += v.z;
     }
 
     void sub(Vec* v) {
-        v.x -= x; v.y -= y; v.z -= z;
+        x -= v.x; y -= v.y; z -= v.z;
     }
 
-//    void mult(f64 m) {
-//        x *= m; y *= m; z *= m;
-//    }
-//
-//    void div(f64 d) {
-//        v.x /= x; v.y /= y; v.z /= z;
-//    }
-//
-//    void dot() {
-//        f64 m = x*x + y*y + z*z;
-//        m = c.sqrt(m);
-//        x /= m; y /= m; z /= m;
-//    }
-//
-//    void norm() {
-//
-//    }
+    void mult(f64 m) {
+        x *= m; y *= m; z *= m;
+    }
+
+    void div(f64 d) {
+        x /= d; y /= d; z /= d;
+    }
+
+    void norm() {
+        f64 m = x*x + y*y + z*z;
+        m = c.sqrt(m);
+        x /= m; y /= m; z /= m;
+    }
+
+    f64 dot(Vec* v) {
+        return x * v.x + y * v.y + z * v.z;
+    }
+}
+
+struct Ray {
+    Vec o;
+    Vec d;
+}
+
+struct Sphere {
+    Vec c;
+    f64 r;
+
+    void getNormal(Vec* out, Vec* p) {
+        out.x = p.x;
+        out.y = p.y;
+        out.z = p.z;
+        out.sub(c);
+        out.div(r);
+    }
+
+    // if the discriminant of the intersection formula is a negative
+    // or very small number, it does not intersect.
+    bool intersects(Ray* ray) {
+        Vec p = {0 ,0, 0};
+        p = ray.o; //should mem copy
+        p.sub(c);
+        f64 b = 2 * p.dot(&ray.d);
+        f64 c1 = p.dot(&p) - (r * r);
+        f64 disc = b * b - 4 * c1;
+        if (disc < 0.0001) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    f64 intersection(Ray* ray) {
+        Vec p = {0 ,0, 0};
+        p = ray.o; //should mem copy
+        p.sub(c);
+        f64 b = 2 * p.dot(&ray.d);
+        f64 c1 = p.dot(&p) - (r * r);
+        f64 disc = c.sqrt(b * b - 4 * c1);
+        // solution point is the smaller point
+        f64 t0 = -b-disc;
+        f64 t1 = -b+disc;
+        if (t0 < t1) {
+            return t0;
+        } else {
+            return t1;
+        }
+    }
+}
+
+void clamp(Vec* col) {
+    if (col.x > 255) {
+        col.x = 255;
+    } else if (col.x < 0) {
+        col.x = 0;
+    }
+    if (col.y > 255) {
+        col.y = 255;
+    } else if (col.y < 0) {
+        col.y = 0;
+    }
+    if (col.z > 255) {
+        col.z = 255;
+    } else if (col.z < 0) {
+        col.z = 0;
+    }
 }
 
 int main() {
-    Vec v1 = {1, 1, 1};
-    Vec v2 = {1, 1, 1};
+    int h = 500;
+    int w = 500;
 
-    Vec v3;
+    Vec white = {255, 255, 255};
+    Vec bg = {16, 16, 16};
+    Vec green = {34, 139, 34};
 
-    v3;
-    v3.x;
-    v1.add(&v2);
+    Vec sv1 = {w * 0.5, h * 0.5, 50};
+    Vec sv2 = {1000, -1000, 0};
+    Sphere s1 = {sv1, 150};
+    Sphere light = {sv2, 100};
+
+    c.FILE *output = fopen("out.ppm", "w");
+    // ppm header
+    c.fprintf(output, "P3\n%d %d 255\n", w, h);
+
+    //intersection
+    f64 t;
+    Vec pixCol = bg;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            pixCol = bg;
+            // a ray is sent from the current camera's pixel, out onto the scene
+            // if the ray intersects, determine the point of intersection
+            // and the direction of the reflected ray
+            Vec v1 = {x, y, 0};
+            Vec v2 = {0, 0, 1};
+            Ray ray = {v1, v2};
+            if (s1.intersects(&ray)) {
+                t = s1.intersection(&ray); //returns new
+                Vec temp = {0, 0, 0};
+                //vector sln
+                Vec sln = {0, 0, 0};
+                    //mult
+                temp = ray.d;
+                temp.mult(t); //temp has result of mult
+                    //add
+                sln = ray.o;
+                sln.add(&temp); //temp gets added to sln
+
+                //vector l
+                temp = light.c; //has light.c value
+                Vec l = {0, 0, 0};
+                temp.sub(&sln);
+                l = temp;
+
+                //vector n
+                Vec n = {0, 0, 0};
+                s1.getNormal(&n, &sln); //result of getNormal is stored in n, and sln is not changed
+
+                // dt is the amount of shading produced, determined
+                // by Lambertian reflection equation
+                n.norm(); //n is now normalised in place
+                l.norm(); //l is now normalised in place
+                f64 dt = l.dot(&n); //dt is the in place dot (with in) returning float
+
+                Vec whiteTemp = {white.x, white.y, white.z};
+                whiteTemp.mult(dt);
+                whiteTemp.add(&green);
+                whiteTemp.mult(0.5);
+                pixCol = whiteTemp;
+                clamp(&pixCol);
+            }
+
+            c.fprintf(output, "%f %f %f\n", pixCol.x, pixCol.y, pixCol.z);
+        }
+    }
+    c.fclose(output);
 }
