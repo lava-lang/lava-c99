@@ -15,8 +15,9 @@ typedef struct Ray Ray;
 
 typedef struct Sphere Sphere;
 
-void Sphere_getNormal(Vec* c, double* r, Vec* out, Vec* p);
-bool Sphere_intersects(Vec* c, double* r, Ray* ray);
-double Sphere_intersection(Vec* c, double* r, Ray* ray);
+void Sphere_getNormal(Vec* c, double* r, Vec* col, Vec* out, Vec* p);
+bool Sphere_intersects(Vec* c, double* r, Vec* col, Ray* ray);
+double Sphere_intersection(Vec* c, double* r, Vec* col, Ray* ray);
 void clamp(Vec* col);
+void drawPixel(Sphere* s, Vec* pixCol, Ray* ray, Sphere* light);
 int main();

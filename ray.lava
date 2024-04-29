@@ -38,6 +38,7 @@ struct Ray {
 struct Sphere {
     Vec c;
     f64 r;
+    Vec col;
 
     void getNormal(Vec* out, Vec* p) {
         out.x = p.x;
@@ -99,25 +100,73 @@ void clamp(Vec* col) {
     }
 }
 
+void drawPixel(Sphere* s, Vec* pixCol, Ray* ray, Sphere* light) {
+    f64 t = s.intersection(ray); //returns new
+    Vec temp = {0, 0, 0};
+    //vector sln
+    Vec sln = {0, 0, 0};
+        //mult
+    temp = ray.d;
+    temp.mult(t); //temp has result of mult
+        //add
+    sln = ray.o;
+    sln.add(&temp); //temp gets added to sln
+
+    //vector l
+    temp = light.c; //has light.c value
+    Vec l = {0, 0, 0};
+    temp.sub(&sln);
+    l = temp;
+
+    //vector n
+    Vec n = {0, 0, 0};
+    s.getNormal(&n, &sln); //result of getNormal is stored in n, and sln is not changed
+
+    // dt is the amount of shading produced, determined
+    // by Lambertian reflection equation
+    n.norm(); //n is now normalised in place
+    l.norm(); //l is now normalised in place
+    f64 dt = l.dot(&n); //dt is the in place dot (with in) returning float
+
+    Vec whiteTemp = {255, 255, 255}; //white
+    whiteTemp.mult(dt);
+    whiteTemp.add(&s.col);
+    whiteTemp.mult(0.5);
+    pixCol.x = whiteTemp.x;
+    pixCol.y = whiteTemp.y;
+    pixCol.z = whiteTemp.z;
+    clamp(pixCol);
+}
+
 int main() {
     int h = 500;
     int w = 500;
-
-    Vec white = {255, 255, 255};
     Vec bg = {16, 16, 16};
-    Vec green = {34, 139, 34};
 
+    //Light
+    Vec lv = {1000, -1000, 0};
+    Sphere light = {lv, 100};
+
+    //Shpere 1
     Vec sv1 = {w * 0.5, h * 0.5, 50};
-    Vec sv2 = {1000, -1000, 0};
-    Sphere s1 = {sv1, 150};
-    Sphere light = {sv2, 100};
+    Vec purple = {160, 32, 240};
+    Sphere s1 = {sv1, 125, purple};
+
+    //Sphere 2
+    Vec sv2 = {w * 0.75, h * 0.75, 50};
+    Vec red = {255, 0, 0};
+    Sphere s2 = {sv2, 75, red};
+
+    //Sphere 3
+    Vec sv3 = {w * 0.25, h * 0.25, 10};
+    Vec blue = {0, 0, 255};
+    Sphere s3 = {sv3, 75, blue};
 
     c.FILE *output = fopen("out.ppm", "w");
-    // ppm header
+    //PPM header
     c.fprintf(output, "P3\n%d %d 255\n", w, h);
 
     //intersection
-    f64 t;
     Vec pixCol = bg;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
@@ -128,42 +177,15 @@ int main() {
             Vec v1 = {x, y, 0};
             Vec v2 = {0, 0, 1};
             Ray ray = {v1, v2};
-            if (s1.intersects(&ray)) {
-                t = s1.intersection(&ray); //returns new
-                Vec temp = {0, 0, 0};
-                //vector sln
-                Vec sln = {0, 0, 0};
-                    //mult
-                temp = ray.d;
-                temp.mult(t); //temp has result of mult
-                    //add
-                sln = ray.o;
-                sln.add(&temp); //temp gets added to sln
-
-                //vector l
-                temp = light.c; //has light.c value
-                Vec l = {0, 0, 0};
-                temp.sub(&sln);
-                l = temp;
-
-                //vector n
-                Vec n = {0, 0, 0};
-                s1.getNormal(&n, &sln); //result of getNormal is stored in n, and sln is not changed
-
-                // dt is the amount of shading produced, determined
-                // by Lambertian reflection equation
-                n.norm(); //n is now normalised in place
-                l.norm(); //l is now normalised in place
-                f64 dt = l.dot(&n); //dt is the in place dot (with in) returning float
-
-                Vec whiteTemp = {white.x, white.y, white.z};
-                whiteTemp.mult(dt);
-                whiteTemp.add(&green);
-                whiteTemp.mult(0.5);
-                pixCol = whiteTemp;
-                clamp(&pixCol);
+            if (s3.intersects(&ray)) {
+                drawPixel(&s3, &pixCol, &ray, &light);
             }
-
+            if (s2.intersects(&ray)) {
+                drawPixel(&s2, &pixCol, &ray, &light);
+            }
+            if (s1.intersects(&ray)) {
+                drawPixel(&s1, &pixCol, &ray, &light);
+            }
             c.fprintf(output, "%f %f %f\n", pixCol.x, pixCol.y, pixCol.z);
         }
     }
