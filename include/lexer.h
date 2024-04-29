@@ -344,6 +344,10 @@ Token* lexNextToken(Lexer* lexer) {
         return lexNextStringOrChar(lexer, TOKEN_CHAR_VALUE, '\'');
     } else if (lexer->cur == '/') {
         advance(lexer);
+        if (lexer->cur == '=') {
+            advance(lexer);
+            return tokenInit(TOKEN_DIV_ASSIGN, &lexer->view, TYPE_BINOP);
+        }
         return tokenInit(TOKEN_DIVIDE, &lexer->view, 0);
     } else if (lexer->cur == '+') {
         advance(lexer);
@@ -370,6 +374,10 @@ Token* lexNextToken(Lexer* lexer) {
         return tokenInit(TOKEN_MINUS, &lexer->view, TYPE_UNARY | TYPE_BINOP);
     } else if (lexer->cur == '*') {
         advance(lexer);
+        if (lexer->cur == '=') {
+            advance(lexer);
+            return tokenInit(TOKEN_MUL_ASSIGN, &lexer->view, TYPE_BINOP);
+        }
         return tokenInit(TOKEN_STAR, &lexer->view, 0);
     } else if (lexer->cur == '<') {
         advance(lexer);

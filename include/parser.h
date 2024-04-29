@@ -79,18 +79,6 @@ StackEntry stackPop(Scope* scope) {
     }
 }
 
-//Function to insert into the stack
-StackEntry stackPush(Scope* scope, StrView* data, StackType type, bool pointer) {
-    if(!stackFull(scope)) {
-        scope->top = scope->top + 1;
-        memcpy(&scope->stack[scope->top].view, data, sizeof(StrView)); //Copy view pointer, as this will be changed by the lexer
-        scope->stack[scope->top].type = type;
-        scope->stack[scope->top].pointer = pointer;
-    } else {
-        printf("Could not insert data, Stack is full.\n");
-    }
-}
-
 int getPosForIden(Scope* scope, StrView* data) {
     for (int i = 0; i < scope->top + 1; ++i) {
         if (viewViewCmp(&scope->stack[i].view, data) == true) {
@@ -110,6 +98,26 @@ StackType getSTForIden(Scope* scope, StrView* view) {
         return scope->stack[pos].type;
     }
     return -1;
+}
+
+//Function to insert into the stack
+StackEntry stackPush(Scope* scope, StrView* data, StackType type, bool pointer) {
+    if(!stackFull(scope)) {
+        //Already exists on the stack, replace it... a bit hacky
+        if (getSTForIden(scope, data) != -1) {
+            int pos = getPosForIden(scope, data);
+            memcpy(&scope->stack[pos].view, data, sizeof(StrView));
+            scope->stack[pos].type = type;
+            scope->stack[pos].pointer = pointer;
+        } else {
+            scope->top = scope->top + 1;
+            memcpy(&scope->stack[scope->top].view, data, sizeof(StrView)); //Copy view pointer, as this will be changed by the lexer
+            scope->stack[scope->top].type = type;
+            scope->stack[scope->top].pointer = pointer;
+        }
+    } else {
+        printf("Could not insert data, Stack is full.\n");
+    }
 }
 
 bool getIsPointerForIden(Scope* scope, StrView* view) {
@@ -200,7 +208,7 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* iden
             AST* member = (AST*) structDef->members->array->elements[i];
             if (member->type == AST_VAR) {
                 ASTVarDef* structVar = (ASTVarDef*) member;
-                arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, varAccessed, structVar->identifier));
+                arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, REF_TYPE, ASTStructMemberRef, varAccessed, structVar->identifier));
             }
         }
     }
@@ -284,6 +292,7 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
             AST* identifier = parseIdentifier(parser, scope, parent);
             if (stType == ST_VAR_PTR) {
                 identifier->flags |= POINTER_TYPE;
+                identifier->flags |= DEREF_TYPE;
             }
             return identifier;
         } else if (stType == ST_VAR_STRUCT || stType == ST_VAR_STRUCT_PTR) {
@@ -475,6 +484,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
     char* structIden = NULL;
+    int stackTop = scope->top;
     DynArray* nodesArgs = arrayInit(sizeof(AST *));
     if (parent->type == AST_STRUCT) {
         stackPush(scope, &identifier->token->view, ST_FUNC_STRUCT, false);
@@ -489,6 +499,9 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
                 //TODO avoid copying these AST nodes. referencing the member nodes causes issues with Cgen
                 ASTVarDef* copy = RALLOC(1, sizeof(ASTVarDef));
                 memcpy(copy, member, sizeof(ASTVarDef));
+                copy->base.flags |= POINTER_TYPE;
+                //make sure to push these to the stack also
+                stackPush(scope, &copy->identifier->token->view, ST_VAR_PTR, true);
                 arrayAppend(nodesArgs, copy);
             }
         }
@@ -496,7 +509,6 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
         stackPush(scope, &identifier->token->view, ST_FUNC, false);
     }
 
-    int stackTop = scope->top;
     parserConsume(parser, TOKEN_LPAREN);
     parseDefinition(nodesArgs, parser, scope, parent);
     parserConsume(parser, TOKEN_RPAREN);
@@ -769,6 +781,15 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
             identifierOrType->flags |= NON_EXPR_FUNC;
         }
     }
+    //check if this identifier reference is on the stack
+    if (identifierOrType->type == AST_ID) {
+        int stType = getSTForIden(scope, &identifierOrType->token->view);
+        if (stType == -1) {
+            ERROR("Identifier '%s' is not defined!\n", viewToStr(&identifierOrType->token->view))
+        } else if (stType == ST_VAR_PTR) {
+            identifierOrType->flags |= DEREF_TYPE;
+        }
+    }
     if (parser->type == TOKEN_ID) { //If the next token is another id, then it must be a new type being instantiated
         AST* identifier = parseIdentifier(parser, scope, parent);
         //If this is another ID (so a custom type), and it already consumed TOKEN_STAR, then this identifier is a pointer
@@ -805,7 +826,8 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
     } else if (parser->token->flags & TYPE_BINOP) { //Parsing Binary operators such as + and +=
         Token* token = parser->token;
         parserConsume(parser, parser->type);
-        AST* binop = (AST*) structAST(AST_BINOP, 0, ASTBinop, identifierOrType, token, parseExpression(parser, scope, parent));
+        AST* expression = parseExpression(parser, scope, parent);
+        AST* binop = (AST*) structAST(AST_BINOP, 0, ASTBinop, identifierOrType, token, expression);
         if (parser->type == TOKEN_EOS) {
             binop->flags |= TRAILING_EOS;
         }

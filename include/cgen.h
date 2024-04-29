@@ -38,7 +38,7 @@ void visitVarDefinition(ASTVarDef* node, ASTType parent, OutputBuffer* buffer) {
     } else {
         visit(node->dataType, parent, buffer);
     }
-    if (node->identifier->flags & POINTER_TYPE) {
+    if (node->identifier->flags & POINTER_TYPE || node->base.flags & POINTER_TYPE) {
         bufferAppend(buffer, "*");
     }
     bufferAppend(buffer, " ");
@@ -430,6 +430,11 @@ void visitValue(AST* node, ASTType parent, OutputBuffer* buffer) {
 
 void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
     if (node == NULL) return;
+    if (node->flags & REF_TYPE) {
+        bufferAppend(buffer, "&");
+    } else if (node->flags & DEREF_TYPE) {
+        bufferAppend(buffer, "*");
+    }
     switch (node->type) {
         case AST_COMP: visitCompound((ASTComp*) node, parent, buffer, "\n", false); break;
         case AST_TYPE: visitDataType(node, parent, buffer); break;

@@ -1,11 +1,37 @@
+import <math.h>;
+
 struct Vec {
     int x;
     int y;
     int z;
 
     void add(Vec* v) {
-        v.x += (5);
+        x += v.x;
+        v.x += x;
+        //v.x += x; v.y += y; v.z += z;
     }
+
+    void sub(Vec* v) {
+        v.x -= x; v.y -= y; v.z -= z;
+    }
+
+//    void mult(f64 m) {
+//        x *= m; y *= m; z *= m;
+//    }
+//
+//    void div(f64 d) {
+//        v.x /= x; v.y /= y; v.z /= z;
+//    }
+//
+//    void dot() {
+//        f64 m = x*x + y*y + z*z;
+//        m = c.sqrt(m);
+//        x /= m; y /= m; z /= m;
+//    }
+//
+//    void norm() {
+//
+//    }
 }
 
 int main() {
