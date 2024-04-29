@@ -4,7 +4,7 @@ struct Vec {
     int z;
 
     void add(Vec* v) {
-        v.x = 5;
+        v.x + (5);
     }
 }
 

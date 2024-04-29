@@ -57,6 +57,7 @@ typedef struct ASTEnumDef {AST base; AST* identifier; AST* dataType; ASTComp* co
 typedef struct ASTFuncDef {AST base; AST* returnType; AST* identifier; ASTComp* arguments; ASTComp* statements; char* structIden;} ASTFuncDef;
 typedef struct ASTUnionDef {AST base; AST* identifier; ASTComp* members;} ASTUnionDef;
 typedef struct ASTAssign {AST base; AST* left; AST* right;} ASTAssign;
+//TODO Token* in Binop can just be TokenType? avoids storing pointer where an int can suffice
 typedef struct ASTBinop {AST base; AST* left; Token* op; AST* right;} ASTBinop;
 typedef struct ASTUnary {AST base; AST* expression; Token* op;} ASTUnary;
 typedef struct ASTExpr {AST base; AST* expr;} ASTExpr;

@@ -349,14 +349,18 @@ Token* lexNextToken(Lexer* lexer) {
         advance(lexer);
         if (lexer->cur == '+') {
             advance(lexer);
-            return tokenInit(TOKEN_INCREMENT, &lexer->view, TYPE_UNARY);
+            return tokenInit(TOKEN_INC, &lexer->view, TYPE_UNARY);
+        } else if (lexer->cur == '=') {
+            return tokenInit(TOKEN_INC_ASSIGN, &lexer->view, TYPE_BINOP);
         }
         return tokenInit(TOKEN_PLUS, &lexer->view, TYPE_BINOP);
     } else if (lexer->cur == '-') {
         advance(lexer);
         if (lexer->cur == '-') {
             advance(lexer);
-            return tokenInit(TOKEN_DECREMENT, &lexer->view, TYPE_UNARY);
+            return tokenInit(TOKEN_DEC, &lexer->view, TYPE_UNARY);
+        } else if (lexer->cur == '=') {
+            return tokenInit(TOKEN_DEC_ASSIGN, &lexer->view, TYPE_BINOP);
         } else if (lexer->cur == '>') {
             advance(lexer);
             return tokenInit(TOKEN_PTR_ACCESS, &lexer->view, 0);

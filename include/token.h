@@ -71,6 +71,8 @@ const char* TOKEN_NAMES[] = {
         "And Operator",
         "Increment Operator",
         "Decrement Operator",
+        "Increment And Assign Operator",
+        "Decrement And Assign Operator",
         "Dereference Operator",
 
         "Left Paren",
@@ -148,8 +150,10 @@ typedef enum TokenType {
     TOKEN_NOT_EQUAL,
     TOKEN_MODULUS,
     TOKEN_AND,
-    TOKEN_INCREMENT,
-    TOKEN_DECREMENT,
+    TOKEN_INC,
+    TOKEN_DEC,
+    TOKEN_INC_ASSIGN,
+    TOKEN_DEC_ASSIGN,
     TOKEN_DEREF,
 
     TOKEN_LPAREN,

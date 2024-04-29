@@ -10,9 +10,6 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer);
 
 void visitNode(AST* node, ASTType parent, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
-    if (node->flags & TRAILING_EOS) {
-        bufferAppend(buffer, ";");
-    }
 }
 
 void visitCompound(ASTComp* node, ASTType parent, OutputBuffer* buffer, char* delimiter, bool skipLastDelim) {
@@ -463,6 +460,9 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
         case AST_ARRAY_INIT: visitArrayInit((ASTArrayInit*) node, parent, buffer); break;
         case AST_ARRAY_ACCESS: visitArrayAccess((ASTArrayAccess*) node, parent, buffer); break;
         default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
+    }
+    if (node->flags & TRAILING_EOS) {
+        bufferAppend(buffer, ";");
     }
 }
 

@@ -802,20 +802,22 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         Token* token = parser->token;
         parserConsume(parser, parser->type);
         arrayAppend(nodes, structAST(AST_UNARY, UNARY_LEFT, ASTUnary, identifierOrType, token));
+    } else if (parser->token->flags & TYPE_BINOP) { //Parsing Binary operators such as + and +=
+        Token* token = parser->token;
+        parserConsume(parser, parser->type);
+        AST* binop = (AST*) structAST(AST_BINOP, 0, ASTBinop, identifierOrType, token, parseExpression(parser, scope, parent));
         if (parser->type == TOKEN_EOS) {
-            //TODO bit of a hack, stops for loop requiring trailing EOS
-            parserConsume(parser, TOKEN_EOS);
+            binop->flags |= TRAILING_EOS;
         }
+        arrayAppend(nodes, binop);
     } else if (parser->type == TOKEN_LPAREN) { //This must be a void function call outside an expression
         AST* funcCall = parseFunctionCall(parser, scope, parent, identifierOrType, NULL, NULL);
         funcCall->flags |= NON_EXPR_FUNC;
         arrayAppend(nodes, funcCall);
         parserConsume(parser, TOKEN_EOS);
     } else {
-        if (identifierOrType->type == AST_ID) {
+        if (identifierOrType->type == AST_ID || identifierOrType->type == AST_STRUCT_MEMBER_REF) {
             identifierOrType->flags |= TRAILING_EOS;
-        } else if (identifierOrType->type == AST_STRUCT_MEMBER_REF) {
-            ((ASTStructMemberRef*) identifierOrType)->memberIden->flags |= TRAILING_EOS;
         }
         arrayAppend(nodes, identifierOrType);
     }
