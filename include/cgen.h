@@ -10,6 +10,9 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer);
 
 void visitNode(AST* node, ASTType parent, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
+    if (node->flags & TRAILING_EOS) {
+        bufferAppend(buffer, ";");
+    }
 }
 
 void visitCompound(ASTComp* node, ASTType parent, OutputBuffer* buffer, char* delimiter, bool skipLastDelim) {

@@ -3,5 +3,5 @@
 
 typedef struct Vec Vec;
 
-Vec* Vec_add(int x, int y, int z, Vec* v);
+void Vec_add(int x, int y, int z, Vec* v);
 int main();

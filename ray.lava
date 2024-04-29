@@ -3,17 +3,18 @@ struct Vec {
     int y;
     int z;
 
-    Vec* add(Vec* v) {
-        Vec* r = {x + v.x, y + v.y, z + v.z};
-        return r;
+    void add(Vec* v) {
+        v.x = 5;
     }
 }
 
 int main() {
-    Vec* v1 = {1, 1, 1};
-    Vec* v2 = {1, 1, 1};
+    Vec v1 = {1, 1, 1};
+    Vec v2 = {1, 1, 1};
 
-    Vec* v3;
+    Vec v3;
 
-    Vec* r = v1.add(v2);
+    v3;
+    v3.x;
+    v1.add(&v2);
 }

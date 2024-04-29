@@ -14,6 +14,8 @@ static char empty[1] = {'\0'};
 typedef enum StackType {
     ST_VAR,
     ST_VAR_STRUCT,
+    ST_VAR_PTR,
+    ST_VAR_STRUCT_PTR,
     ST_FUNC,
     ST_FUNC_STRUCT,
 } StackType;
@@ -214,6 +216,44 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* iden
     return (AST*) structAST(AST_FUNC_CALL, 0, ASTFuncCall, identifier, expressions, prefix);
 }
 
+AST* parseStructMemberRef(Parser* parser, Scope* scope, AST* parent, AST* identifier) {
+    //Check of we're trying to access a struct member
+    hash_table_entry out = {0};
+    int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
+    if (result == 0) {
+        //TODO implement two passes. this crashes because it tries to get the members before the parent struct has assigned them
+//                    ASTStructDef* structDef = (ASTStructDef*) out.value;
+//                    for (int i = 0; i < structDef->members->array->len; ++i) {
+//                        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
+//                            ASTVarDef* varDef = (ASTVarDef*) structDef->members->array->elements[i];
+//                            if (viewViewCmp(&varDef->identifier->token->view, &parser->token->view) == true) {
+//                                //struct member access is a defined member
+//                                AST* member = parseIdentifier(parser, scope, parent);
+////                                if (parser->type == TOKEN_EOS) {
+////                                    parserConsume(parser, TOKEN_EOS);
+////                                }
+//                                return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
+//                            }
+//                        }
+//                    }
+        AST* member = parseIdentifier(parser, scope, parent);
+        int stType = getSTForIden(scope, &identifier->token->view);
+        if (stType == ST_VAR_STRUCT_PTR) {
+            identifier->flags |= POINTER_TYPE;
+        }
+        if (parser->type == TOKEN_LPAREN) { //Check if we're trying to access struct function
+            ASTStructDef* structDef = (ASTStructDef*) out.value;
+            //We also pass the variable identifier as parent for the function call, so this func as access to it
+            char* str = viewToStr(&structDef->identifier->token->view);
+            return (AST*) parseFunctionCall(parser, scope, identifier, member, structDef, str);
+        } else {
+            return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
+        }
+    }
+    //Tried to call function on struct that does not exist
+    ERROR("Unknown Struct member! (%s)", viewToStr(&identifier->token->view))
+}
+
 AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
     Token* token = parser->token;
     if (parser->token->flags & DATA_VALUE) {
@@ -238,52 +278,23 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
         int stType = getSTForIden(scope, &parser->token->view);
         if (stType == -1) {
             ERROR("Unknown Identifier! (%s)", viewToStr(&parser->token->view));
-        } else if (stType == ST_VAR) {
-            return parseIdentifier(parser, scope, parent);;
-        } else if (stType == ST_VAR_STRUCT) {
+        }
+        //var ref is in the stack, so it exists, check if it's a pointer or not
+        if (stType == ST_VAR || stType == ST_VAR_PTR) {
             AST* identifier = parseIdentifier(parser, scope, parent);
-            if (parser->type == TOKEN_DOT || parser->type == TOKEN_PTR_ACCESS) { //We're doing a struct instance function call
-//                bool pointer = getIsPointerForIden(scope, &identifier->token->view);
-//                if (pointer == true) {
-//                    parserConsume(parser, TOKEN_PTR_ACCESS);
-//                } else {
-//                    parserConsume(parser, TOKEN_DOT);
-//                }
-                if (parser->type == TOKEN_DOT || parser->type == TOKEN_PTR_ACCESS) {
-                    parserConsume(parser, parser->type);
-//                    identifier->flags |= POINTER_TYPE;
-                }
-                //Check of we're trying to access a struct member
-                hash_table_entry out = {0};
-                int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
-                if (result == 0) {
-                    //TODO implement two passes. this crashes because it tries to get the members before the parent struct has assigned them
-//                    ASTStructDef* structDef = (ASTStructDef*) out.value;
-//                    for (int i = 0; i < structDef->members->array->len; ++i) {
-//                        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
-//                            ASTVarDef* varDef = (ASTVarDef*) structDef->members->array->elements[i];
-//                            if (viewViewCmp(&varDef->identifier->token->view, &parser->token->view) == true) {
-//                                //struct member access is a defined member
-//                                AST* member = parseIdentifier(parser, scope, parent);
-////                                if (parser->type == TOKEN_EOS) {
-////                                    parserConsume(parser, TOKEN_EOS);
-////                                }
-//                                return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
-//                            }
-//                        }
-//                    }
-                    AST* member = parseIdentifier(parser, scope, parent);
-                    if (parser->type == TOKEN_LPAREN) { //Check if we're trying to access struct function
-                        ASTStructDef* structDef = (ASTStructDef*) out.value;
-                        //We also pass the variable identifier as parent for the function call, so this func as access to it
-                        char* str = viewToStr(&structDef->identifier->token->view);
-                        return parseFunctionCall(parser, scope, identifier, member, structDef, str);
-                    } else {
-                        return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
-                    }
-                }
-                //Tried to call function on struct that does not exist
-                ERROR("Unknown Struct member! (%s)", viewToStr(&identifier->token->view))
+            if (stType == ST_VAR_PTR) {
+                identifier->flags |= POINTER_TYPE;
+            }
+            return identifier;
+        } else if (stType == ST_VAR_STRUCT || stType == ST_VAR_STRUCT_PTR) {
+            AST* identifier = parseIdentifier(parser, scope, parent);
+            //TODO this should be replaced by a better variable identifier lookup system
+            if (stType == ST_VAR_STRUCT_PTR) {
+                identifier->flags |= POINTER_TYPE;
+            }
+            if (parser->type == TOKEN_DOT) { //struct member or func access
+                parserConsume(parser, TOKEN_DOT);
+                return parseStructMemberRef(parser, scope, parent, identifier);
             } else {
                 return identifier;
             }
@@ -355,12 +366,14 @@ bool isValueCompatible(AST* dataType, AST* expression) {
 }
 
 AST* parseIdentifierOrType(Parser* parser, Scope* scope, AST* parent) {
+    //Only return the struct type, if we are initializing a struct
     AST* identifier = parseIdentifier(parser, scope, parent);
     hash_table_entry out = {0};
     int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
     if (result == 0) {
         //We can cast this to AST, as we know this is the only type inserted into the table
-        if (out.value != NULL) {
+        //Also only return the struct if the next token is an identifier, as that must mean we are initializing this struct
+        if (out.value != NULL && parser->type == TOKEN_ID) {
             return (AST*) out.value;
         }
     }
@@ -368,6 +381,9 @@ AST* parseIdentifierOrType(Parser* parser, Scope* scope, AST* parent) {
 }
 
 AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, AST* identifier, AST* parent) {
+    if (identifier->flags & POINTER_TYPE) {
+        ERROR("Cannot initialize struct '%s', it is a pointer!", viewToStr(&identifier->token->view))
+    }
     parserConsume(parser, TOKEN_LBRACE);
     DynArray* expressionArray = arrayInit(sizeof(AST*));
     while (parser->type != TOKEN_RBRACE) { //Consume function argument expressions
@@ -427,36 +443,27 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
             parseArrayInit(nodes, parser, scope, dataType, identifier, parent);
             return;
         } else if (parser->type == TOKEN_LBRACE) { //Struct init
-            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
+            int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_STRUCT_PTR : ST_VAR_STRUCT;
+            stackPush(scope, &identifier->token->view, stackType, false);
             parseStructInit(nodes, parser, scope, dataType, identifier, parent);
             return; //Avoid having a varDef node added, StructInit will handle those.
         } else { //Otherwise, assume this is standard expression
-            stackPush(scope, &identifier->token->view, ST_VAR, false);
+            int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_PTR : ST_VAR;
+            stackPush(scope, &identifier->token->view, stackType, false);
             expression = parseExpression(parser, scope, parent);
             if (!isValueCompatible(dataType, expression)) {
                 ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
             }
         }
     } else {
-//        if (dataType->type == AST_STRUCT) { //creating struct var with no assignment
-//            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
-//            insert(scope->defs, viewToStr(&identifier->token->view), dataType);
-//        } else { //standard var with no assignment
-//            stackPush(scope, &identifier->token->view, ST_VAR, false);
-//        }
         if (dataType->type == AST_STRUCT) {
-            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
+            int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_STRUCT_PTR : ST_VAR_STRUCT;
+            stackPush(scope, &identifier->token->view, stackType, false);
             insert(scope->defs, viewToStr(&identifier->token->view), dataType);
         } else {
-            stackPush(scope, &identifier->token->view, ST_VAR, false);
+            int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_PTR : ST_VAR;
+            stackPush(scope, &identifier->token->view, stackType, false);
         }
-        hash_table_entry out = {0};
-//        int result = find(scope->defs, viewToStr(&dataType->token->view), &out); //is this a custom type?
-//        if (result == 0) { //if so, push to stack, noting it's a user struct, while also inserting this identifier to the lookup as a custom type.
-//            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
-//            insert(scope->defs, viewToStr(&identifier->token->view), out.value);
-//        } else { //otherwise, push to stack as a standard variable
-//        }
     }
     arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
 }
@@ -500,18 +507,20 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
         //
         hash_table_entry out = {0};
         int result = find(scope->defs, viewToStr(&argument->dataType->token->view), &out);
-        stackPush(scope, &argument->identifier->token->view, result == -1 ? ST_VAR : ST_VAR_STRUCT, false);
+        //stackPush(scope, &argument->identifier->token->view, result == -1 ? ST_VAR : ST_VAR_STRUCT, false);
         //Push def for this argument identifier if its type is a user defined struct
         insert(scope->defs, viewToStr(&argument->identifier->token->view), out.value);
     }
 
     ASTComp* args = structAST(AST_COMP, 0, ASTComp, nodesArgs);
     parserConsume(parser, TOKEN_LBRACE);
-    ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, parent);
+    ASTFuncDef* func = structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, NULL, structIden);
+    ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, (AST*) func);
+    func->statements = body;
     parserConsume(parser, TOKEN_RBRACE);
     scope->top = stackTop;
     //TODO need to pop the defs from the table too...?
-    arrayAppend(nodes, structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, body, structIden));
+    arrayAppend(nodes, func);
 }
 
 bool isDataType(Parser* parser) {
@@ -751,6 +760,15 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         parserConsume(parser, TOKEN_STAR);
         isPointer = true; //save this for later in parsing.
     }
+    //If it's a member access, swap out identifierOrType for ASTStructMemberAccess
+    if (parser->type == TOKEN_DOT && identifierOrType->type == AST_ID) {
+        parserConsume(parser, TOKEN_DOT);
+        identifierOrType = parseStructMemberRef(parser, scope, parent, identifierOrType);
+        //Make sure to mark this as a non expression function, so the trailing EOS gets generated
+        if (identifierOrType->type == AST_FUNC_CALL && parser->type == TOKEN_EOS) {
+            identifierOrType->flags |= NON_EXPR_FUNC;
+        }
+    }
     if (parser->type == TOKEN_ID) { //If the next token is another id, then it must be a new type being instantiated
         AST* identifier = parseIdentifier(parser, scope, parent);
         //If this is another ID (so a custom type), and it already consumed TOKEN_STAR, then this identifier is a pointer
@@ -792,6 +810,17 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         AST* funcCall = parseFunctionCall(parser, scope, parent, identifierOrType, NULL, NULL);
         funcCall->flags |= NON_EXPR_FUNC;
         arrayAppend(nodes, funcCall);
+        parserConsume(parser, TOKEN_EOS);
+    } else {
+        if (identifierOrType->type == AST_ID) {
+            identifierOrType->flags |= TRAILING_EOS;
+        } else if (identifierOrType->type == AST_STRUCT_MEMBER_REF) {
+            ((ASTStructMemberRef*) identifierOrType)->memberIden->flags |= TRAILING_EOS;
+        }
+        arrayAppend(nodes, identifierOrType);
+    }
+    //Final condition, consume trailing EOS
+    if (parser->type == TOKEN_EOS) { //Member ref ends with EOS, either a NOOP member ref, or a function call
         parserConsume(parser, TOKEN_EOS);
     }
 }

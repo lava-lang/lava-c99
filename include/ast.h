@@ -42,6 +42,7 @@ typedef enum packed ASTFlag {
     NON_EXPR_FUNC = 1 << 7,
     POINTER_TYPE  = 1 << 8,
     ARRAY_TYPE    = 1 << 9,
+    TRAILING_EOS  = 1 << 10,
 } ASTFlag;
 struct AST {
     ASTType type;
