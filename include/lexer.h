@@ -351,6 +351,7 @@ Token* lexNextToken(Lexer* lexer) {
             advance(lexer);
             return tokenInit(TOKEN_INC, &lexer->view, TYPE_UNARY);
         } else if (lexer->cur == '=') {
+            advance(lexer);
             return tokenInit(TOKEN_INC_ASSIGN, &lexer->view, TYPE_BINOP);
         }
         return tokenInit(TOKEN_PLUS, &lexer->view, TYPE_BINOP);
@@ -360,6 +361,7 @@ Token* lexNextToken(Lexer* lexer) {
             advance(lexer);
             return tokenInit(TOKEN_DEC, &lexer->view, TYPE_UNARY);
         } else if (lexer->cur == '=') {
+            advance(lexer);
             return tokenInit(TOKEN_DEC_ASSIGN, &lexer->view, TYPE_BINOP);
         } else if (lexer->cur == '>') {
             advance(lexer);
