@@ -190,20 +190,21 @@ AST* parseExpression(Parser* parser, Scope* scope, AST* parent);
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent);
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent);
 
-AST* parseFunctionCall(Parser* parser, Scope* scope, AST* parent, AST* identifier, ASTStructDef* structDef, char* prefix) {
+AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* identifier, ASTStructDef* structDef, char* prefix) {
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* expressionArray = arrayInit(sizeof(AST*));
     if (structDef != NULL) { //append struct members to expression list
         for (int i = 0; i < structDef->members->array->len; ++i) {
             AST* member = (AST*) structDef->members->array->elements[i];
             if (member->type == AST_VAR) {
-                ASTVarDef* var = (ASTVarDef*) member;
-                arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, parent, var->identifier));
+                ASTVarDef* structVar = (ASTVarDef*) member;
+                arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, varAccessed, structVar->identifier));
             }
         }
     }
     while (parser->type != TOKEN_RPAREN) { //Consume function argument expressions
-        arrayAppend(expressionArray, parseExpression(parser, scope, parent));
+        AST* expression = parseExpression(parser, scope, varAccessed);
+        arrayAppend(expressionArray, expression);
         if (parser->type == TOKEN_COMMA) {
             parserConsume(parser, TOKEN_COMMA);
         }
@@ -250,37 +251,39 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
 //                }
                 if (parser->type == TOKEN_DOT || parser->type == TOKEN_PTR_ACCESS) {
                     parserConsume(parser, parser->type);
-                    identifier->flags |= POINTER_TYPE;
+//                    identifier->flags |= POINTER_TYPE;
                 }
                 //Check of we're trying to access a struct member
                 hash_table_entry out = {0};
                 int result = find(scope->defs, viewToStr(&identifier->token->view), &out);
                 if (result == 0) {
-                    ASTStructDef* structDef = (ASTStructDef*) out.value;
-                    for (int i = 0; i < structDef->members->array->len; ++i) {
-                        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
-                            ASTVarDef* varDef = (ASTVarDef*) structDef->members->array->elements[i];
-                            if (viewViewCmp(&varDef->identifier->token->view, &parser->token->view) == true) {
-                                //struct member access is a defined member
-                                AST* member = parseIdentifier(parser, scope, parent);
-//                                if (parser->type == TOKEN_EOS) {
-//                                    parserConsume(parser, TOKEN_EOS);
-//                                }
-                                return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
-                            }
-                        }
+                    //TODO implement two passes. this crashes because it tries to get the members before the parent struct has assigned them
+//                    ASTStructDef* structDef = (ASTStructDef*) out.value;
+//                    for (int i = 0; i < structDef->members->array->len; ++i) {
+//                        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
+//                            ASTVarDef* varDef = (ASTVarDef*) structDef->members->array->elements[i];
+//                            if (viewViewCmp(&varDef->identifier->token->view, &parser->token->view) == true) {
+//                                //struct member access is a defined member
+//                                AST* member = parseIdentifier(parser, scope, parent);
+////                                if (parser->type == TOKEN_EOS) {
+////                                    parserConsume(parser, TOKEN_EOS);
+////                                }
+//                                return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
+//                            }
+//                        }
+//                    }
+                    AST* member = parseIdentifier(parser, scope, parent);
+                    if (parser->type == TOKEN_LPAREN) { //Check if we're trying to access struct function
+                        ASTStructDef* structDef = (ASTStructDef*) out.value;
+                        //We also pass the variable identifier as parent for the function call, so this func as access to it
+                        char* str = viewToStr(&structDef->identifier->token->view);
+                        return parseFunctionCall(parser, scope, identifier, member, structDef, str);
+                    } else {
+                        return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
                     }
                 }
-                //Check if we're trying to access struct function
-                AST* funcIden = parseIdentifier(parser, scope, parent);
-                result = find(scope->defs, viewToStr(&funcIden->token->view), &out);
-                if (result == 0) {
-                    ASTStructDef* structDef = (ASTStructDef*) out.value;
-                    //We also pass the variable identifier as parent for the function call, so this func as access to it
-                    return parseFunctionCall(parser, scope, identifier, funcIden, structDef, viewToStr(&structDef->identifier->token->view));
-                }
                 //Tried to call function on struct that does not exist
-                ERROR("Unknown Struct Function! (%s)", viewToStr(&funcIden->token->view))
+                ERROR("Unknown Struct member! (%s)", viewToStr(&identifier->token->view))
             } else {
                 return identifier;
             }
@@ -291,7 +294,8 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
         Token* cStmt = parserConsume(parser, TOKEN_C_STATEMENT);
         return basicAST(AST_C, 0, cStmt);
     } else {
-        return parseExpression(parser, scope, parent);
+        ERROR("Unhandled expression factor! (%s)", viewToStr(&token->view))
+//        return parseExpression(parser, scope, parent);
     }
 }
 
@@ -373,16 +377,17 @@ AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, A
         }
     }
     ASTStructDef* structDef = (ASTStructDef*) type;
-    //TODO store this info in the struct AST
-    size_t structVarCount = 0;
-    for (int i = 0; i < structDef->members->array->len; ++i) {
-        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
-            structVarCount++;
-        }
-    }
-    if (expressionArray->len != structVarCount) {
-        ERROR("Not enough init values! expected %llu, got %llu", structVarCount, expressionArray->len);
-    }
+//    //TODO store this info in the struct AST
+//    //TODO this crashes since its trying to access the members of the parent struct before they are set
+//    size_t structVarCount = 0;
+//    for (int i = 0; i < structDef->members->array->len; ++i) {
+//        if (((AST*) structDef->members->array->elements[i])->type == AST_VAR) {
+//            structVarCount++;
+//        }
+//    }
+//    if (expressionArray->len != structVarCount) {
+//        ERROR("Not enough init values! expected %llu, got %llu", structVarCount, expressionArray->len);
+//    }
 
     //Push this type to user defined
     insert(scope->defs, viewToStr(&identifier->token->view), structDef);
@@ -415,7 +420,7 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
     }
 
     AST* expression = NULL; //TODO somehow remove use of null
-    if (parser->type == TOKEN_ASSIGNMENT) {
+    if (parser->type == TOKEN_ASSIGNMENT) { //if we are assigning a value
         parserConsume(parser, TOKEN_ASSIGNMENT);
         if (parser->type == TOKEN_LPAREN && (dataType->flags & ARRAY_TYPE)) {
             stackPush(scope, &identifier->token->view, ST_VAR, false);
@@ -433,14 +438,25 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
             }
         }
     } else {
-        hash_table_entry out = {0};
-        int result = find(scope->defs, viewToStr(&dataType->token->view), &out);
-        if (result == 0) {
+//        if (dataType->type == AST_STRUCT) { //creating struct var with no assignment
+//            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
+//            insert(scope->defs, viewToStr(&identifier->token->view), dataType);
+//        } else { //standard var with no assignment
+//            stackPush(scope, &identifier->token->view, ST_VAR, false);
+//        }
+        if (dataType->type == AST_STRUCT) {
             stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
-            insert(scope->defs, viewToStr(&identifier->token->view), out.value);
+            insert(scope->defs, viewToStr(&identifier->token->view), dataType);
         } else {
             stackPush(scope, &identifier->token->view, ST_VAR, false);
         }
+        hash_table_entry out = {0};
+//        int result = find(scope->defs, viewToStr(&dataType->token->view), &out); //is this a custom type?
+//        if (result == 0) { //if so, push to stack, noting it's a user struct, while also inserting this identifier to the lookup as a custom type.
+//            stackPush(scope, &identifier->token->view, ST_VAR_STRUCT, false);
+//            insert(scope->defs, viewToStr(&identifier->token->view), out.value);
+//        } else { //otherwise, push to stack as a standard variable
+//        }
     }
     arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
 }
@@ -476,6 +492,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     int stackTop = scope->top;
     parserConsume(parser, TOKEN_LPAREN);
     parseDefinition(nodesArgs, parser, scope, parent);
+    parserConsume(parser, TOKEN_RPAREN);
     for (int i = 0; i < nodesArgs->len; ++i) {
         ASTVarDef* argument = (ASTVarDef*) nodesArgs->elements[i];
         argument->base.flags |= ARGUMENT;
@@ -489,7 +506,6 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     }
 
     ASTComp* args = structAST(AST_COMP, 0, ASTComp, nodesArgs);
-    parserConsume(parser, TOKEN_RPAREN);
     parserConsume(parser, TOKEN_LBRACE);
     ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, parent);
     parserConsume(parser, TOKEN_RBRACE);
@@ -498,9 +514,18 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
     arrayAppend(nodes, structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, body, structIden));
 }
 
+bool isDataType(Parser* parser) {
+    if (parser->token->flags & DATA_TYPE) {
+        return true;
+    } else {
+
+    }
+}
+
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     AST* dataType = NULL;
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
+        bool isPointer = false;
         if (parser->type == TOKEN_ID) {
             hash_table_entry out = {0};
             int result = find(scope->defs, viewToStr(&parser->token->view), &out);
@@ -510,11 +535,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
                 /*if (result != 0) { //User defined type does not exist
                     ERROR("Type %s does not exist!", viewToStr(&identifier->token->view))
                 }*/
-                dataType = (AST*) basicAST(AST_TYPE, 0, identifier->token);
-                if (parser->type == TOKEN_STAR) {
-                    parserConsume(parser, TOKEN_STAR);
-                    dataType->flags |= POINTER_TYPE;
-                }
+                dataType = out.value;
             } else {
                 //TODO: alloc new token as copy of dataType->token?
                 Token* token = dataType->token;
@@ -522,6 +543,10 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
             }
         } else if (parser->token->flags & DATA_TYPE) {
             dataType = parseDataType(parser, scope, parent);
+        }
+        if (parser->type == TOKEN_STAR) {
+            parserConsume(parser, TOKEN_STAR);
+            isPointer = true;
         }
         //First conditional chain, testing to detect func pointer, function def, or standard variable
         if (parser->type == TOKEN_COLON) { //Parsing function pointer
@@ -543,6 +568,9 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
             dataType = NULL;
         } else if (parser->type == TOKEN_ID) { //If we get here, we must be parsing a function or variable
             AST* identifier = parseIdentifier(parser, scope, parent);
+            if (isPointer) {
+                identifier->flags |= POINTER_TYPE;
+            }
             if (parser->type == TOKEN_LPAREN) { //Parsing Function Def
                 parseFuncDefinition(nodes, parser, scope, dataType, identifier, parent);
                 break; //Break out of loop, as no more work once function is constructed
@@ -572,12 +600,11 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
     parserConsume(parser, TOKEN_LBRACE);
     int stackTop = scope->top;
     ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
-    ASTComp* members = parseAST(parser, scope, TOKEN_RBRACE, (AST*) astStruct);
-    astStruct->members = members;
-    arrayAppend(nodes, astStruct);
-
     //Push this new type to the definition table
     insert(scope->defs, viewToStr(&id->token->view), astStruct);
+    ASTComp* members = parseAST(parser, scope, TOKEN_RBRACE, astStruct);
+    astStruct->members = members;
+    arrayAppend(nodes, astStruct);
 
     scope->top = stackTop;
     parserConsume(parser, TOKEN_RBRACE);
@@ -718,13 +745,29 @@ void parseAssign(DynArray* nodes, Parser* parser, Scope* scope, AST* parent, AST
 }
 
 void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+    bool isPointer = false;
     AST* identifierOrType = parseIdentifierOrType(parser, scope, parent);
     if (parser->type == TOKEN_STAR) { //Pointer type
         parserConsume(parser, TOKEN_STAR);
-        identifierOrType->flags |= POINTER_TYPE;
+        isPointer = true; //save this for later in parsing.
     }
     if (parser->type == TOKEN_ID) { //If the next token is another id, then it must be a new type being instantiated
-        parseVarDefinition(nodes, parser, scope, identifierOrType, NULL, parent);
+        AST* identifier = parseIdentifier(parser, scope, parent);
+        //If this is another ID (so a custom type), and it already consumed TOKEN_STAR, then this identifier is a pointer
+        if (isPointer == true) {
+            identifier->flags |= POINTER_TYPE;
+        }
+        if (parser->type == TOKEN_LPAREN) { //function parsing
+            parseFuncDefinition(nodes, parser, scope, identifierOrType, identifier, parent);
+            if (parser->type == TOKEN_EOS) {
+                parserConsume(parser, TOKEN_EOS);
+            }
+        } else { //variable parsing
+            parseVarDefinition(nodes, parser, scope, identifierOrType, identifier, parent);
+            if (parser->type == TOKEN_EOS) {
+                parserConsume(parser, TOKEN_EOS);
+            }
+        }
     } else if (parser->type == TOKEN_ASSIGNMENT) {
         parseAssign(nodes, parser, scope, parent, identifierOrType);
     } else if (parser->type == TOKEN_LBRACKET) {
@@ -755,7 +798,7 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
 
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent) {
     DynArray* nodes = arrayInit(sizeof(AST*));
-    while (parser->type != breakToken) {
+    while (parser->type != breakToken) { //TODO detect custom types and parse them with all other data types
         if (parser->token->flags & DATA_TYPE) {
             parseDefinition(nodes, parser, scope, parent);
         } else if (parser->token->flags & TYPE_UNARY) {

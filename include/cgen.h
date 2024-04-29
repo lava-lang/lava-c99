@@ -33,10 +33,14 @@ void visitDataType(AST* node, ASTType parent, OutputBuffer* buffer) {
 }
 
 void visitVarDefinition(ASTVarDef* node, ASTType parent, OutputBuffer* buffer) {
-    visit(node->dataType, parent, buffer);
-//    if (node->dataType->token->flags & VAR_POINTER) {
-//        bufferAppend(buffer, "*");
-//    }
+    if (node->dataType->type == AST_STRUCT) {
+        visit(((ASTStructDef*) node->dataType)->identifier, parent, buffer);
+    } else {
+        visit(node->dataType, parent, buffer);
+    }
+    if (node->identifier->flags & POINTER_TYPE) {
+        bufferAppend(buffer, "*");
+    }
     bufferAppend(buffer, " ");
     visit(node->identifier, parent, buffer);
 //    if (node->dataType->token->flags & VAR_ARRAY) {
@@ -80,9 +84,23 @@ void visitStructDefinition(ASTStructDef* node, ASTType parent, OutputBuffer* buf
     visit(node->identifier, parent, buffer);
     bufferAppend(buffer, " {\n");
     bufferIndent(buffer);
-    visitCompound(node->members, parent, buffer, "", true);
+
+    for (int i = 0; i < node->members->array->len; ++i) {
+        AST* ast = (AST*) node->members->array->elements[i];
+        if (ast->type == AST_VAR) {
+            visit(ast, parent, buffer);
+            bufferAppend(buffer, "\n");
+        }
+    }
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n};");
+    for (int i = 0; i < node->members->array->len; ++i) {
+        AST* ast = (AST*) node->members->array->elements[i];
+        if (ast->type == AST_FUNC) {
+            visit(ast, parent, buffer);
+        }
+    }
+//    visitCompound(node->members, parent, buffer, "", true);
 
     FREE(node->members->array); //Cleanup array allocations
 }
@@ -117,30 +135,20 @@ void visitEnumDefinition(ASTEnumDef* node, ASTType parent, OutputBuffer* buffer)
 
 void visitFuncDefinition(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer) {
     bool isStructFunc = node->base.flags & STRUCT_FUNC;
-    bufferAppend(buffer, "\n"); //Append initial new line for space between functions and variables
 
-    if (isStructFunc == false) {
-        bufferPrefix(buffer);
-        bufferAppend(buffer, "\n");
-        visit(node->returnType, parent, buffer);
-        bufferAppend(buffer, " ");
-        if (node->structIden != NULL) {
-            bufferAppend(buffer, node->structIden);
-            bufferAppend(buffer, "_");
-        }
-        visit(node->identifier, parent, buffer);
-        bufferAppend(buffer, "(");
-        visitCompound(node->arguments, parent, buffer, ", ", true);
-        bufferAppend(buffer, ");");
-    }
+    //Forward Declaration...
+    bufferPrefix(buffer);
+    bufferAppend(buffer, "\n");
 
-    if (isStructFunc == true) {
-        bufferPrefix(buffer);
-        bufferAppend(buffer, "\n");
+    if (node->returnType->type == AST_STRUCT) {
+        bufferAppendView(buffer, &((ASTStructDef*) node->returnType)->identifier->token->view);
     } else {
-        bufferCode(buffer);
+        visitNode(node->returnType, parent, buffer);
     }
-    visit(node->returnType, parent, buffer);
+    //Append pointer if this identifier is a pointer
+    if (node->identifier->flags & POINTER_TYPE) {
+        bufferAppend(buffer, "*");
+    }
     bufferAppend(buffer, " ");
     if (node->structIden != NULL) {
         bufferAppend(buffer, node->structIden);
@@ -149,17 +157,38 @@ void visitFuncDefinition(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer)
     visit(node->identifier, parent, buffer);
     bufferAppend(buffer, "(");
     visitCompound(node->arguments, parent, buffer, ", ", true);
-    bufferAppend(buffer, ")");
-    bufferAppend(buffer, " {\n");
+    bufferAppend(buffer, ");");
 
+    //Generate Actual Function...
+    if (isStructFunc) {
+        bufferCode(buffer);
+    } else {
+        bufferCode(buffer);
+    }
+    bufferAppend(buffer, "\n");
+    if (node->returnType->type == AST_STRUCT) {
+        bufferAppendView(buffer, &((ASTStructDef*) node->returnType)->identifier->token->view);
+    } else {
+        visitNode(node->returnType, parent, buffer);
+    }
+    //Append pointer if this identifier is a pointer
+    if (node->identifier->flags & POINTER_TYPE) {
+        bufferAppend(buffer, "*");
+    }
+    bufferAppend(buffer, " ");
+    if (node->structIden != NULL) {
+        bufferAppend(buffer, node->structIden);
+        bufferAppend(buffer, "_");
+    }
+    visit(node->identifier, parent, buffer);
+    bufferAppend(buffer, "(");
+    visitCompound(node->arguments, parent, buffer, ", ", true);
+    bufferAppend(buffer, ") {\n");
     bufferIndent(buffer);
     visitCompound(node->statements, parent, buffer, "\n", true);
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
     bufferCode(buffer);
-
-    FREE(node->arguments->array); //Cleanup array allocations
-    FREE(node->statements->array);
 }
 
 void visitUnionDefinition(ASTUnionDef* node, ASTType parent, OutputBuffer* buffer) {
@@ -332,7 +361,8 @@ void visitFuncCall(ASTFuncCall* node, ASTType parent, OutputBuffer* buffer) {
 
 void visitStructInit(ASTStructInit* node, ASTType parent, OutputBuffer* buffer) {
     visit(node->structDef->identifier, parent, buffer);
-    if (node->structDef->base.flags & POINTER_TYPE) {
+    //Only check if the *identifier* has the pointer flag applied
+    if (node->identifier->flags & POINTER_TYPE) {
         bufferAppend(buffer, "*");
     }
     bufferAppend(buffer, " ");
@@ -388,13 +418,23 @@ void visitUnary(ASTUnary* node, ASTType parent, OutputBuffer* buffer) {
     }
 }
 
+void visitValue(AST* node, ASTType parent, OutputBuffer* buffer) {
+    if (node->token->type == TOKEN_STRING_VALUE) {
+        bufferAppend(buffer, "\"");
+        visitNode(node, parent, buffer);
+        bufferAppend(buffer, "\"");
+    } else {
+        visitNode(node, parent, buffer);
+    }
+}
+
 void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
     if (node == NULL) return;
     switch (node->type) {
         case AST_COMP: visitCompound((ASTComp*) node, parent, buffer, "\n", false); break;
         case AST_TYPE: visitDataType(node, parent, buffer); break;
         case AST_ID: visitNode(node, parent, buffer); break;
-        case AST_VALUE: visitNode(node, parent, buffer); break;
+        case AST_VALUE: visitValue(node, parent, buffer); break;
         case AST_VAR: visitVarDefinition((ASTVarDef*) node, parent, buffer); break;
         case AST_STRUCT: visitStructDefinition((ASTStructDef*) node, parent, buffer); break;
         case AST_ENUM: visitEnumDefinition((ASTEnumDef*) node, parent, buffer); break;
