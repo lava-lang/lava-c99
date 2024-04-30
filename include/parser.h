@@ -652,8 +652,17 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
         if (result != -1 && out.value != NULL) {
             ASTStructDef* structDef = (ASTStructDef*) out.value;
             for (int i = 0; i < structDef->members->array->len; ++i) {
-                //TODO this might need to be a copy
-                arrayAppend(parentMembers, structDef->members->array->elements[i]);
+                AST* member = structDef->members->array->elements[i];
+                if (member->type == AST_VAR) {
+                    ASTVarDef* copy = RALLOC(1, sizeof(ASTVarDef));
+                    memcpy(copy, member, sizeof(ASTVarDef));
+                    arrayAppend(parentMembers, copy);
+                } else if (member->type == AST_FUNC) {
+                    ASTFuncDef* copy = RALLOC(1, sizeof(ASTFuncDef));
+                    memcpy(copy, member, sizeof(ASTFuncDef));
+                    copy->structIden = viewToStr(&id->token->view);
+                    arrayAppend(parentMembers, copy);
+                }
             }
         } else {
             ERROR("Tried to extend struct definition '%s' that does not exist!", viewToStr(&parentId->token->view));

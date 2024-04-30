@@ -1,8 +1,12 @@
-struct Rect {
+type Rect {
     int, w, h;
+
+    int getSize() {
+        return w * h;
+    }
 }
 
-struct Widget : Rect {
+type Widget : Rect {
     void draw() {
         int area = w * h;
         c.printf("Area: %d\n", area);

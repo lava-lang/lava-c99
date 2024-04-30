@@ -6,12 +6,18 @@ int w;
 int h;
 
 };
+int Rect_getSize(int* w, int* h) {
+	return *w * *h;
+}
 
 struct Widget {
 int w;
 int h;
 
 };
+int Widget_getSize(int* w, int* h) {
+	return *w * *h;
+}
 void Widget_draw(int* w, int* h) {
 	int area = *w * *h;
 	printf("Area: %d\n", area);
