@@ -139,8 +139,8 @@ void drawPixel(Sphere* s, Vec* pixCol, Ray* ray, Sphere* light) {
 }
 
 int main() {
-    int h = 500;
-    int w = 500;
+    int h = 512;
+    int w = 512;
     Vec bg = {16, 16, 16};
 
     //Light

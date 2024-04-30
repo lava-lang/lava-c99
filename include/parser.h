@@ -487,6 +487,17 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
     arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
 }
 
+void copyMembersToStruct(DynArray* nodesArgs, AST* node, Scope* scope) {
+    ASTVarDef* member = (ASTVarDef*) node;
+    //TODO avoid copying these AST nodes. referencing the member nodes causes issues with Cgen
+    ASTVarDef* copy = RALLOC(1, sizeof(ASTVarDef));
+    memcpy(copy, member, sizeof(ASTVarDef));
+    copy->base.flags |= POINTER_TYPE;
+    //make sure to push these to the stack also
+    stackPush(scope, &copy->identifier->token->view, ST_VAR_PTR, true);
+    arrayAppend(nodesArgs, copy);
+}
+
 void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier, AST* parent) {
     int flags = parent->type == AST_STRUCT ? STRUCT_FUNC : 0;
 
@@ -506,14 +517,15 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
         //Add struct member vars to member function argument list
         for (int i = 0; i < nodes->len; ++i) {
             if (((AST*) nodes->elements[i])->type == AST_VAR) {
-                ASTVarDef* member = (ASTVarDef*) nodes->elements[i];
-                //TODO avoid copying these AST nodes. referencing the member nodes causes issues with Cgen
-                ASTVarDef* copy = RALLOC(1, sizeof(ASTVarDef));
-                memcpy(copy, member, sizeof(ASTVarDef));
-                copy->base.flags |= POINTER_TYPE;
-                //make sure to push these to the stack also
-                stackPush(scope, &copy->identifier->token->view, ST_VAR_PTR, true);
-                arrayAppend(nodesArgs, copy);
+                copyMembersToStruct(nodesArgs, nodes->elements[i], scope);
+            }
+        }
+        //Struct has some members from the parent too
+        if (astStructDef->members->array->len > 0) {
+            for (int i = 0; i < astStructDef->members->array->len; ++i) {
+                if (((AST*) astStructDef->members->array->elements[i])->type == AST_VAR) {
+                    copyMembersToStruct(nodesArgs, astStructDef->members->array->elements[i], scope);
+                }
             }
         }
     } else {
@@ -630,13 +642,35 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
     }
     AST* id = parseIdentifier(parser, scope, parent);
 
+    //Add parent members if extending another struct
+    DynArray* parentMembers = arrayInit(sizeof(AST*));
+    if (parser->type == TOKEN_COLON) {
+        parserConsume(parser, TOKEN_COLON);
+        AST* parentId = parseIdentifier(parser, scope, parent);
+        hash_table_entry out = {0};
+        int result = find(scope->defs, viewToStr(&parentId->token->view), &out);
+        if (result != -1 && out.value != NULL) {
+            ASTStructDef* structDef = (ASTStructDef*) out.value;
+            for (int i = 0; i < structDef->members->array->len; ++i) {
+                //TODO this might need to be a copy
+                arrayAppend(parentMembers, structDef->members->array->elements[i]);
+            }
+        } else {
+            ERROR("Tried to extend struct definition '%s' that does not exist!", viewToStr(&parentId->token->view));
+        }
+    }
+
     parserConsume(parser, TOKEN_LBRACE);
     int stackTop = scope->top;
     ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
+    //Assign parent members to struct
+    astStruct->members = structAST(AST_COMP, 0, ASTComp, parentMembers);
     //Push this new type to the definition table
     insert(scope->defs, viewToStr(&id->token->view), astStruct);
     ASTComp* members = parseAST(parser, scope, TOKEN_RBRACE, astStruct);
-    astStruct->members = members;
+    for (int i = 0; i < members->array->len; ++i) {
+        arrayAppend(astStruct->members->array, members->array->elements[i]);
+    }
     arrayAppend(nodes, astStruct);
 
     scope->top = stackTop;
