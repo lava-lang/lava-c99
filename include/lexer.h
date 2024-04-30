@@ -283,6 +283,8 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_RETURN, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "import")) {
         return lexNextImport(lexer);
+    } else if (viewStrCmp(&lexer->view, "override")) {
+        return tokenInit(TOKEN_OVERRIDE, &lexer->view, 0);
     }
     //Assume if it's not a reserved identifier, it must be a name
     return tokenInit(TOKEN_ID, &lexer->view, 0);

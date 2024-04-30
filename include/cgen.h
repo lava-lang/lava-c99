@@ -369,7 +369,9 @@ void visitFuncCall(ASTFuncCall* node, ASTType parent, OutputBuffer* buffer) {
         bufferAppend(buffer, node->structIden);
         bufferAppend(buffer, "_");
     }
-    visit(node->identifier, parent, buffer);
+    if (node->identifier != NULL) {
+        visit(node->identifier, parent, buffer);
+    }
     bufferAppend(buffer, "(");
     visitCompound(node->expressions, parent, buffer, ",", true);
     bufferAppend(buffer, ")");
@@ -410,10 +412,12 @@ void visitArrayAccess(ASTArrayAccess* node, ASTType parent, OutputBuffer* buffer
 
 void visitStructMemberRef(ASTStructMemberRef* node, ASTType parent, OutputBuffer* buffer) {
     visit(node->varIden, parent, buffer);
-    if (node->varIden->flags & POINTER_TYPE) {
-        bufferAppend(buffer, "->");
-    } else {
-        bufferAppend(buffer, ".");
+    if (node->varIden != NULL) { //This is the case for calling member functions inside a struct
+        if (node->varIden->flags & POINTER_TYPE) {
+            bufferAppend(buffer, "->");
+        } else {
+            bufferAppend(buffer, ".");
+        }
     }
     visit(node->memberIden, parent, buffer);
 }

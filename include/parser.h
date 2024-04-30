@@ -200,7 +200,7 @@ AST* parseExpression(Parser* parser, Scope* scope, AST* parent);
 void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent);
 ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* parent);
 
-AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* identifier, ASTStructDef* structDef, char* prefix) {
+AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* identifier, ASTStructDef* structDef, char* prefix, AST* parent) {
     parserConsume(parser, TOKEN_LPAREN);
     DynArray* expressionArray = arrayInit(sizeof(AST*));
     if (structDef != NULL) { //append struct members to expression list
@@ -209,7 +209,11 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* iden
             if (member->type == AST_VAR) {
                 ASTVarDef* structVar = (ASTVarDef*) member;
                 //varAccessed->flags |= POINTER_TYPE;
-                arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, REF_TYPE, ASTStructMemberRef, varAccessed, structVar->identifier));
+                if (parent->flags & STRUCT_FUNC) {
+                    arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, NON_EXPR_FUNC, ASTStructMemberRef, NULL, structVar->identifier));
+                } else {
+                    arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, REF_TYPE, ASTStructMemberRef, varAccessed, structVar->identifier));
+                }
             }
         }
     }
@@ -231,7 +235,8 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* iden
     }
     parserConsume(parser, TOKEN_RPAREN);
     ASTComp* expressions = structAST(AST_COMP, 0, ASTComp, expressionArray);
-    return (AST*) structAST(AST_FUNC_CALL, 0, ASTFuncCall, identifier, expressions, prefix);
+    int flags = parent->flags & STRUCT_FUNC ? NON_EXPR_FUNC : 0;
+    return (AST*) structAST(AST_FUNC_CALL, flags, ASTFuncCall, identifier, expressions, prefix);
 }
 
 AST* parseStructMemberRef(Parser* parser, Scope* scope, AST* parent, AST* identifier) {
@@ -263,7 +268,7 @@ AST* parseStructMemberRef(Parser* parser, Scope* scope, AST* parent, AST* identi
             ASTStructDef* structDef = (ASTStructDef*) out.value;
             //We also pass the variable identifier as parent for the function call, so this func as access to it
             char* str = viewToStr(&structDef->identifier->token->view);
-            return (AST*) parseFunctionCall(parser, scope, identifier, member, structDef, str);
+            return (AST*) parseFunctionCall(parser, scope, identifier, member, structDef, str, parent);
         } else {
             return (AST*) structAST(AST_STRUCT_MEMBER_REF, 0, ASTStructMemberRef, identifier, member);
         }
@@ -318,7 +323,15 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
                 return identifier;
             }
         } else if (stType == ST_FUNC) {
-            return parseFunctionCall(parser, scope, parent, parseIdentifier(parser, scope, parent), NULL, NULL);
+            return parseFunctionCall(parser, scope, parent, parseIdentifier(parser, scope, parent), NULL, NULL, parent);
+        } else if (stType == ST_FUNC_STRUCT) {
+            hash_table_entry out = {0};
+            int result = find(scope->defs, viewToStr(&parser->token->view), &out);
+            if (result == 0) {
+                ASTStructDef* structDef = (ASTStructDef*) out.value;
+                char* str = viewToStr(&structDef->identifier->token->view);
+                return parseFunctionCall(parser, scope, parent, parseIdentifier(parser, scope, parent), structDef, str, parent);
+            }
         }
     } else if (parser->type == TOKEN_C_STATEMENT) {
         Token* cStmt = parserConsume(parser, TOKEN_C_STATEMENT);
@@ -641,8 +654,10 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
         flags |= PACKED_DATA;
     }
     AST* id = parseIdentifier(parser, scope, parent);
+    int stackTop = scope->top;
 
     //Add parent members if extending another struct
+    ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
     DynArray* parentMembers = arrayInit(sizeof(AST*));
     if (parser->type == TOKEN_COLON) {
         parserConsume(parser, TOKEN_COLON);
@@ -650,9 +665,9 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
         hash_table_entry out = {0};
         int result = find(scope->defs, viewToStr(&parentId->token->view), &out);
         if (result != -1 && out.value != NULL) {
-            ASTStructDef* structDef = (ASTStructDef*) out.value;
-            for (int i = 0; i < structDef->members->array->len; ++i) {
-                AST* member = structDef->members->array->elements[i];
+            ASTStructDef* parentStructDef = (ASTStructDef*) out.value;
+            for (int i = 0; i < parentStructDef->members->array->len; ++i) {
+                AST* member = parentStructDef->members->array->elements[i];
                 if (member->type == AST_VAR) {
                     ASTVarDef* copy = RALLOC(1, sizeof(ASTVarDef));
                     memcpy(copy, member, sizeof(ASTVarDef));
@@ -662,6 +677,9 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
                     memcpy(copy, member, sizeof(ASTFuncDef));
                     copy->structIden = viewToStr(&id->token->view);
                     arrayAppend(parentMembers, copy);
+                    //Push the copies of these values to the stack
+                    stackPush(scope, &copy->identifier->token->view, ST_FUNC_STRUCT, false);
+                    insert(scope->defs, viewToStr(&copy->identifier->token->view), astStruct);
                 }
             }
         } else {
@@ -670,8 +688,6 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
     }
 
     parserConsume(parser, TOKEN_LBRACE);
-    int stackTop = scope->top;
-    ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
     //Assign parent members to struct
     astStruct->members = structAST(AST_COMP, 0, ASTComp, parentMembers);
     //Push this new type to the definition table
@@ -848,6 +864,15 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         if (identifierOrType->type == AST_FUNC_CALL && parser->type == TOKEN_EOS) {
             identifierOrType->flags |= NON_EXPR_FUNC;
         }
+    } else if (parser->type == TOKEN_LPAREN && identifierOrType->type == AST_ID) {
+        //This is maybe a func call within a struct func
+        hash_table_entry out;
+        int result = find(scope->defs, viewToStr(&identifierOrType->token->view), &out);
+        if (result == 0) {
+            ASTStructDef* structDef = (ASTStructDef*) out.value;
+            char* str = viewToStr(&structDef->identifier->token->view);
+            identifierOrType = parseFunctionCall(parser, scope, NULL, identifierOrType, out.value, str, parent);
+        }
     }
     //check if this identifier reference is on the stack
     if (identifierOrType->type == AST_ID) {
@@ -901,7 +926,7 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
         }
         arrayAppend(nodes, binop);
     } else if (parser->type == TOKEN_LPAREN) { //This must be a void function call outside an expression
-        AST* funcCall = parseFunctionCall(parser, scope, parent, identifierOrType, NULL, NULL);
+        AST* funcCall = parseFunctionCall(parser, scope, parent, identifierOrType, NULL, NULL, parent);
         funcCall->flags |= NON_EXPR_FUNC;
         arrayAppend(nodes, funcCall);
         parserConsume(parser, TOKEN_EOS);

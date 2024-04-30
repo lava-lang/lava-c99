@@ -1,19 +1,33 @@
 type Rect {
     int, w, h;
 
-    int getSize() {
+    int area() {
         return w * h;
     }
 }
 
 type Widget : Rect {
+    void init() {
+        //NOOP
+    }
+
     void draw() {
-        int area = w * h;
-        c.printf("Area: %d\n", area);
+        int x = area();
+        c.printf("Area For Widget: %d\n", x);
+    }
+}
+
+type Label : Widget {
+    override void draw() {
+        int x = area();
+        c.printf("Area For Label: %d\n", x);
     }
 }
 
 int main() {
     Widget w = {100, 50};
     w.draw();
+
+    Label l = {25, 10};
+    l.draw();
 }
