@@ -121,7 +121,7 @@ typedef enum TokenType {
     TOKEN_BOOLEAN,
     TOKEN_BOOLEAN_VALUE,
 
-    TOKEN_STRUCT,
+    TOKEN_TYPE,
     TOKEN_ENUM,
     TOKEN_UNION,
     TOKEN_FLAG,

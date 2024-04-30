@@ -634,7 +634,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
 }
 
 void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
-    parserConsume(parser, TOKEN_STRUCT);
+    parserConsume(parser, TOKEN_TYPE);
     ASTFlag flags = 0;
     if (parser->type == TOKEN_PACKED) { //Apply GCC data packing
         parserConsume(parser, TOKEN_PACKED);
@@ -917,7 +917,7 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
             //Parsing Unary operators where the op comes first (!condition, -5, etc)
             AST* expression = parseExpression(parser, scope, parent);
             arrayAppend(nodes, /*structAST(AST_UNARY, 0, ASTUnary, expression, token)*/expression);
-        } else if (parser->type == TOKEN_STRUCT) {
+        } else if (parser->type == TOKEN_TYPE) {
             parseStructDefinition(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_ENUM) {
             parseEnumDefinition(nodes, parser, scope, parent);

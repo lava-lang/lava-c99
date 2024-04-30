@@ -1,6 +1,6 @@
 import <math.h>;
 
-struct Vec {
+type Vec {
     f64 x, y, z;
 
     void add(Vec* v) {
@@ -30,12 +30,12 @@ struct Vec {
     }
 }
 
-struct Ray {
+type Ray {
     Vec o;
     Vec d;
 }
 
-struct Sphere {
+type Sphere {
     Vec c;
     f64 r;
     Vec col;

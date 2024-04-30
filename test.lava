@@ -1,3 +1,15 @@
+type Rect {
+    int, w, h;
+}
+
+type Widget : Rect {
+    void draw() {
+        int area = w * h;
+        c.printf("Area: %d\n", area);
+    }
+}
+
 int main() {
-    
+    Widget w = {100, 50};
+    w.draw();
 }

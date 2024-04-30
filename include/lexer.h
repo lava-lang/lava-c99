@@ -257,8 +257,8 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_BOOLEAN, &lexer->view, lexDataType(lexer, VAR_BOOL));
     } else if (viewStrCmp(&lexer->view, "true") || viewStrCmp(&lexer->view, "false")) {
         return tokenInit(TOKEN_BOOLEAN_VALUE, &lexer->view, DATA_VALUE);
-    } else if (viewStrCmp(&lexer->view, "struct")) {
-        return tokenInit(TOKEN_STRUCT, &lexer->view, 0);
+    } else if (viewStrCmp(&lexer->view, "type")) {
+        return tokenInit(TOKEN_TYPE, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "enum")) {
         return tokenInit(TOKEN_ENUM, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "union")) {
