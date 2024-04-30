@@ -38,10 +38,6 @@ void Label_init(int* w, int* h) {
 
 }
 void Label_draw(int* w, int* h) {
-	int x = Widget_area(	w,	h);;
-	printf("Area For Widget: %d\n", x);
-}
-void Label_drawd(int* w, int* h) {
 	int x = Label_area(	w,	h);;
 	printf("Area For Label: %d\n", x);
 }

@@ -511,10 +511,10 @@ void copyMembersToStruct(DynArray* nodesArgs, AST* node, Scope* scope) {
     arrayAppend(nodesArgs, copy);
 }
 
-void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier, AST* parent) {
+void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* returnType, AST* identifier, AST* parent, bool isOverride) {
     int flags = parent->type == AST_STRUCT ? STRUCT_FUNC : 0;
 
-    if (identifierExists(scope, &identifier->token->view) == true) {
+    if (identifierExists(scope, &identifier->token->view) == true && isOverride == false) {
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
     char* structIden = NULL;
@@ -563,7 +563,7 @@ void parseFuncDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* ret
 
     ASTComp* args = structAST(AST_COMP, 0, ASTComp, nodesArgs);
     parserConsume(parser, TOKEN_LBRACE);
-    ASTFuncDef* func = structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, NULL, structIden);
+    ASTFuncDef* func = structAST(AST_FUNC, flags, ASTFuncDef, returnType, identifier, args, NULL, structIden, isOverride);
     ASTComp* body = parseAST(parser, scope, TOKEN_RBRACE, (AST*) func);
     func->statements = body;
     parserConsume(parser, TOKEN_RBRACE);
@@ -584,6 +584,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
     AST* dataType = NULL;
     while (parser->token->flags & DATA_TYPE || parser->type == TOKEN_ID) {
         bool isPointer = false;
+        bool isOverride = false;
         if (parser->type == TOKEN_ID) {
             hash_table_entry out = {0};
             int result = find(scope->defs, viewToStr(&parser->token->view), &out);
@@ -606,6 +607,11 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
             parserConsume(parser, TOKEN_STAR);
             isPointer = true;
         }
+        if (parser->type == TOKEN_OVERRIDE) {
+            parserConsume(parser, TOKEN_OVERRIDE);
+            isOverride = true;
+        }
+
         //First conditional chain, testing to detect func pointer, function def, or standard variable
         if (parser->type == TOKEN_COLON) { //Parsing function pointer
             parserConsume(parser, TOKEN_COLON);
@@ -630,7 +636,7 @@ void parseDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* parent)
                 identifier->flags |= POINTER_TYPE;
             }
             if (parser->type == TOKEN_LPAREN) { //Parsing Function Def
-                parseFuncDefinition(nodes, parser, scope, dataType, identifier, parent);
+                parseFuncDefinition(nodes, parser, scope, dataType, identifier, parent, isOverride);
                 break; //Break out of loop, as no more work once function is constructed
             }
             parseVarDefinition(nodes, parser, scope, dataType, identifier, parent); //Finally, it must be a standard variable
@@ -694,7 +700,22 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
     insert(scope->defs, viewToStr(&id->token->view), astStruct);
     ASTComp* members = parseAST(parser, scope, TOKEN_RBRACE, astStruct);
     for (int i = 0; i < members->array->len; ++i) {
-        arrayAppend(astStruct->members->array, members->array->elements[i]);
+        AST* member = (AST*) members->array->elements[i];
+        //Check if function is overriding another, if so, replace it
+        if (member->type == AST_FUNC && ((ASTFuncDef*) member)->isOverride == true) {
+            ASTFuncDef* overridingFunc = (ASTFuncDef*) member;
+            for (int j = 0; j < astStruct->members->array->len; ++j) {
+                AST* toCheck = (AST*) astStruct->members->array->elements[j];
+                if (toCheck->type == AST_FUNC) {
+                    ASTFuncDef* funcDefToCheck = (ASTFuncDef*) toCheck;
+                    if (viewViewCmp(&funcDefToCheck->identifier->token->view, &overridingFunc->identifier->token->view) == true) {
+                        astStruct->members->array->elements[j] = overridingFunc;
+                    }
+                }
+            }
+        } else {
+            arrayAppend(astStruct->members->array, member);
+        }
     }
     arrayAppend(nodes, astStruct);
 
@@ -851,6 +872,7 @@ void parseAssign(DynArray* nodes, Parser* parser, Scope* scope, AST* parent, AST
 
 void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     bool isPointer = false;
+    bool isOverride = false;
     AST* identifierOrType = parseIdentifierOrType(parser, scope, parent);
     if (parser->type == TOKEN_STAR) { //Pointer type
         parserConsume(parser, TOKEN_STAR);
@@ -883,6 +905,10 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
             identifierOrType->flags |= DEREF_TYPE;
         }
     }
+    if (parser->type == TOKEN_OVERRIDE) {
+        parserConsume(parser, TOKEN_OVERRIDE);
+        isOverride = true;
+    }
     if (parser->type == TOKEN_ID) { //If the next token is another id, then it must be a new type being instantiated
         AST* identifier = parseIdentifier(parser, scope, parent);
         //If this is another ID (so a custom type), and it already consumed TOKEN_STAR, then this identifier is a pointer
@@ -890,7 +916,7 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
             identifier->flags |= POINTER_TYPE;
         }
         if (parser->type == TOKEN_LPAREN) { //function parsing
-            parseFuncDefinition(nodes, parser, scope, identifierOrType, identifier, parent);
+            parseFuncDefinition(nodes, parser, scope, identifierOrType, identifier, parent, isOverride);
             if (parser->type == TOKEN_EOS) {
                 parserConsume(parser, TOKEN_EOS);
             }

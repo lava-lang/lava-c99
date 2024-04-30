@@ -56,7 +56,7 @@ typedef struct ASTLiteral {AST base; union {size_t value; };} ASTLiteral;
 typedef struct ASTVarDef {AST base; AST* dataType; AST* identifier; AST* expression;} ASTVarDef;
 typedef struct ASTStructDef {AST base; AST* identifier; ASTComp* members;} ASTStructDef;
 typedef struct ASTEnumDef {AST base; AST* identifier; AST* dataType; ASTComp* constants;} ASTEnumDef;
-typedef struct ASTFuncDef {AST base; AST* returnType; AST* identifier; ASTComp* arguments; ASTComp* statements; char* structIden;} ASTFuncDef;
+typedef struct ASTFuncDef {AST base; AST* returnType; AST* identifier; ASTComp* arguments; ASTComp* statements; char* structIden; bool isOverride;} ASTFuncDef;
 typedef struct ASTUnionDef {AST base; AST* identifier; ASTComp* members;} ASTUnionDef;
 typedef struct ASTAssign {AST base; AST* left; AST* right;} ASTAssign;
 //TODO Token* in Binop can just be TokenType? avoids storing pointer where an int can suffice

@@ -16,5 +16,4 @@ typedef struct Label Label;
 int Label_area(int* w, int* h);
 void Label_init(int* w, int* h);
 void Label_draw(int* w, int* h);
-void Label_drawd(int* w, int* h);
 int main();
