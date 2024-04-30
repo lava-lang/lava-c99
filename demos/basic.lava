@@ -1,0 +1,20 @@
+void fizzBuzz(int max) {
+    int i = 0;
+    while (i < max) {
+        if (i % 3 == 0) {
+            c.printf("Fizz");
+        }
+        if (i % 5 == 0) {
+            c.printf("Buzz");
+        }
+        if ((i % 3 != 0) && (i % 5 != 0)) {
+            c.printf("number=%d", i);
+        }
+        c.printf("\n");
+        i++;
+    }
+}
+
+int main() {
+    fizzBuzz(20);
+}
