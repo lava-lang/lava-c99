@@ -1,8 +1,6 @@
 int main() {
     int* x = c.malloc(sizeof(int));
-    defer {
-        c.printf("1");
-    }
+    defer c.printf("1");
     defer {
         c.printf("2");
         c.printf("3");

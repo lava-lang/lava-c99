@@ -163,6 +163,7 @@ int main() {
     Sphere s3 = {sv3, 75, blue};
 
     c.FILE *output = fopen("out.ppm", "w");
+    defer c.fclose(output);
     //PPM header
     c.fprintf(output, "P3\n%d %d 255\n", w, h);
 
@@ -189,5 +190,4 @@ int main() {
             c.fprintf(output, "%f %f %f\n", pixCol.x, pixCol.y, pixCol.z);
         }
     }
-    c.fclose(output);
 }
