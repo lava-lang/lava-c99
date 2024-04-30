@@ -15,7 +15,7 @@ const char* AST_NAMES[] = {
     "C Statement", "Integer", "Union", "Variable Function",
     "If Statement", "Else Statement", "While Loop", "For Loop", "Expression", "Function Call",
     "Struct Init", "Struct Member Ref", "Break Statement", "Array Init",
-    "Array Access",
+    "Array Access", "Defer Statement",
 };
 
 //TODO AST nodes should have their parent as a member, to avoid
@@ -29,7 +29,7 @@ typedef enum packed ASTType {
     AST_C, AST_INTEGER, AST_UNION, AST_FUNC_VAR,
     AST_IF, AST_ELSE, AST_WHILE, AST_FOR, AST_EXPR, AST_FUNC_CALL,
     AST_STRUCT_INIT, AST_STRUCT_MEMBER_REF, AST_BREAK,
-    AST_ARRAY_INIT, AST_ARRAY_ACCESS,
+    AST_ARRAY_INIT, AST_ARRAY_ACCESS, AST_DEFER,
 } ASTType;
 typedef enum packed ASTFlag {
     ENUM_FLAG     = 1 << 0,
@@ -68,6 +68,7 @@ typedef struct ASTElse {AST base; ASTComp* body;} ASTElse;
 typedef struct ASTWhile {AST base; AST* expr; ASTComp* body;} ASTWhile;
 typedef struct ASTFor {AST base; AST* definition; AST* condition; AST* expression; ASTComp* body;} ASTFor;
 typedef struct ASTBreak {AST base; AST* expr; ASTComp* body;} ASTBreak;
+typedef struct ASTDefer {AST base; ASTComp* body;} ASTDefer;
 typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions; char* structIden;} ASTFuncCall;
 typedef struct ASTStructInit {AST base; AST* identifier; ASTStructDef* structDef; ASTComp* expressions;} ASTStructInit;
 typedef struct ASTStructMemberRef {AST base; AST* varIden; AST* memberIden;} ASTStructMemberRef;

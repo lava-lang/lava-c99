@@ -766,6 +766,19 @@ void parseBreak(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
     arrayAppend(nodes, basicAST(AST_BREAK, 0, token));
 }
 
+void parseDefer(DynArray* nodes, Parser* parser, Scope* scope, AST* parent) {
+    parserConsume(parser, TOKEN_DEFER);
+    ASTComp* body = NULL;
+    if (parser->type == TOKEN_LBRACE) {
+        parserConsume(parser, TOKEN_LBRACE);
+        body = parseAST(parser, scope, TOKEN_RBRACE, parent);
+        parserConsume(parser, TOKEN_RBRACE);
+    } else {
+        body = parseAST(parser, scope, TOKEN_STOP, parent);
+    }
+    arrayAppend(nodes, structAST(AST_DEFER, 0, ASTDefer, body));
+}
+
 void parseAssign(DynArray* nodes, Parser* parser, Scope* scope, AST* parent, AST* left) {
     //TODO uncomment this, array assign throws identifier not defined
 //    if (identifierExists(scope, &left->token->view) == false) {
@@ -892,12 +905,15 @@ ASTComp* parseAST(Parser* parser, Scope* scope, TokenType breakToken, AST* paren
             parseFor(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_BREAK) {
             parseBreak(nodes, parser, scope, parent);
+        } else if (parser->type == TOKEN_DEFER) {
+            parseDefer(nodes, parser, scope, parent);
         } else if (parser->type == TOKEN_ID) {
             parseIdentifierRef(nodes, parser, scope, parent);
-        }
-
-        else {
+        } else {
             ERROR("Token Was Not Consumed Or Parsed! %s (%s)", TOKEN_NAMES[parser->type], viewToStr(&parser->token->view));
+        }
+        if (breakToken == TOKEN_STOP) {
+            break;
         }
     }
     return structAST(AST_COMP, 0, ASTComp, nodes);

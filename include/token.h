@@ -46,6 +46,7 @@ const char* TOKEN_NAMES[] = {
         "Else Statement",
         "While Loop",
         "Break Statement",
+        "Defer Statement",
         "For Loop",
         "Return Statement",
         "Import Statement",
@@ -129,6 +130,7 @@ typedef enum TokenType {
     TOKEN_ELSE,
     TOKEN_WHILE,
     TOKEN_BREAK,
+    TOKEN_DEFER,
     TOKEN_FOR,
     TOKEN_RETURN,
     TOKEN_IMPORT,
@@ -169,6 +171,7 @@ typedef enum TokenType {
     TOKEN_RBRACKET,
     TOKEN_LBRACE,
     TOKEN_RBRACE,
+    TOKEN_STOP,
 } TokenType;
 
 typedef enum TokenFlag {

@@ -275,6 +275,8 @@ Token* lexNextIdentifier(Lexer* lexer) {
         return tokenInit(TOKEN_WHILE, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "break")) {
         return tokenInit(TOKEN_BREAK, &lexer->view, 0);
+    } else if (viewStrCmp(&lexer->view, "defer")) {
+        return tokenInit(TOKEN_DEFER, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "for")) {
         return tokenInit(TOKEN_FOR, &lexer->view, 0);
     } else if (viewStrCmp(&lexer->view, "return")) {

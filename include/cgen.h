@@ -12,15 +12,34 @@ void visitNode(AST* node, ASTType parent, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
 }
 
-void visitCompound(ASTComp* node, ASTType parent, OutputBuffer* buffer, char* delimiter, bool skipLastDelim) {
-    for (size_t i = 0; i < node->array->len; ++i) {
+void visitCompound(ASTComp* comp, ASTType parent, OutputBuffer* buffer, char* delimiter, bool skipLastDelim) {
+    DynArray* deferNodes = arrayInit(sizeof(AST*));
+    for (size_t i = 0; i < comp->array->len; ++i) {
+        AST* node = (AST*) comp->array->elements[i];
+        if (node->type == AST_DEFER) {
+            arrayAppend(deferNodes, node);
+            continue;
+        }
         bufferAppendIndent(buffer);
-        visit((AST*) node->array->elements[i], parent, buffer);
+        visit(node, parent, buffer);
         //TODO remove AST_IMPORT exclusion somehow
-        if ((i < node->array->len - 1 || !skipLastDelim) && ((AST*) node->array->elements[i])->type != AST_IMPORT) {
-//            if (pass == GEN) {
+        if ((i < comp->array->len - 1 || !skipLastDelim) && node->type != AST_IMPORT) {
+            bufferAppend(buffer, delimiter);
+        }
+    }
+    //Now visit defer nodes last
+    if (deferNodes->len == 0) {
+        return;
+    }
+    for (int i = deferNodes->len - 1; i > -1; --i) {
+        bufferAppend(buffer, delimiter);
+        ASTComp* node = ((ASTDefer*) deferNodes->elements[i])->body;
+        for (int j = 0; j < node->array->len; ++j) {
+            bufferAppendIndent(buffer);
+            visit((AST*) node->array->elements[j], parent, buffer);
+            if ((j < node->array->len - 1 || !skipLastDelim)) {
                 bufferAppend(buffer, delimiter);
-//            }
+            }
         }
     }
 }
@@ -464,6 +483,7 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
         case AST_STRUCT_MEMBER_REF: visitStructMemberRef((ASTStructMemberRef*) node, parent, buffer); break;
         case AST_ARRAY_INIT: visitArrayInit((ASTArrayInit*) node, parent, buffer); break;
         case AST_ARRAY_ACCESS: visitArrayAccess((ASTArrayAccess*) node, parent, buffer); break;
+        case AST_DEFER: visitCompound(((ASTDefer*) node)->body, parent, buffer, "\n", true); break;
         default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
     if (node->flags & TRAILING_EOS) {
@@ -476,6 +496,7 @@ void generateC(ASTComp* root, char* prefix, char* code) {
     FILE *fpCode = fopen(code, "w");
     OutputBuffer* buffer = bufferInit(fpPrefix, fpCode);
     bufferPrefix(buffer);
+    bufferAppend(buffer, "#include <stdlib.h>\n");
     bufferAppend(buffer, "#include <stdio.h>\n");
     bufferAppend(buffer, "#include <stdbool.h>\n");
     bufferAppend(buffer, "#include <stdint.h>\n");

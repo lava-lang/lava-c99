@@ -1,61 +1,12 @@
-import <stdio.h>;
-
-struct Vec {
-    int x, y, z;
-
-    int offset(int w) {
-        return x + y + z + w;
-    }
-
-    int size() {
-        return x + y + z;
-    }
-}
-
-int test() {
-    return 1;
-}
-
-void fizzBuzz(int max) {
-    int i = 0;
-    while (i < max) {
-        if (i % 3 == 0) {
-            c.printf("Fizz");
-        }
-        if (i % 5 == 0) {
-            c.printf("Buzz");
-        }
-        if ((i % 3 != 0) && (i % 5 != 0)) {
-            c.printf("number=%d", i);
-        }
-        c.printf("\n");
-        i++;
-    }
-}
-
 int main() {
-    int z = 5;
-    Vec v = {z, test(), 4};
-    int aa = v.offset(1);
-
-    bool condition = true;
-    if (z % 5) {
-        c.printf("the condition is true\n");
+    int* x = c.malloc(sizeof(int));
+    defer {
+        c.printf("1");
     }
-
-    while(!condition) {
-        c.printf("infinite loop");
-        break;
+    defer {
+        c.printf("2");
+        c.printf("3");
     }
-
-    for (int i = 0; i < 10; i++) {
-        c.printf("for: %d\n");
-    }
-
-    c.FILE* f = fopen("ray.lava", "rw");
-
-    c.printf("aa: %d\n", aa);
-    c.printf("v.x: %d\n", v.x);
-
-    fizzBuzz(20);
+    int y = 5;
+    int a = 75;
 }
