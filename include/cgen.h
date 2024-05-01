@@ -7,6 +7,7 @@
 #include "debug.h"
 
 void visit(AST* node, ASTType parent, OutputBuffer* buffer);
+void visitRegionAPI(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer);
 
 void visitNode(AST* node, ASTType parent, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
@@ -205,6 +206,10 @@ void visitFuncDefinition(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer)
     bufferAppend(buffer, ") {\n");
     bufferIndent(buffer);
     visitCompound(node->statements, parent, buffer, "\n", true);
+
+    //Special case for the region API
+    visitRegionAPI(node, parent, buffer);
+
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
     bufferCode(buffer);
@@ -495,6 +500,14 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
     }
 }
 
+void visitRegionAPI(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer) {
+    if (viewStrCmp(&node->identifier->token->view, "main")) {
+        bufferAppend(buffer, "\n");
+        bufferAppendIndent(buffer);
+        bufferAppend(buffer, "freeGlobalRegion();");
+    }
+}
+
 void generateC(ASTComp* root, char* prefix, char* code) {
     FILE *fpPrefix = fopen(prefix, "w");
     FILE *fpCode = fopen(code, "w");
@@ -504,6 +517,7 @@ void generateC(ASTComp* root, char* prefix, char* code) {
     bufferAppend(buffer, "#include <stdio.h>\n");
     bufferAppend(buffer, "#include <stdbool.h>\n");
     bufferAppend(buffer, "#include <stdint.h>\n");
+    bufferAppend(buffer, "#include \"include/region.h\"\n");
     bufferCode(buffer);
     bufferAppend(buffer, "#include \"output.h\"\n\n");
     visit((AST*) root, -1, buffer);
