@@ -7,7 +7,6 @@
 #include "debug.h"
 
 void visit(AST* node, ASTType parent, OutputBuffer* buffer);
-void visitRegionAPI(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer);
 
 void visitNode(AST* node, ASTType parent, OutputBuffer* buffer) {
     bufferAppendView(buffer, &node->token->view);
@@ -205,10 +204,21 @@ void visitFuncDefinition(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer)
     visitCompound(node->arguments, parent, buffer, ", ", true);
     bufferAppend(buffer, ") {\n");
     bufferIndent(buffer);
+
+    //Special case for the region API
+    if (viewStrCmp(&node->identifier->token->view, "main")) {
+        bufferAppendIndent(buffer);
+        bufferAppend(buffer, "initGlobalRegion(calloc(1, GLOBAL_REGION_CAPACITY));\n");
+    }
+
     visitCompound(node->statements, parent, buffer, "\n", true);
 
     //Special case for the region API
-    visitRegionAPI(node, parent, buffer);
+    if (viewStrCmp(&node->identifier->token->view, "main")) {
+        bufferAppend(buffer, "\n");
+        bufferAppendIndent(buffer);
+        bufferAppend(buffer, "freeGlobalRegion();");
+    }
 
     bufferUnindent(buffer);
     bufferAppend(buffer, "\n}");
@@ -392,10 +402,34 @@ void visitStructInit(ASTStructInit* node, ASTType parent, OutputBuffer* buffer) 
         bufferAppend(buffer, "*");
     }
     bufferAppend(buffer, " ");
+    if (node->arenaAlloc == true) {
+        bufferAppend(buffer, "_");
+    }
     visit(node->identifier, parent, buffer);
     bufferAppend(buffer, " = {");
     visitCompound(node->expressions, parent, buffer, ", ", true);
     bufferAppend(buffer, "};");
+
+    //Handle arena allocation
+    if (node->arenaAlloc == true) {
+        bufferAppend(buffer, "\n");
+        bufferAppendIndent(buffer);
+        visit(node->structDef->identifier, parent, buffer);
+        bufferAppend(buffer, "* ");
+        visit(node->identifier, parent, buffer);
+        bufferAppend(buffer, " = allocRegion(&GLOBAL_REGION, sizeof(");
+        bufferAppendView(buffer, &node->structDef->identifier->token->view);
+        bufferAppend(buffer, "));\n");
+        bufferAppendIndent(buffer);
+        bufferAppend(buffer, "memcpy(");
+        visit(node->identifier, parent, buffer);
+        bufferAppend(buffer, ", &_");
+        visit(node->identifier, parent, buffer);
+        bufferAppend(buffer, ", sizeof(");
+        bufferAppendView(buffer, &node->structDef->identifier->token->view);
+        bufferAppend(buffer, "));");
+    }
+
     FREE(node->expressions->array);
 }
 
@@ -500,14 +534,6 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
     }
 }
 
-void visitRegionAPI(ASTFuncDef* node, ASTType parent, OutputBuffer* buffer) {
-    if (viewStrCmp(&node->identifier->token->view, "main")) {
-        bufferAppend(buffer, "\n");
-        bufferAppendIndent(buffer);
-        bufferAppend(buffer, "freeGlobalRegion();");
-    }
-}
-
 void generateC(ASTComp* root, char* prefix, char* code) {
     FILE *fpPrefix = fopen(prefix, "w");
     FILE *fpCode = fopen(code, "w");
@@ -517,7 +543,7 @@ void generateC(ASTComp* root, char* prefix, char* code) {
     bufferAppend(buffer, "#include <stdio.h>\n");
     bufferAppend(buffer, "#include <stdbool.h>\n");
     bufferAppend(buffer, "#include <stdint.h>\n");
-    bufferAppend(buffer, "#include \"include/region.h\"\n");
+    bufferAppend(buffer, "#include \"region_api.h\"\n");
     bufferCode(buffer);
     bufferAppend(buffer, "#include \"output.h\"\n\n");
     visit((AST*) root, -1, buffer);

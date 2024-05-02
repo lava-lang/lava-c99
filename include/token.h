@@ -52,6 +52,7 @@ const char* TOKEN_NAMES[] = {
         "Import Statement",
         "Pointer Access",
         "Override",
+        "New",
 
         "Identifier",
         "End of Statement",
@@ -137,6 +138,7 @@ typedef enum TokenType {
     TOKEN_IMPORT,
     TOKEN_PTR_ACCESS,
     TOKEN_OVERRIDE,
+    TOKEN_NEW,
 
     TOKEN_ID,
     TOKEN_EOS,

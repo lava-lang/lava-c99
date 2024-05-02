@@ -70,7 +70,7 @@ typedef struct ASTFor {AST base; AST* definition; AST* condition; AST* expressio
 typedef struct ASTBreak {AST base; AST* expr; ASTComp* body;} ASTBreak;
 typedef struct ASTDefer {AST base; ASTComp* body;} ASTDefer;
 typedef struct ASTFuncCall {AST base; AST* identifier; ASTComp* expressions; char* structIden;} ASTFuncCall;
-typedef struct ASTStructInit {AST base; AST* identifier; ASTStructDef* structDef; ASTComp* expressions;} ASTStructInit;
+typedef struct ASTStructInit {AST base; AST* identifier; ASTStructDef* structDef; ASTComp* expressions; bool arenaAlloc;} ASTStructInit;
 typedef struct ASTStructMemberRef {AST base; AST* varIden; AST* memberIden;} ASTStructMemberRef;
 typedef struct ASTArrayInit {AST base; AST* type; AST* identifier; AST* expression;} ASTArrayInit;
 typedef struct ASTArrayAccess {AST base; AST* identifier; AST* expression;} ASTArrayAccess;

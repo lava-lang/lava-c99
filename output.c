@@ -19,9 +19,15 @@ void Widget_draw(int* w, int* h) {
 	printf("I am a Widget!\n");
 }
 
+Widget test() {
+	Widget _w = {	100, 	50};
+	Widget* w = allocRegion(&GLOBAL_REGION, sizeof(Widget));
+	memcpy(w, &_w, sizeof(Widget));
+	return w;
+}
+
 int main() {
-	int* x = allocRegion(&GLOBAL_REGION, sizeof(int));
-	Widget w = {	100, 	50};
-	Widget_draw(	&w.w,	&w.h);
+	initGlobalRegion(calloc(1, GLOBAL_REGION_CAPACITY));
+
 	freeGlobalRegion();
 }

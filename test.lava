@@ -13,8 +13,11 @@ type Widget : Rect {
     }
 }
 
+Widget test() {
+    Widget w = new {100, 50};
+    return w;
+}
+
 int main() {
-    c.int* x = allocRegion(&GLOBAL_REGION, sizeof(int));
-    Widget w = {100, 50};
-    w.draw();
+
 }

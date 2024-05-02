@@ -413,6 +413,15 @@ AST* parseIdentifierOrType(Parser* parser, Scope* scope, AST* parent) {
 }
 
 AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, AST* identifier, AST* parent) {
+    bool arenaAlloc = false;
+    if (parser->type == TOKEN_NEW) {
+        parserConsume(parser, TOKEN_NEW);
+        arenaAlloc = true;
+        stackPush(scope, &identifier->token->view, ST_VAR_STRUCT_PTR, false);
+    } else {
+        int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_STRUCT_PTR : ST_VAR_STRUCT;
+        stackPush(scope, &identifier->token->view, stackType, false);
+    }
     if (identifier->flags & POINTER_TYPE) {
         ERROR("Cannot initialize struct '%s', it is a pointer!", viewToStr(&identifier->token->view))
     }
@@ -443,7 +452,7 @@ AST* parseStructInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, A
     parserConsume(parser, TOKEN_RBRACE);
     parserConsume(parser, TOKEN_EOS);
     ASTComp* expressions = structAST(AST_COMP, 0, ASTComp, expressionArray);
-    arrayAppend(nodes, structAST(AST_STRUCT_INIT, 0, ASTStructInit, identifier, structDef, expressions));
+    arrayAppend(nodes, structAST(AST_STRUCT_INIT, 0, ASTStructInit, identifier, structDef, expressions, arenaAlloc));
 }
 
 void parseArrayInit(DynArray* nodes, Parser* parser, Scope* scope, AST* type, AST* identifier, AST* parent) {
@@ -467,24 +476,22 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
         ERROR("Duplicate Identifier! (%s)", viewToStr(&identifier->token->view));
     }
 
-    AST* expression = NULL; //TODO somehow remove use of null
+    ASTVarDef* varDef = structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, NULL);
     if (parser->type == TOKEN_ASSIGNMENT) { //if we are assigning a value
         parserConsume(parser, TOKEN_ASSIGNMENT);
         if (parser->type == TOKEN_LPAREN && (dataType->flags & ARRAY_TYPE)) {
             stackPush(scope, &identifier->token->view, ST_VAR, false);
             parseArrayInit(nodes, parser, scope, dataType, identifier, parent);
             return;
-        } else if (parser->type == TOKEN_LBRACE) { //Struct init
-            int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_STRUCT_PTR : ST_VAR_STRUCT;
-            stackPush(scope, &identifier->token->view, stackType, false);
+        } else if (parser->type == TOKEN_LBRACE || parser->type == TOKEN_NEW) { //Struct init
             parseStructInit(nodes, parser, scope, dataType, identifier, parent);
             return; //Avoid having a varDef node added, StructInit will handle those.
         } else { //Otherwise, assume this is standard expression
             int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_PTR : ST_VAR;
             stackPush(scope, &identifier->token->view, stackType, false);
-            expression = parseExpression(parser, scope, parent);
-            if (!isValueCompatible(dataType, expression)) {
-                ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[expression->token->type], viewToStr(&expression->token->view), TOKEN_NAMES[dataType->token->type]);
+            varDef->expression = parseExpression(parser, scope, parent);
+            if (!isValueCompatible(dataType, varDef->expression)) {
+                ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[varDef->expression->token->type], viewToStr(&varDef->expression->token->view), TOKEN_NAMES[dataType->token->type]);
             }
         }
     } else {
@@ -497,7 +504,7 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
             stackPush(scope, &identifier->token->view, stackType, false);
         }
     }
-    arrayAppend(nodes, structAST(AST_VAR, 0, ASTVarDef, dataType, identifier, expression));
+    arrayAppend(nodes, varDef);
 }
 
 void copyMembersToStruct(DynArray* nodesArgs, AST* node, Scope* scope) {
