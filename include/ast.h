@@ -45,6 +45,7 @@ typedef enum packed ASTFlag {
     DEREF_TYPE    = 1 << 10,
     ARRAY_TYPE    = 1 << 11,
     TRAILING_EOS  = 1 << 12,
+    INSIDE_EXPR   = 1 << 13,
 } ASTFlag;
 struct AST {
     ASTType type;

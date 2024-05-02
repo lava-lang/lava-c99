@@ -31,10 +31,6 @@ type Sphere {
     Vec col;
 
     void getNormal(Vec* out, Vec* p) {
-        out.x = p.x;
-        out.y = p.y;
-        out.z = p.z;
-        out.sub(c);
-        out.div(r);
+        f64 test = p.dot(p) - (r * r);
     }
 }

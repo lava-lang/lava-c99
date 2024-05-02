@@ -235,7 +235,14 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* iden
     }
     parserConsume(parser, TOKEN_RPAREN);
     ASTComp* expressions = structAST(AST_COMP, 0, ASTComp, expressionArray);
-    int flags = parent->flags & STRUCT_FUNC ? NON_EXPR_FUNC : 0;
+    int flags = 0;
+    if (parent->flags & STRUCT_FUNC) {
+        if (parent->flags & INSIDE_EXPR) {
+            flags = 0;
+        } else {
+            flags |= NON_EXPR_FUNC;
+        }
+    }
     return (AST*) structAST(AST_FUNC_CALL, flags, ASTFuncCall, identifier, expressions, prefix);
 }
 
@@ -489,6 +496,7 @@ void parseVarDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* data
         } else { //Otherwise, assume this is standard expression
             int stackType = identifier->flags & POINTER_TYPE ? ST_VAR_PTR : ST_VAR;
             stackPush(scope, &identifier->token->view, stackType, false);
+            parent->flags |= INSIDE_EXPR;
             varDef->expression = parseExpression(parser, scope, parent);
             if (!isValueCompatible(dataType, varDef->expression)) {
                 ERROR("%s (%s) incompatible with: %s", TOKEN_NAMES[varDef->expression->token->type], viewToStr(&varDef->expression->token->view), TOKEN_NAMES[dataType->token->type]);

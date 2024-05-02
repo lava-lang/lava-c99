@@ -61,8 +61,8 @@ bool Sphere_intersects(Vec* c, double* r, Vec* col, Ray* ray) {
 	Vec p = {	0, 	0, 	0};
 	p = ray->o;
 	Vec_sub(	&p.x,	&p.y,	&p.z,	c);
-	double b = 2 * Vec_dot(	&p.x,	&p.y,	&p.z,	&ray->d);;
-	double c1 = Vec_dot(	&p.x,	&p.y,	&p.z,	&p); - (*r * *r);
+	double b = 2 * Vec_dot(	&p.x,	&p.y,	&p.z,	&ray->d);
+	double c1 = Vec_dot(	&p.x,	&p.y,	&p.z,	&p) - (*r * *r);
 	double disc = b * b - 4 * c1;
 	if (disc < 0.0001) {
 		return false;
@@ -75,8 +75,8 @@ double Sphere_intersection(Vec* c, double* r, Vec* col, Ray* ray) {
 	Vec p = {	0, 	0, 	0};
 	p = ray->o;
 	Vec_sub(	&p.x,	&p.y,	&p.z,	c);
-	double b = 2 * Vec_dot(	&p.x,	&p.y,	&p.z,	&ray->d);;
-	double c1 = Vec_dot(	&p.x,	&p.y,	&p.z,	&p); - (*r * *r);
+	double b = 2 * Vec_dot(	&p.x,	&p.y,	&p.z,	&ray->d);
+	double c1 = Vec_dot(	&p.x,	&p.y,	&p.z,	&p) - (*r * *r);
 	double disc = sqrt(b * b - 4 * c1);;
 	double t0 = -b - disc;
 	double t1 = -b + disc;
