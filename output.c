@@ -19,7 +19,7 @@ void Widget_draw(int* w, int* h) {
 	printf("I am a Widget!\n");
 }
 
-Widget test() {
+Widget* test() {
 	Widget _w = {	100, 	50};
 	Widget* w = allocRegion(&GLOBAL_REGION, sizeof(Widget));
 	memcpy(w, &_w, sizeof(Widget));

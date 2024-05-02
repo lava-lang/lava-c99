@@ -13,7 +13,7 @@ type Widget : Rect {
     }
 }
 
-Widget test() {
+Widget* test() {
     Widget w = new {100, 50};
     return w;
 }

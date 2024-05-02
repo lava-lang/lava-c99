@@ -10,5 +10,5 @@ void Rect_draw(int* w, int* h);
 typedef struct Widget Widget;
 
 void Widget_draw(int* w, int* h);
-Widget test();
+Widget* test();
 int main();

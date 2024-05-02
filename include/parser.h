@@ -405,7 +405,7 @@ AST* parseIdentifierOrType(Parser* parser, Scope* scope, AST* parent) {
     if (result == 0) {
         //We can cast this to AST, as we know this is the only type inserted into the table
         //Also only return the struct if the next token is an identifier, as that must mean we are initializing this struct
-        if (out.value != NULL && parser->type == TOKEN_ID) {
+        if (out.value != NULL && (parser->type == TOKEN_ID || parser->type == TOKEN_STAR)) {
             return (AST*) out.value;
         }
     }
