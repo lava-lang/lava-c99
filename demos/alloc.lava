@@ -1,0 +1,17 @@
+type Rect {
+    int, w, h;
+
+    void draw() {
+        c.printf("I am a Rect!\n");
+    }
+}
+
+Rect* test() {
+    Rect r = new {100, 50};
+    return r;
+}
+
+int main() {
+    Rect* r = test();
+    c.printf("%d %d\n", r->w, r->h);
+}
