@@ -209,7 +209,7 @@ AST* parseFunctionCall(Parser* parser, Scope* scope, AST* varAccessed, AST* iden
             if (member->type == AST_VAR) {
                 ASTVarDef* structVar = (ASTVarDef*) member;
                 //varAccessed->flags |= POINTER_TYPE;
-                if (parent->flags & STRUCT_FUNC) {
+                if ((parent->flags & STRUCT_FUNC) && (varAccessed->type == AST_FUNC)) {
                     arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, NON_EXPR_FUNC, ASTStructMemberRef, NULL, structVar->identifier));
                 } else {
                     arrayAppend(expressionArray, structAST(AST_STRUCT_MEMBER_REF, REF_TYPE, ASTStructMemberRef, varAccessed, structVar->identifier));

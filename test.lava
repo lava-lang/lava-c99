@@ -1,23 +1,40 @@
-type Rect {
-    int, w, h;
+//type Rect {
+//    int, w, h;
+//
+//    void draw() {
+//        c.printf("I am a Rect!\n");
+//    }
+//}
+//
+//type Widget : Rect {
+//
+//    void override draw() {
+//        c.printf("I am a Widget!\n");
+//    }
+//}
+//
+//Widget* test() {
+//    Widget w = new {100, 50};
+//    return w;
+//}
+//
+//int main() {
+//
+//}
+type Vec {
+    f64 x, y, z;
+}
 
-    void draw() {
-        c.printf("I am a Rect!\n");
+type Sphere {
+    Vec c;
+    f64 r;
+    Vec col;
+
+    void getNormal(Vec* out, Vec* p) {
+        out.x = p.x;
+        out.y = p.y;
+        out.z = p.z;
+        out.sub(c);
+        out.div(r);
     }
-}
-
-type Widget : Rect {
-
-    void override draw() {
-        c.printf("I am a Widget!\n");
-    }
-}
-
-Widget* test() {
-    Widget w = new {100, 50};
-    return w;
-}
-
-int main() {
-
 }
