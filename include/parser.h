@@ -29,6 +29,8 @@ typedef struct StackEntry {
 typedef struct Scope {
     StackEntry stack[255];
     hash_table* defs;
+    DynArray* types;
+    hash_table* typesDone;
     //TODO table for registered types
     int top;
 } Scope;
@@ -36,6 +38,8 @@ typedef struct Scope {
 Scope* scopeInit() {
     Scope* scope = CALLOC(1, sizeof(Scope));
     scope->defs = init_hash_table(100);
+    scope->types = arrayInit(sizeof(char*));
+    scope->typesDone = init_hash_table(100);
     scope->top = -1;
     return scope;
 }
@@ -126,6 +130,14 @@ bool getIsPointerForIden(Scope* scope, StrView* view) {
         return scope->stack[pos].pointer;
     }
     return -1;
+}
+
+void deleteTypeFromTypes(Scope* scope, char* typeName) {
+    for (int i = 0; i < scope->types->len; ++i) {
+        if (scope->types->elements[i] != NULL && strcmp(scope->types->elements[i], typeName) == 0) {
+            scope->types->elements[i] = NULL;
+        }
+    }
 }
 
 typedef struct Parser {
@@ -679,6 +691,9 @@ void parseStructDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* p
 
     //Add parent members if extending another struct
     ASTStructDef* astStruct = structAST(AST_STRUCT, flags, ASTStructDef, id, NULL);
+
+    deleteTypeFromTypes(scope, viewToStr(&id->token->view));
+
     DynArray* parentMembers = arrayInit(sizeof(AST*));
     if (parser->type == TOKEN_COLON) {
         parserConsume(parser, TOKEN_COLON);
@@ -779,6 +794,9 @@ void parseEnumDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* par
         constantValue++;
     }
     parserConsume(parser, TOKEN_RBRACE);
+
+    deleteTypeFromTypes(scope, viewToStr(&identifier->token->view));
+
     ASTComp* constants = structAST(AST_COMP, 0, ASTComp, constantArray); //TODO move this to parseAST? like struct members?
     arrayAppend(nodes, structAST(AST_ENUM, flags, ASTEnumDef, identifier, dataType, constants));
 }
@@ -790,6 +808,8 @@ void parseUnionDefinition(DynArray* nodes, Parser* parser, Scope* scope, AST* pa
     DynArray* memberArray = arrayInit(sizeof(AST*));
     //TODO
     parserConsume(parser, TOKEN_RBRACE);
+
+    deleteTypeFromTypes(scope, viewToStr(&identifier->token->view));
     ASTComp* members = structAST(AST_COMP, 0, ASTComp, memberArray);
     arrayAppend(nodes, structAST(AST_UNION, 0, ASTUnionDef, identifier, members));
 }
@@ -915,7 +935,10 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
     if (identifierOrType->type == AST_ID) {
         int stType = getSTForIden(scope, &identifierOrType->token->view);
         if (stType == -1) {
-            ERROR("Identifier '%s' is not defined!\n", viewToStr(&identifierOrType->token->view))
+            if (parent->type == AST_STRUCT && parser->type == TOKEN_ID) {
+                arrayAppend(scope->types, viewToStr(&identifierOrType->token->view));
+            }
+            //ERROR("Identifier '%s' is not defined!\n", viewToStr(&identifierOrType->token->view))
         } else if (stType == ST_VAR_PTR) {
             identifierOrType->flags |= DEREF_TYPE;
         }
@@ -980,6 +1003,14 @@ void parseIdentifierRef(DynArray* nodes, Parser* parser, Scope* scope, AST* pare
     //Final condition, consume trailing EOS
     if (parser->type == TOKEN_EOS) { //Member ref ends with EOS, either a NOOP member ref, or a function call
         parserConsume(parser, TOKEN_EOS);
+    }
+}
+
+void parserCheckTypes(Parser* parser, Scope* scope) {
+    for (int i = 0; i < scope->types->len; ++i) {
+        if (scope->types->elements[i] != NULL) {
+            ERROR("No type definition for `%s`!", (char*) scope->types->elements[i]);
+        }
     }
 }
 

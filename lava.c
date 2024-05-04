@@ -15,6 +15,7 @@ void generateCFromLava(char* fileName, char* input) {
     Parser* parser = parserInit(lexer);
     AST empty = {0};
     ASTComp* root = parseAST(parser, globalScope, TOKEN_EOF, &empty);
+    parserCheckTypes(parser, globalScope);
     //BASIC("Parsing: %f", (double)(clock() - startParse) / CLOCKS_PER_SEC)
 
     #if DEBUG_MODE == 1
@@ -25,7 +26,7 @@ void generateCFromLava(char* fileName, char* input) {
     #endif
 
     //clock_t startCodegen = clock();
-    generateC(root, "../output.h", "../output.c");
+    generateC(root, globalScope, "../output.h", "../output.c");
     //DEBUG("C Code Generation:\n%s\n", generatedCode)
     //BASIC("Codegen: %f", (double)(clock() - startCodegen) / CLOCKS_PER_SEC)
 

@@ -1,3 +1,17 @@
+type Ray {
+    Sphere o;
+    Vec d;
+}
+
+type Vec {
+
+}
+
+type Sphere {
+    Vec c;
+    Vec col;
+}
+
 int main() {
 
 }

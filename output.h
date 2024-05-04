@@ -4,8 +4,10 @@
 #include <stdint.h>
 #include "region_api.h"
 
-typedef struct Rect Rect;
+typedef struct Vec Vec;
 
-void Rect_draw(int* w, int* h);
-Rect* test();
+typedef struct Sphere Sphere;
+
+typedef struct Ray Ray;
+
 int main();

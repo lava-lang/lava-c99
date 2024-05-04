@@ -503,7 +503,7 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
         case AST_ID: visitNode(node, parent, buffer); break;
         case AST_VALUE: visitValue(node, parent, buffer); break;
         case AST_VAR: visitVarDefinition((ASTVarDef*) node, parent, buffer); break;
-        case AST_STRUCT: visitStructDefinition((ASTStructDef*) node, parent, buffer); break;
+//        case AST_STRUCT: visitStructDefinition((ASTStructDef*) node, parent, buffer); break;
         case AST_ENUM: visitEnumDefinition((ASTEnumDef*) node, parent, buffer); break;
         case AST_FUNC: visitFuncDefinition((ASTFuncDef*) node, parent, buffer); break;
         case AST_UNION: visitUnionDefinition((ASTUnionDef*) node, parent, buffer); break;
@@ -527,14 +527,58 @@ void visit(AST* node, ASTType parent, OutputBuffer* buffer) {
         case AST_ARRAY_INIT: visitArrayInit((ASTArrayInit*) node, parent, buffer); break;
         case AST_ARRAY_ACCESS: visitArrayAccess((ASTArrayAccess*) node, parent, buffer); break;
         case AST_DEFER: visitCompound(((ASTDefer*) node)->body, parent, buffer, "\n", true); break;
-        default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
+        //default: PANIC("Unhandled AST: %s %s", AST_NAMES[node->type], node->token->type != TOKEN_NONE_ ? TOKEN_NAMES[node->token->type] : "");
     }
     if (node->flags & TRAILING_EOS) {
         bufferAppend(buffer, ";");
     }
 }
 
-void generateC(ASTComp* root, char* prefix, char* code) {
+void hoistStruct(AST* root, AST* node, Scope* scope, OutputBuffer* buffer) {
+    ASTStructDef* structDef = (ASTStructDef*) node;
+    insert(scope->typesDone, viewToStr(&structDef->identifier->token->view), structDef);
+    for (int i = 0; i < structDef->members->array->len; ++i) {
+        AST* member = structDef->members->array->elements[i];
+        if (member->type == AST_VAR) {
+            ASTVarDef* varDef = (ASTVarDef*) member;
+            if (varDef->dataType->type == AST_STRUCT) {
+                hash_table_entry outDone;
+                int resultDone = find(scope->typesDone, viewToStr(&((ASTStructDef*) varDef->dataType)->identifier->token->view), &outDone);
+                if (resultDone == -1) {
+                    printf("Hoisting %s\n", viewToStr(&((ASTStructDef*) varDef->dataType)->identifier->token->view));
+                    hoistStruct(root, varDef->dataType, scope, buffer);
+                }
+            } else {
+                hash_table_entry outDefs;
+                hash_table_entry outDone;
+                int resultDefs = find(scope->defs, viewToStr(&varDef->dataType->token->view), &outDefs);
+                int resultDone = find(scope->typesDone, viewToStr(&varDef->dataType->token->view), &outDone);
+                if (resultDefs == 0 && resultDone == -1 && ((AST*) outDefs.value)->type == AST_STRUCT) { //type contains another type as the variable dataType
+                    printf("Hoisting %s\n", viewToStr(&varDef->dataType->token->view));
+                    hoistStruct(root, outDefs.value, scope, buffer);
+                }
+            }
+        }
+    }
+    visitStructDefinition(structDef, root->type, buffer);
+}
+
+void visitTypes(AST* root, AST* node, AST* type, Scope* scope, OutputBuffer* buffer) {
+    if (node->type == AST_COMP) {
+        ASTComp *comp = (ASTComp *) node;
+        for (int i = 0; i < comp->array->len; ++i) {
+            visitTypes(node, comp->array->elements[i], NULL, scope, buffer);
+        }
+    } else if (node->type == AST_STRUCT) {
+        hash_table_entry outDone;
+        int resultDone = find(scope->typesDone, viewToStr(&((ASTStructDef*) node)->identifier->token->view), &outDone);
+        if (resultDone == -1) {
+            hoistStruct(root, node, scope, buffer);
+        }
+    }
+}
+
+void generateC(ASTComp* root, Scope* scope, char* prefix, char* code) {
     FILE *fpPrefix = fopen(prefix, "w");
     FILE *fpCode = fopen(code, "w");
     OutputBuffer* buffer = bufferInit(fpPrefix, fpCode);
@@ -546,6 +590,7 @@ void generateC(ASTComp* root, char* prefix, char* code) {
     bufferAppend(buffer, "#include \"region_api.h\"\n");
     bufferCode(buffer);
     bufferAppend(buffer, "#include \"output.h\"\n\n");
+    visitTypes((AST*) root, (AST*) root, NULL, scope, buffer);
     visit((AST*) root, -1, buffer);
     bufferFree(buffer);
     fclose(fpPrefix);
