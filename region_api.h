@@ -14,9 +14,9 @@ typedef struct MemRegion {
 static size_t GLOBAL_REGION_CAPACITY = 10000;
 static MemRegion GLOBAL_REGION = {0};
 
-void initGlobalRegion(void* data) {
+void initGlobalRegion() {
     GLOBAL_REGION.capacity = GLOBAL_REGION_CAPACITY;
-    GLOBAL_REGION.data = data;
+    GLOBAL_REGION.data = calloc(1, GLOBAL_REGION_CAPACITY);
 }
 
 void* allocRegion(MemRegion* region, size_t allocationSize) {
