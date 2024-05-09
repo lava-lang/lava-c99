@@ -6,6 +6,7 @@
 #include <assert.h>
 
 typedef struct hash_table_entry {
+	//TODO This should be a string view and the hash algo should just query it
     char* key;
     void* value;
     struct hash_table_entry* next;

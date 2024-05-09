@@ -587,6 +587,7 @@ void generateC(ASTComp* root, Scope* scope, char* prefix, char* code) {
     bufferAppend(buffer, "#include <stdio.h>\n");
     bufferAppend(buffer, "#include <stdbool.h>\n");
     bufferAppend(buffer, "#include <stdint.h>\n");
+    bufferAppend(buffer, "#include <math.h>\n");
     bufferAppend(buffer, "#include \"region_api.h\"\n");
     bufferCode(buffer);
     bufferAppend(buffer, "#include \"output.h\"\n\n");

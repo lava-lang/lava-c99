@@ -301,7 +301,7 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
     if (parser->token->flags & DATA_VALUE) {
         parserConsume(parser, parser->type);
         return basicAST(AST_VALUE, 0, token);
-    } else if (parser->token->flags & TYPE_UNARY) {
+    } else if (parser->token->flags & TYPE_UNARY || parser->token->type == TOKEN_STAR) {
         parserConsume(parser, parser->type);
         AST* expression = parseExpression(parser, scope, parent);
         return (AST*) structAST(AST_UNARY, UNARY_RIGHT, ASTUnary, expression, token);
