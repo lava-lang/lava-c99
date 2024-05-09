@@ -1,0 +1,60 @@
+type State {
+    u32 write;
+    char move;
+    u32 nextCard;
+}
+
+type Card {
+    u32 id;
+    State stateA;
+    State stateB;
+    Card* next;
+}
+
+Card* getCards(str file) {
+    c.FILE* fptr = fopen(file, "r");
+
+    // creating the halt card
+    char haltChar = 'S';
+    State a = {0, haltChar, 0};
+    State b = {0, haltChar, 0};
+    Card head = new {0, a, b, 0};
+    Card next = new {0, 0, 0, 0};
+    head.next = next;
+
+    Card dummy = new {0, 0, 0, 0};
+    Card* prev = 0;
+
+    char fileChar, EOFChar;
+    c.fileChar = fscanf(fptr, "%d", &dummy->id);
+    c.EOFChar = EOF;
+    while (fileChar != EOFChar) {
+        c.fscanf(fptr, "%d %c %d", &dummy->stateA.write, &dummy->stateA.move, &dummy->stateA.nextCard);
+        c.fscanf(fptr, "%d %c %d", &dummy->stateB.write, &dummy->stateB.move, &dummy->stateB.nextCard);
+
+        Card nextCard = new {0, 0, 0, 0};
+        dummy.next = nextCard;
+
+        c.prev = dummy;
+        dummy = dummy.next;
+
+        c.fileChar = fscanf(fptr, "%d", &dummy->id);
+    }
+
+    c.prev->next = NULL;
+    c.fclose(fptr);
+
+    return head;
+}
+
+Card* searchCard(Card* head, u32 target) {
+    Card* dummy = head;
+    while (dummy != null) {
+//        if (dummy.id == target) {
+//            return dummy;
+//        }
+//        dummy = dummy.next;
+    }
+    return null;
+}
+
