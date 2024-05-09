@@ -366,7 +366,8 @@ AST* parseTerm(Parser* parser, Scope* scope, AST* parent) {
     while (parser->type == TOKEN_DIVIDE || parser->type == TOKEN_STAR || parser->type == TOKEN_EQUALITY ||
            parser->type == TOKEN_LESS_THAN || parser->type == TOKEN_LESS_THAN_OR_EQ ||
            parser->type == TOKEN_MORE_THAN || parser->type == TOKEN_MORE_THAN_OR_EQ ||
-           parser->type == TOKEN_MODULUS || parser->type == TOKEN_NOT_EQUAL || parser->type == TOKEN_AND) {
+           parser->type == TOKEN_MODULUS || parser->type == TOKEN_NOT_EQUAL || parser->type == TOKEN_AND ||
+           parser->type == TOKEN_OR) {
         Token* token = parser->token;
         parserConsume(parser, parser->type);
         AST* right = parseFactor(parser, scope, parent);

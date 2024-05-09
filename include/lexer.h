@@ -406,6 +406,14 @@ Token* lexNextToken(Lexer* lexer) {
             return tokenInit(TOKEN_NOT_EQUAL, &lexer->view, 0);
         }
         return tokenInit(TOKEN_NOT, &lexer->view, TYPE_UNARY);
+    } else if (lexer->cur == '|') {
+        advance(lexer);
+        if (lexer->cur == '|') {
+            advance(lexer);
+            return tokenInit(TOKEN_OR, &lexer->view, TYPE_UNARY);
+        } else {
+            //TODO bit OR
+        }
     } else if (lexer->cur == '&') {
         advance(lexer);
         if (lexer->cur == '&') {
