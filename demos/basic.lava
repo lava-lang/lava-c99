@@ -1,4 +1,8 @@
-void fizzBuzz(int max) {
+bool fizzBuzz(int max) {
+    if (!max) {
+        c.printf("Invalid input!");
+        return false;
+    }
     int i = 0;
     while (i < max) {
         if (i % 3 == 0) {
@@ -13,9 +17,14 @@ void fizzBuzz(int max) {
         c.printf("\n");
         i++;
     }
+    return true;
 }
 
 bool isPalindrome(str input) {
+    if (!input) {
+        c.printf("Invalid input!");
+        return false;
+    }
     void* original = input;
     int low = 0;
     int high = c.strlen(input) - 1;
@@ -44,7 +53,7 @@ bool fib(int prev1, int prev2, int n) {
 }
 
 void printFib(int prev1, int prev2, int n) {
-    if (n < 1) { // when the number of terms is less than 1
+    if (!n || n < 1) { // when the number of terms is less than 1
         c.printf("Invalid number of terms\n");
     } else if (n == 1) { // when the number of terms is 1
         c.printf("%d ", 0);
@@ -57,10 +66,13 @@ void printFib(int prev1, int prev2, int n) {
 }
 
 int main() {
-    fizzBuzz(20);
+    fizzBuzz(9);
 
     isPalindrome("abbba");
+    isPalindrome("hannah");
     isPalindrome("abcded");
+    isPalindrome("richard");
+    //isPalindrome(NULL);
 
     printFib(1, 0, 9);
 }
