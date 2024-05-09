@@ -355,6 +355,9 @@ AST* parseFactor(Parser* parser, Scope* scope, AST* parent) {
     } else if (parser->type == TOKEN_C_STATEMENT) {
         Token* cStmt = parserConsume(parser, TOKEN_C_STATEMENT);
         return basicAST(AST_C, 0, cStmt);
+    } else if (parser->type == TOKEN_NULL) {
+        Token* nullStmt = parserConsume(parser, TOKEN_NULL);
+        return basicAST(AST_VALUE, 0, nullStmt);
     } else {
         ERROR("Unhandled expression factor! (%s)", viewToStr(&token->view))
 //        return parseExpression(parser, scope, parent);
