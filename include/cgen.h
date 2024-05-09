@@ -75,9 +75,9 @@ void visitVarDefinition(ASTVarDef* node, ASTType parent, OutputBuffer* buffer) {
             visit(node->expression, parent, buffer);
             bufferAppend(buffer, "\"");
         } else if (node->dataType->token->type == TOKEN_CHAR) { //Handle char quotes
-            bufferAppend(buffer, "\'");
+            //bufferAppend(buffer, "\'");
             visit(node->expression, parent, buffer);
-            bufferAppend(buffer, "\'");
+            //bufferAppend(buffer, "\'");
         } else {
             visit(node->expression, parent, buffer);
         }
@@ -485,6 +485,10 @@ void visitValue(AST* node, ASTType parent, OutputBuffer* buffer) {
         bufferAppend(buffer, "\"");
         visitNode(node, parent, buffer);
         bufferAppend(buffer, "\"");
+    } else if (node->token->type == TOKEN_CHAR_VALUE) {
+        bufferAppend(buffer, "\'");
+        visitNode(node, parent, buffer);
+        bufferAppend(buffer, "\'");
     } else {
         visitNode(node, parent, buffer);
     }
