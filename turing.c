@@ -1,16 +1,18 @@
-Card* getCards(str file) {
-    c.FILE* fptr = fopen(file, "r");
-    if (!fptr) {
-        c.printf("Error reading file\n");
-        c.exit(0);
-    }
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
-    // creating the hault card
-    Card head = new {
-        0,
-                {}
-    }
-}
+struct State {
+    uint32_t write;
+    char move;
+    uint32_t next_card;
+};
+
+struct Card {
+    uint32_t id;
+    struct State state[2];
+    struct Card *next;
+};
 
 struct Card *get_cards(char *file) {
     /*
@@ -68,7 +70,7 @@ struct Card *get_cards(char *file) {
     return head;
 }
 
-struct Card *search_card(struct Card* head, uint target) {
+struct Card *search_card(struct Card* head, uint32_t target) {
     /*
     Searches the singly linked list of cards to get the card with the target
     value as id
@@ -94,7 +96,7 @@ struct Card *search_card(struct Card* head, uint target) {
     return NULL;
 }
 
-uint find_duplicacy(struct Card *head, uint target) {
+uint32_t find_duplicacy(struct Card *head, uint32_t target) {
     /*
     Searches the singly linked list for duplicacy with the target id
     args:
@@ -106,7 +108,7 @@ uint find_duplicacy(struct Card *head, uint target) {
         1 if duplicate is not found
     */
 
-    uint count = 0;
+    uint32_t count = 0;
     struct Card *dummy = head;
     while(dummy != NULL) {
 
@@ -122,7 +124,7 @@ uint find_duplicacy(struct Card *head, uint target) {
     return 1;
 }
 
-uint validate_cards(struct Card *head) {
+uint32_t validate_cards(struct Card *head) {
     /*
     Validates the singly linked lists of cards
 
@@ -134,7 +136,7 @@ uint validate_cards(struct Card *head) {
         else returns '0'
     */
 
-    uint ret = 1;
+    uint32_t ret = 1;
     printf("\nValidating Cards...\n");
 
     struct Card *dummy = head;
@@ -144,7 +146,7 @@ uint validate_cards(struct Card *head) {
 
         dummy = dummy->next;
 
-        uint is_valid_card = 1;
+        uint32_t is_valid_card = 1;
         cards_count++;
 
         if(find_duplicacy(head, dummy->id) == 0) {
@@ -155,8 +157,8 @@ uint validate_cards(struct Card *head) {
 
         for(int i = 0; i < 2; ++i) {
 
-            uint write = dummy->state[i].write == 0 || dummy->state[i].write == 1;
-            uint move = dummy->state[i].move == 'L' || dummy->state[i].move == 'R' || dummy->state[i].move == 'S';
+            uint32_t write = dummy->state[i].write == 0 || dummy->state[i].write == 1;
+            uint32_t move = dummy->state[i].move == 'L' || dummy->state[i].move == 'R' || dummy->state[i].move == 'S';
             struct Card *find = search_card(head, dummy->state[i].next_card);
 
             if(!write || !move || (!find && dummy->state[i].next_card != 0)) {
@@ -223,7 +225,7 @@ void free_cards(struct Card *head) {
 }
 
 struct Cell {
-    uint val;
+    uint32_t val;
     struct Cell *next;
     struct Cell *prev;
 };
@@ -341,7 +343,7 @@ void get_initial_tape(struct Cell *head, char *file) {
     dummy->next = NULL;
 }
 
-uint validate_tape(struct Cell *head) {
+uint32_t validate_tape(struct Cell *head) {
     /*
     Validates the tape (the value of each cell must be '0'/'1')
 
@@ -365,7 +367,7 @@ uint validate_tape(struct Cell *head) {
     return 1;
 }
 
-uint tape_count_ones(struct Cell *head) {
+uint32_t tape_count_ones(struct Cell *head) {
     /*
     Counts the number of ones in the tape (doubly linked list containing all cells)
 
@@ -376,7 +378,7 @@ uint tape_count_ones(struct Cell *head) {
         count - number of ones in the tape
     */
 
-    uint count = 0;
+    uint32_t count = 0;
 
     struct Cell *dummy = head;
     while(dummy != NULL) {
@@ -412,7 +414,7 @@ void free_tape(struct Cell *head) {
 }
 
 // maximum number of shifts done by the program
-const uint MAX_STEPS = 10000;
+const uint32_t MAX_STEPS = 10000;
 
 int main(int argc, char *argv[]) {
 
@@ -438,7 +440,7 @@ int main(int argc, char *argv[]) {
     get_initial_tape(tape_head, argv[2]);
 
     if(validate_tape(tape_head) == 0)
-        return;
+        return 0;
 
     print_tape(tape_head);
 
@@ -454,7 +456,7 @@ int main(int argc, char *argv[]) {
             break;
         }
 
-        uint temp_val = tape_head->val;
+        uint32_t temp_val = tape_head->val;
         tape_head->val = current_card->state[temp_val].write;
         tape_head = move(tape_head, current_card->state[temp_val].move);
         current_card = search_card(cards_head, current_card->state[temp_val].next_card);
@@ -462,7 +464,7 @@ int main(int argc, char *argv[]) {
         idx++;
         if(idx == MAX_STEPS+1) {
             printf("Maximum steps exeeced\n");
-            return;
+            return 0;
         }
     }
 
