@@ -1,5 +1,3 @@
-import <math.h>;
-
 type Vec {
     f64 x, y, z;
 

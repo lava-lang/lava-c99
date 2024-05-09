@@ -15,6 +15,52 @@ void fizzBuzz(int max) {
     }
 }
 
+bool isPalindrome(str input) {
+    void* original = input;
+    int low = 0;
+    int high = c.strlen(input) - 1;
+    // Keep comparing characters while they are same
+    while (low < high) {
+        if (*(input+low) != *(input+high)) {
+            c.printf("%s is not a palindrome\n", original);
+            return false;
+        }
+        low++; // move the low index forward
+        high--; // move the high index backwards
+    }
+    c.printf("%s is a palindrome\n", original);
+    return true;
+}
+
+bool fib(int prev1, int prev2, int n) {
+    if (n < 3) {
+        return false;
+    }
+    int fn = prev1 + prev2;
+    prev2 = prev1;
+    prev1 = fn;
+    c.printf("%d ", fn);
+    return fib(prev1, prev2, n - 1);
+}
+
+void printFib(int prev1, int prev2, int n) {
+    if (n < 1) { // when the number of terms is less than 1
+        c.printf("Invalid number of terms\n");
+    } else if (n == 1) { // when the number of terms is 1
+        c.printf("%d ", 0);
+    } else if (n == 2) { // when the number of terms is 2
+        c.printf("%d %d", 0, 1);
+    } else { // number of terms greater than 2
+        c.printf("%d %d ", 0, 1);
+        fib(prev1, prev2, n);
+    }
+}
+
 int main() {
     fizzBuzz(20);
+
+    isPalindrome("abbba");
+    isPalindrome("abcded");
+
+    printFib(1, 0, 9);
 }
